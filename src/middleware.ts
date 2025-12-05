@@ -28,10 +28,10 @@ const guestOnlyRoutes = [
   '/register',
 ];
 
-// Rate limiting configuration
+// Rate limiting configuration - generous limits for high-traffic API usage
 const rateLimitConfig = {
   windowMs: 60 * 1000, // 1 minute
-  maxRequests: 100, // requests per window
+  maxRequests: 1000, // 1000 requests per minute per IP
 };
 
 // Simple in-memory rate limiting (for edge runtime)
@@ -42,9 +42,9 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
   const record = rateLimitMap.get(ip);
 
   if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { 
-      count: 1, 
-      resetTime: now + rateLimitConfig.windowMs 
+    rateLimitMap.set(ip, {
+      count: 1,
+      resetTime: now + rateLimitConfig.windowMs
     });
     return { allowed: true, remaining: rateLimitConfig.maxRequests - 1 };
   }
@@ -59,26 +59,26 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-             request.headers.get('x-real-ip') || 
-             'unknown';
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
 
   // Skip setup check for API routes and static files
-  if (!pathname.startsWith('/api/') && 
-      !pathname.startsWith('/_next/') && 
-      pathname !== '/setup') {
-    
+  if (!pathname.startsWith('/api/') &&
+    !pathname.startsWith('/_next/') &&
+    pathname !== '/setup') {
+
     // Check if setup is completed (only check on non-API routes)
     try {
       const setupResponse = await fetch(new URL('/api/setup/status', request.url));
       if (setupResponse.ok) {
         const { isCompleted } = await setupResponse.json();
-        
+
         // Redirect to setup if not completed
         if (!isCompleted && pathname !== '/setup') {
           return NextResponse.redirect(new URL('/setup', request.url));
         }
-        
+
         // Redirect from setup to home if already completed
         if (isCompleted && pathname === '/setup') {
           return NextResponse.redirect(new URL('/', request.url));
@@ -93,11 +93,11 @@ export async function middleware(request: NextRequest) {
   // Rate limiting for API routes
   if (pathname.startsWith('/api/')) {
     const rateLimit = checkRateLimit(ip);
-    
+
     if (!rateLimit.allowed) {
       return new NextResponse(
         JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { 
+        {
           status: 429,
           headers: {
             'Content-Type': 'application/json',
@@ -112,12 +112,12 @@ export async function middleware(request: NextRequest) {
 
   // Security headers for all responses
   const response = NextResponse.next();
-  
+
   // Add security headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');
   response.headers.set('X-Download-Options', 'noopen');
   response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
-  
+
   // CORS headers for API routes
   if (pathname.startsWith('/api/')) {
     response.headers.set('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_APP_URL || '*');

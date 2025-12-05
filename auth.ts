@@ -49,10 +49,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        // Rate limiting for login attempts - generous limit for mod servers
+        // Rate limiting for login attempts - very generous for mod servers and high traffic
         const ip = request?.headers?.get('x-forwarded-for') ||
           request?.headers?.get('x-real-ip') || 'unknown';
-        const rateLimit = checkRateLimit(`login:${ip}`, 50, 15 * 60 * 1000);
+        const rateLimit = checkRateLimit(`login:${ip}`, 500, 15 * 60 * 1000);
 
         if (!rateLimit.allowed) {
           throw new Error('Too many login attempts. Please try again later.');

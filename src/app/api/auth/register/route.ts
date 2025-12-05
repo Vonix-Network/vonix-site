@@ -10,7 +10,7 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const windowMs = 60 * 60 * 1000; // 1 hour
-  const maxRequests = 100; // 100 registrations per hour per IP (generous for mod servers)
+  const maxRequests = 1000; // 1000 registrations per hour per IP (very generous for high traffic)
 
   const record = rateLimitMap.get(ip);
 
