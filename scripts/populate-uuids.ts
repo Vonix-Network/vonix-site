@@ -1,18 +1,18 @@
 /**
- * Script to populate missing Minecraft UUIDs for users
+ * Script to populate missing Minecraft UUIDs and usernames
  * 
  * This script:
- * 1. Finds all users missing minecraftUuid
- * 2. Looks up their UUID from Mojang API based on username/minecraftUsername
- * 3. Updates the database with the UUID
- * 4. Sets minecraftUsername to username if not set
+ * 1. Sets minecraftUsername = username for users where minecraftUsername is NULL
+ * 2. Finds all users missing minecraftUuid
+ * 3. Looks up their UUID from Mojang API based on minecraftUsername
+ * 4. Updates the database with the UUID
  * 
  * Run with: npx tsx scripts/populate-uuids.ts
  */
 
 import { db } from '../src/db';
 import { users } from '../src/db/schema';
-import { isNull, or, eq } from 'drizzle-orm';
+import { isNull, eq } from 'drizzle-orm';
 
 const MOJANG_API_URL = 'https://api.mojang.com/users/profiles/minecraft';
 
@@ -52,9 +52,44 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function main() {
-    console.log('🔍 Finding users with missing UUIDs...\n');
+    console.log('='.repeat(60));
+    console.log('🔧 STEP 1: Copy username to minecraftUsername where missing');
+    console.log('='.repeat(60) + '\n');
 
-    // Find all users missing minecraftUuid
+    // First, find users where minecraftUsername is NULL but username exists
+    const usersWithoutMcUsername = await db
+        .select({
+            id: users.id,
+            username: users.username,
+            minecraftUsername: users.minecraftUsername,
+        })
+        .from(users)
+        .where(isNull(users.minecraftUsername));
+
+    console.log(`📊 Found ${usersWithoutMcUsername.length} users without minecraftUsername\n`);
+
+    let usernamesCopied = 0;
+    for (const user of usersWithoutMcUsername) {
+        if (user.username) {
+            console.log(`  Copying username "${user.username}" to minecraftUsername for user ID ${user.id}`);
+            await db
+                .update(users)
+                .set({
+                    minecraftUsername: user.username,
+                    updatedAt: new Date()
+                })
+                .where(eq(users.id, user.id));
+            usernamesCopied++;
+        }
+    }
+
+    console.log(`\n✅ Copied ${usernamesCopied} usernames to minecraftUsername\n`);
+
+    console.log('='.repeat(60));
+    console.log('🔍 STEP 2: Populate missing UUIDs from Mojang API');
+    console.log('='.repeat(60) + '\n');
+
+    // Now find all users missing minecraftUuid (they should now all have minecraftUsername)
     const usersToUpdate = await db
         .select({
             id: users.id,
@@ -77,8 +112,14 @@ async function main() {
     let failed = 0;
 
     for (const user of usersToUpdate) {
-        // Determine which username to use for lookup
+        // Use minecraftUsername (should be set now), fallback to username just in case
         const lookupName = user.minecraftUsername || user.username;
+
+        if (!lookupName) {
+            console.log(`[${updated + skipped + failed + 1}/${usersToUpdate.length}] User ID ${user.id} has no username - skipping`);
+            skipped++;
+            continue;
+        }
 
         console.log(`[${updated + skipped + failed + 1}/${usersToUpdate.length}] Processing: ${user.username}`);
         console.log(`  Looking up: "${lookupName}"`);
@@ -88,24 +129,19 @@ async function main() {
         if (profile) {
             const formattedUuid = formatUUID(profile.id);
 
-            // Prepare update data
+            // Prepare update data - also ensure minecraftUsername matches Mojang's case
             const updateData: Record<string, any> = {
                 minecraftUuid: formattedUuid,
+                minecraftUsername: profile.name, // Use correct capitalization from Mojang
                 updatedAt: new Date(),
             };
-
-            // Also set minecraftUsername if not set
-            if (!user.minecraftUsername) {
-                updateData.minecraftUsername = profile.name; // Use correct capitalization from Mojang
-                console.log(`  Setting minecraftUsername: ${profile.name}`);
-            }
 
             await db
                 .update(users)
                 .set(updateData)
                 .where(eq(users.id, user.id));
 
-            console.log(`  ✅ Updated UUID: ${formattedUuid}`);
+            console.log(`  ✅ Updated UUID: ${formattedUuid} (MC Username: ${profile.name})`);
             updated++;
         } else {
             console.log(`  ⏭️  Skipped (no valid Minecraft account found)`);
@@ -118,12 +154,14 @@ async function main() {
         }
     }
 
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 Summary:');
-    console.log(`  ✅ Updated: ${updated}`);
-    console.log(`  ⏭️  Skipped: ${skipped}`);
-    console.log(`  ❌ Failed:  ${failed}`);
-    console.log('='.repeat(50));
+    console.log('\n' + '='.repeat(60));
+    console.log('📊 Final Summary:');
+    console.log('='.repeat(60));
+    console.log(`  📝 Usernames copied:  ${usernamesCopied}`);
+    console.log(`  ✅ UUIDs updated:     ${updated}`);
+    console.log(`  ⏭️  Skipped:          ${skipped}`);
+    console.log(`  ❌ Failed lookups:    ${failed}`);
+    console.log('='.repeat(60));
 }
 
 main()
