@@ -90,23 +90,30 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Rate limiting for API routes
+  // Rate limiting for API routes (skip if API key is present)
   if (pathname.startsWith('/api/')) {
-    const rateLimit = checkRateLimit(ip);
+    // Check for API key - if present, skip rate limiting entirely
+    const apiKey = request.headers.get('x-api-key') ||
+      request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (!rateLimit.allowed) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
-            'X-RateLimit-Remaining': '0',
-            'Retry-After': '60',
-          },
-        }
-      );
+    // Only apply rate limiting to requests WITHOUT API keys
+    if (!apiKey) {
+      const rateLimit = checkRateLimit(ip);
+
+      if (!rateLimit.allowed) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+              'X-RateLimit-Remaining': '0',
+              'Retry-After': '60',
+            },
+          }
+        );
+      }
     }
   }
 
