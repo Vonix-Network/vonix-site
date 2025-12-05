@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { servers } from '@/db/schema';
 import { getServerStatus, getMultipleServerStatus } from '@/lib/minecraft-status';
+import { pingServerNative } from '@/lib/minecraft-ping';
 import { asc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 0; // No caching - always fetch fresh
 
 /**
  * GET /api/servers/status
  * Fetches live status for all servers or a specific server
+ * 
+ * Uses a hybrid approach:
+ * 1. First tries native TCP ping (fastest, most reliable)
+ * 2. Falls back to mcstatus.io API if native ping fails
  */
 export async function GET(request: NextRequest) {
   try {
@@ -20,14 +25,22 @@ export async function GET(request: NextRequest) {
 
     // If specific server address provided, fetch just that one
     if (address) {
-      const result = await getServerStatus(
-        address,
-        port ? parseInt(port) : 25565
-      );
+      const portNum = port ? parseInt(port) : 25565;
+
+      // Try native ping first
+      let result = await pingServerNative(address, portNum);
+
+      // If native ping failed, try mcstatus.io API
+      if (!result.success || !result.data?.online) {
+        console.log(`[servers/status] Native ping failed for ${address}:${portNum}, trying API...`);
+        result = await getServerStatus(address, portNum);
+      }
 
       return NextResponse.json(result, {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       });
     }
@@ -45,22 +58,27 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch status for all servers
-    const serverList = allServers.map((s) => ({
-      address: s.ipAddress,
-      port: s.port,
-      isBedrock: false, // Add isBedrock field to servers table if needed
-    }));
+    // Ping all servers in parallel using hybrid approach
+    const statusPromises = allServers.map(async (server) => {
+      // Try native ping first
+      let result = await pingServerNative(server.ipAddress, server.port);
 
-    const statusResults = await getMultipleServerStatus(serverList);
+      // If native ping failed, try mcstatus.io API
+      if (!result.success || !result.data?.online) {
+        console.log(`[servers/status] Native ping failed for ${server.ipAddress}:${server.port}, trying API...`);
+        result = await getServerStatus(server.ipAddress, server.port, false);
+      }
 
-    // Combine database info (static fields) with live status ONLY for dynamic data
-    const serversWithStatus = allServers.map((server) => {
-      const key = `${server.ipAddress}:${server.port}`;
-      const status = statusResults.get(key);
-      const data = status?.data;
+      return { server, result };
+    });
 
-      // Derive version string from mcstatus.io structure
+    const results = await Promise.all(statusPromises);
+
+    // Combine database info (static fields) with live status
+    const serversWithStatus = results.map(({ server, result }) => {
+      const data = result?.data;
+
+      // Derive version string from the response
       const version = data?.version?.name_clean
         ?? data?.version?.name_raw
         ?? null;
@@ -82,8 +100,7 @@ export async function GET(request: NextRequest) {
         motd = Array.isArray(rawMotd) ? rawMotd.join(' ') : String(rawMotd);
       }
 
-      // Normalize icon: mcstatus.io often returns a full data URL (e.g. "data:image/png;base64,....").
-      // The frontend expects just the raw base64 payload and adds its own data:image/png;base64, prefix.
+      // Normalize icon: handle full data URLs
       let icon: string | null = data?.icon ?? null;
       if (icon && icon.startsWith('data:image')) {
         const commaIndex = icon.indexOf(',');
@@ -112,7 +129,7 @@ export async function GET(request: NextRequest) {
         },
         motd,
         icon,
-        cachedAt: status?.cachedAt,
+        cachedAt: result?.cachedAt,
       };
     });
 
@@ -121,7 +138,9 @@ export async function GET(request: NextRequest) {
       fetchedAt: new Date().toISOString(),
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error) {

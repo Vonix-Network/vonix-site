@@ -2,30 +2,101 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, Wifi, WifiOff, Map, ArrowLeft } from 'lucide-react';
+import { Users, Wifi, WifiOff, Map, ArrowLeft, Loader2 } from 'lucide-react';
+import { Suspense } from 'react';
 
 interface ServerDetailParams {
   params: Promise<{ id: string }>;
 }
 
-async function getServerWithStatus(id: number) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/servers/status`, {
-    next: { revalidate: 30 },
-  });
+// Loading skeleton for the server detail page
+function ServerDetailSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      <Button variant="ghost" asChild>
+        <a href="/servers" className="flex items-center gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Servers
+        </a>
+      </Button>
 
-  if (!res.ok) return null;
-  const data = await res.json();
-  const servers = (data.servers || []) as any[];
-  return servers.find((s) => s.id === id) ?? null;
+      <Card variant="glass" className="animate-pulse">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-7 w-48 bg-muted-foreground/20 rounded" />
+              <div className="h-4 w-24 bg-muted-foreground/20 rounded" />
+              <div className="h-4 w-32 bg-muted-foreground/20 rounded" />
+            </div>
+            <div className="h-6 w-20 bg-muted-foreground/20 rounded-full" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-4 w-full bg-muted-foreground/20 rounded" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Players list skeleton */}
+            <Card variant="glass" className="col-span-1">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div className="h-5 w-32 bg-muted-foreground/20 rounded" />
+                <div className="h-5 w-12 bg-muted-foreground/20 rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-neon-cyan" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Map skeleton */}
+            <div className="col-span-2 space-y-3">
+              <Card variant="glass" className="h-full">
+                <CardHeader className="pb-2 flex items-center justify-between">
+                  <div className="h-5 w-24 bg-muted-foreground/20 rounded" />
+                </CardHeader>
+                <CardContent className="h-[480px] flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
-export default async function ServerDetailPage({ params }: ServerDetailParams) {
-  const { id } = await params;
-  const serverId = Number.parseInt(id, 10);
-  if (Number.isNaN(serverId)) notFound();
+async function getServerWithStatus(id: number) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+  try {
+    const res = await fetch(`${baseUrl}/api/servers/status`, {
+      cache: 'no-store', // Always fetch fresh data
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!res.ok) {
+      console.error(`Failed to fetch server status: ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    const servers = (data.servers || []) as any[];
+    return servers.find((s) => s.id === id) ?? null;
+  } catch (error) {
+    console.error('Error fetching server status:', error);
+    return null;
+  }
+}
+
+async function ServerDetailContent({ serverId }: { serverId: number }) {
   const server = await getServerWithStatus(serverId);
-  if (!server) notFound();
+
+  if (!server) {
+    notFound();
+  }
 
   const address = server.hidePort || server.port === 25565 ? server.ipAddress : `${server.ipAddress}:${server.port}`;
   const players = server.players ?? { online: 0, max: 0, list: [] };
@@ -146,5 +217,17 @@ export default async function ServerDetailPage({ params }: ServerDetailParams) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default async function ServerDetailPage({ params }: ServerDetailParams) {
+  const { id } = await params;
+  const serverId = Number.parseInt(id, 10);
+  if (Number.isNaN(serverId)) notFound();
+
+  return (
+    <Suspense fallback={<ServerDetailSkeleton />}>
+      <ServerDetailContent serverId={serverId} />
+    </Suspense>
   );
 }

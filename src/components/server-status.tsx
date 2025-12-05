@@ -1,8 +1,8 @@
 "use client";
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { 
+import { useState, useEffect, useCallback } from 'react';
+import {
   Server, Users, Wifi, WifiOff, Copy, Check,
   ExternalLink, Map, RefreshCw, Loader2, Globe
 } from 'lucide-react';
@@ -31,6 +31,8 @@ interface ServerData {
   };
   motd: string;
   icon: string | null;
+  // New: loading state for individual servers
+  isLoading?: boolean;
 }
 
 interface ServerStatusProps {
@@ -39,10 +41,77 @@ interface ServerStatusProps {
   className?: string;
 }
 
-export function ServerStatusList({ 
-  variant = 'full', 
+// Skeleton loader for a server card
+function ServerCardSkeleton({ variant = 'full' }: { variant?: string }) {
+  if (variant === 'mini') {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+          <div className="h-4 w-24 bg-muted-foreground/20 rounded" />
+        </div>
+        <div className="h-4 w-12 bg-muted-foreground/20 rounded" />
+      </div>
+    );
+  }
+
+  if (variant === 'compact') {
+    return (
+      <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded bg-muted-foreground/20" />
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-muted-foreground/20 rounded" />
+            <div className="h-3 w-24 bg-muted-foreground/20 rounded" />
+          </div>
+        </div>
+        <div className="h-8 w-16 bg-muted-foreground/20 rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <Card variant="glass" className="overflow-hidden animate-pulse">
+      <div className="h-1 bg-muted-foreground/20" />
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-muted-foreground/20" />
+            <div className="space-y-2">
+              <div className="h-5 w-32 bg-muted-foreground/20 rounded" />
+              <div className="h-3 w-20 bg-muted-foreground/20 rounded" />
+            </div>
+          </div>
+          <div className="h-6 w-16 bg-muted-foreground/20 rounded-full" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="h-4 w-full bg-muted-foreground/20 rounded" />
+        <div className="p-3 rounded-lg bg-secondary/50">
+          <div className="h-6 w-24 bg-muted-foreground/20 rounded mx-auto" />
+        </div>
+        <div className="p-3 rounded-lg bg-secondary/50">
+          <div className="h-4 w-32 bg-muted-foreground/20 rounded" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Loading indicator for status
+function StatusLoadingIndicator() {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+      <Loader2 className="h-3.5 w-3.5 text-neon-cyan animate-spin" />
+      <span className="text-sm font-medium text-neon-cyan">Loading...</span>
+    </div>
+  );
+}
+
+export function ServerStatusList({
+  variant = 'full',
   showRefresh = true,
-  className 
+  className
 }: ServerStatusProps) {
   const [servers, setServers] = useState<ServerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,10 +120,15 @@ export function ServerStatusList({
   const [copiedIp, setCopiedIp] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  const fetchServers = async (showLoadingState = true) => {
+  const fetchServers = useCallback(async (showLoadingState = true) => {
     if (showLoadingState) setIsRefreshing(true);
     try {
-      const res = await fetch('/api/servers/status');
+      const res = await fetch('/api/servers/status', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
@@ -66,13 +140,13 @@ export function ServerStatusList({
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchServers(false);
     const interval = setInterval(() => fetchServers(false), 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchServers]);
 
   const copyToClipboard = async (ip: string) => {
     try {
@@ -90,10 +164,36 @@ export function ServerStatusList({
   const getServerAddress = (server: ServerData) =>
     server.hidePort || server.port === 25565 ? server.ipAddress : `${server.ipAddress}:${server.port}`;
 
+  // Show skeleton loaders during initial load
   if (isLoading) {
+    const skeletonCount = variant === 'mini' ? 3 : 2;
     return (
-      <div className={cn("flex items-center justify-center py-12", className)}>
-        <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
+      <div className={cn("space-y-4", className)}>
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <StatusLoadingIndicator />
+            <Badge variant="secondary" className="animate-pulse">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Loading Servers...
+            </Badge>
+          </div>
+        </div>
+
+        {/* Content skeletons */}
+        {variant === 'full' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Array.from({ length: skeletonCount }).map((_, i) => (
+              <ServerCardSkeleton key={i} variant={variant} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Array.from({ length: skeletonCount }).map((_, i) => (
+              <ServerCardSkeleton key={i} variant={variant} />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -129,26 +229,21 @@ export function ServerStatusList({
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                {isRefreshing ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 text-neon-cyan animate-spin" />
-                    <span className="text-sm font-medium text-neon-cyan">Updating...</span>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className={cn(
-                        'h-2.5 w-2.5 rounded-full',
-                        currentServer?.online ? 'bg-success animate-pulse' : 'bg-error'
-                      )}
-                    />
-                    <span className="text-sm font-medium">
-                      {currentServer?.online ? 'Online' : 'Offline'}
-                    </span>
-                  </>
-                )}
-              </div>
+              {isRefreshing ? (
+                <StatusLoadingIndicator />
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                  <div
+                    className={cn(
+                      'h-2.5 w-2.5 rounded-full',
+                      currentServer?.online ? 'bg-success animate-pulse' : 'bg-error'
+                    )}
+                  />
+                  <span className="text-sm font-medium">
+                    {currentServer?.online ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -286,7 +381,7 @@ export function ServerStatusList({
             </Button>
           )}
         </div>
-        
+
         <Accordion type="single" defaultValue={servers[0]?.id.toString()}>
           {servers.map((server) => (
             <AccordionItem key={server.id} value={server.id.toString()}>
@@ -552,7 +647,9 @@ export function SingleServerStatus({ address, port = 25565, name, className }: S
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`/api/servers/status?address=${address}&port=${port}`);
+        const res = await fetch(`/api/servers/status?address=${address}&port=${port}`, {
+          cache: 'no-store',
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.data) {
@@ -577,7 +674,7 @@ export function SingleServerStatus({ address, port = 25565, name, className }: S
   if (isLoading) {
     return (
       <div className={cn('flex items-center gap-2', className)}>
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-4 h-4 animate-spin text-neon-cyan" />
         <span className="text-sm text-muted-foreground">Loading...</span>
       </div>
     );
