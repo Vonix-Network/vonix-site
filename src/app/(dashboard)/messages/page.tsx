@@ -44,6 +44,10 @@ export default function MessagesPage() {
 
   const myId = user?.id ? parseInt(user.id as string) : 0;
 
+  // Track if we need to auto-select first conversation
+  const [needsAutoSelect, setNeedsAutoSelect] = useState(false);
+  const [firstConversation, setFirstConversation] = useState<Conversation | null>(null);
+
   const loadConversations = async () => {
     try {
       setLoadingConversations(true);
@@ -66,8 +70,11 @@ export default function MessagesPage() {
         unread: 0,
       }));
       setConversations(convs);
-      if (!selectedConversation && convs.length > 0) {
-        setSelectedConversation(convs[0]);
+
+      // If no conversation selected and we have conversations, mark for auto-select
+      if (!selectedConversation && convs.length > 0 && !searchParams.get('withUserId')) {
+        setFirstConversation(convs[0]);
+        setNeedsAutoSelect(true);
       }
     } catch (err) {
       console.error('Error loading conversations', err);
@@ -103,6 +110,8 @@ export default function MessagesPage() {
   // Select a conversation and load its messages
   const selectConversation = async (conv: Conversation) => {
     setSelectedConversation(conv);
+    // Update URL without full navigation
+    router.replace(`/messages?withUserId=${conv.user.id}`, { scroll: false });
     await loadMessagesForUser(conv.user.id);
   };
 
@@ -160,6 +169,15 @@ export default function MessagesPage() {
   useEffect(() => {
     loadConversations();
   }, []);
+
+  // Auto-select first conversation when needed
+  useEffect(() => {
+    if (needsAutoSelect && firstConversation) {
+      selectConversation(firstConversation);
+      setNeedsAutoSelect(false);
+      setFirstConversation(null);
+    }
+  }, [needsAutoSelect, firstConversation]);
 
   // Handle initial load via URL param
   useEffect(() => {
