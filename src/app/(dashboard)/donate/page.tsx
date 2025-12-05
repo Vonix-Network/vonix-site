@@ -3,6 +3,8 @@ import { donationRanks, donations } from '@/db/schema';
 import { desc, sql } from 'drizzle-orm';
 import { DonatePageClient } from './donate-client';
 
+export const dynamic = 'force-dynamic';
+
 async function getRanks() {
   try {
     const ranks = await db.select().from(donationRanks).orderBy(donationRanks.minAmount);
@@ -62,10 +64,10 @@ export default async function DonatePage() {
   ]);
 
   return (
-    <DonatePageClient 
-      ranks={ranks} 
-      recentDonations={recentDonations} 
-      stats={stats} 
+    <DonatePageClient
+      ranks={ranks}
+      recentDonations={recentDonations}
+      stats={stats}
     />
   );
 }
