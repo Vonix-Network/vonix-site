@@ -1,7 +1,8 @@
 import { db } from '@/db';
-import { donationRanks, donations } from '@/db/schema';
-import { desc, sql } from 'drizzle-orm';
+import { donationRanks, donations, users } from '@/db/schema';
+import { desc, sql, eq } from 'drizzle-orm';
 import { DonatePageClient } from './donate-client';
+import { auth } from '../../../../auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,11 +57,62 @@ async function getDonationStats() {
   }
 }
 
+async function getUserSubscription() {
+  try {
+    const session = await auth();
+    if (!session?.user) return null;
+
+    const userId = parseInt((session.user as any).id);
+    const [user] = await db
+      .select({
+        donationRankId: users.donationRankId,
+        rankExpiresAt: users.rankExpiresAt,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        subscriptionStatus: users.subscriptionStatus,
+        totalDonated: users.totalDonated,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) return null;
+
+    // Get rank details if user has a rank
+    let rank = null;
+    if (user.donationRankId) {
+      const [foundRank] = await db
+        .select()
+        .from(donationRanks)
+        .where(eq(donationRanks.id, user.donationRankId))
+        .limit(1);
+      rank = foundRank ? {
+        id: foundRank.id,
+        name: foundRank.name,
+        color: foundRank.color,
+        icon: foundRank.icon,
+      } : null;
+    }
+
+    return {
+      hasRank: !!user.donationRankId,
+      rank,
+      expiresAt: user.rankExpiresAt?.toISOString() || null,
+      isExpired: user.rankExpiresAt ? new Date(user.rankExpiresAt) < new Date() : true,
+      hasSubscription: !!user.stripeSubscriptionId,
+      subscriptionStatus: user.subscriptionStatus,
+      totalDonated: user.totalDonated || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function DonatePage() {
-  const [ranks, recentDonations, stats] = await Promise.all([
+  const [ranks, recentDonations, stats, userSubscription] = await Promise.all([
     getRanks(),
     getRecentDonations(),
     getDonationStats(),
+    getUserSubscription(),
   ]);
 
   return (
@@ -68,6 +120,8 @@ export default async function DonatePage() {
       ranks={ranks}
       recentDonations={recentDonations}
       stats={stats}
+      userSubscription={userSubscription}
     />
   );
 }
+

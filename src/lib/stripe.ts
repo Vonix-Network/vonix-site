@@ -536,16 +536,17 @@ export async function getSubscription(subscriptionId: string): Promise<Stripe.Su
 
 /**
  * Verify webhook signature
+ * @deprecated The webhook route handles its own signature verification with DB config
  */
-export function verifyWebhookSignature(
+export async function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
-): Stripe.Event {
-  const stripe = getStripe();
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+): Promise<Stripe.Event> {
+  const stripe = await getStripeAsync();
+  const webhookSecret = await getWebhookSecret();
 
   if (!webhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
+    throw new Error('Stripe webhook secret is not configured. Please set it in the admin dashboard.');
   }
 
   return stripe.webhooks.constructEvent(payload, signature, webhookSecret);

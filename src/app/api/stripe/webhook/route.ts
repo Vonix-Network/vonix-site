@@ -1,23 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/db';
-import { users, donationRanks, donations } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, donationRanks, donations, siteSettings } from '@/db/schema';
+import { eq, like } from 'drizzle-orm';
+
+/**
+ * Load Stripe config from database, with env vars as fallback
+ */
+async function loadStripeConfig() {
+  try {
+    const settings = await db
+      .select()
+      .from(siteSettings)
+      .where(like(siteSettings.key, 'stripe_%'));
+
+    const dbSettings: Record<string, string> = {};
+    settings.forEach(s => {
+      if (s.value) dbSettings[s.key] = s.value;
+    });
+
+    const mode = (dbSettings['stripe_mode'] as 'test' | 'live') || 'test';
+
+    let secretKey: string;
+    if (mode === 'live') {
+      secretKey = dbSettings['stripe_live_secret_key'] || process.env.STRIPE_SECRET_KEY || '';
+    } else {
+      secretKey = dbSettings['stripe_test_secret_key'] || process.env.STRIPE_SECRET_KEY || '';
+    }
+
+    const webhookSecret = dbSettings['stripe_webhook_secret'] || process.env.STRIPE_WEBHOOK_SECRET || '';
+
+    return { secretKey, webhookSecret };
+  } catch {
+    return {
+      secretKey: process.env.STRIPE_SECRET_KEY || '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    };
+  }
+}
 
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook events for subscription lifecycle
  */
 export async function POST(request: NextRequest) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const config = await loadStripeConfig();
 
-  if (!stripeSecretKey || !webhookSecret) {
+  if (!config.secretKey || !config.webhookSecret) {
     console.error('Stripe not configured');
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
   }
 
-  const stripe = new Stripe(stripeSecretKey);
+  const stripe = new Stripe(config.secretKey);
 
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
@@ -29,7 +63,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(body, sig, config.webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
@@ -109,7 +143,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
   const subscriptionId = (invoice as any).subscription as string;
-  
+
   if (!subscriptionId) {
     console.log('No subscription ID in invoice');
     return;
