@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  MessageSquare, ChevronLeft, Eye, Clock, 
+import {
+  MessageSquare, ChevronLeft, Eye, Clock,
   Pin, Lock, Trash2, Edit, Send, Loader2,
   ThumbsUp, Flag, MoreVertical
 } from 'lucide-react';
@@ -47,8 +47,8 @@ export default function ForumPostPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
-  const postId = params.id as string;
-  
+  const postId = params?.id as string;
+
   const [post, setPost] = useState<ForumPost | null>(null);
   const [replies, setReplies] = useState<ForumReply[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +82,7 @@ export default function ForumPostPage() {
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!session) {
       toast.error('You must be signed in to reply');
       return;
@@ -165,14 +165,14 @@ export default function ForumPostPage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
-        <Link 
-          href="/forum" 
+        <Link
+          href="/forum"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           Forum
         </Link>
         <span className="text-muted-foreground">/</span>
-        <Link 
+        <Link
           href={`/forum/category/${post.categorySlug}`}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -203,7 +203,7 @@ export default function ForumPostPage() {
               </div>
               <CardTitle className="text-2xl">{post.title}</CardTitle>
             </div>
-            
+
             {canModify && (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={handleDeletePost}>
@@ -217,9 +217,9 @@ export default function ForumPostPage() {
           {/* Author Info */}
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
             <Avatar glow>
-              <AvatarImage 
-                src={getMinecraftAvatarUrl(post.authorMinecraft || post.authorUsername)} 
-                alt={post.authorUsername} 
+              <AvatarImage
+                src={getMinecraftAvatarUrl(post.authorMinecraft || post.authorUsername)}
+                alt={post.authorUsername}
               />
               <AvatarFallback>{getInitials(post.authorUsername)}</AvatarFallback>
             </Avatar>
@@ -227,8 +227,8 @@ export default function ForumPostPage() {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{post.authorUsername}</span>
                 <Badge variant={
-                  post.authorRole === 'admin' ? 'neon-pink' : 
-                  post.authorRole === 'moderator' ? 'neon-purple' : 'secondary'
+                  post.authorRole === 'admin' ? 'neon-pink' :
+                    post.authorRole === 'moderator' ? 'neon-purple' : 'secondary'
                 }>
                   {post.authorRole}
                 </Badge>
@@ -265,9 +265,9 @@ export default function ForumPostPage() {
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <Avatar>
-                  <AvatarImage 
-                    src={getMinecraftAvatarUrl(reply.authorMinecraft || reply.authorUsername)} 
-                    alt={reply.authorUsername} 
+                  <AvatarImage
+                    src={getMinecraftAvatarUrl(reply.authorMinecraft || reply.authorUsername)}
+                    alt={reply.authorUsername}
                   />
                   <AvatarFallback>{getInitials(reply.authorUsername)}</AvatarFallback>
                 </Avatar>

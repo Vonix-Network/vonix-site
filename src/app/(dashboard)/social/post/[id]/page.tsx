@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { 
+import {
   Heart, MessageCircle, Share2, ArrowLeft, Send,
   Loader2, MoreHorizontal, Trash2
 } from 'lucide-react';
@@ -56,7 +56,7 @@ export default function PostDetailPage() {
   const fetchPost = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch(`/api/social/posts/${params.id}`);
+      const response = await fetch(`/api/social/posts/${params?.id}`);
       if (!response.ok) {
         if (response.status === 404) {
           setError('Post not found');
@@ -73,7 +73,7 @@ export default function PostDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [params.id]);
+  }, [params?.id]);
 
   useEffect(() => {
     fetchPost();
@@ -220,8 +220,8 @@ export default function PostDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Back Button */}
-      <Link 
-        href="/social" 
+      <Link
+        href="/social"
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -235,15 +235,15 @@ export default function PostDetailPage() {
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12" glow>
-                <AvatarImage 
-                  src={getMinecraftAvatarUrl(post.minecraftUsername || post.username || '')} 
-                  alt={post.username || ''} 
+                <AvatarImage
+                  src={getMinecraftAvatarUrl(post.minecraftUsername || post.username || '')}
+                  alt={post.username || ''}
                 />
                 <AvatarFallback>
                   {getInitials(post.username || 'U')}
                 </AvatarFallback>
               </Avatar>
-              
+
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-lg">{post.username}</span>
@@ -254,7 +254,7 @@ export default function PostDetailPage() {
                 </span>
               </div>
             </div>
-            
+
             {canDelete && (
               <Button variant="ghost" size="icon" onClick={handleDelete} className="text-error hover:text-error">
                 <Trash2 className="w-5 h-5" />
@@ -270,9 +270,9 @@ export default function PostDetailPage() {
           {/* Post Image */}
           {post.imageUrl && (
             <div className="mb-6 rounded-lg overflow-hidden">
-              <img 
-                src={post.imageUrl} 
-                alt="Post image" 
+              <img
+                src={post.imageUrl}
+                alt="Post image"
                 className="w-full object-cover"
               />
             </div>
@@ -283,19 +283,18 @@ export default function PostDetailPage() {
             <button
               onClick={handleLike}
               disabled={isLiking}
-              className={`flex items-center gap-2 transition-colors ${
-                post.userLiked ? 'text-error' : 'text-muted-foreground hover:text-error'
-              }`}
+              className={`flex items-center gap-2 transition-colors ${post.userLiked ? 'text-error' : 'text-muted-foreground hover:text-error'
+                }`}
             >
               <Heart className={`w-6 h-6 ${post.userLiked ? 'fill-current' : ''}`} />
               <span>{post.likesCount}</span>
             </button>
-            
+
             <div className="flex items-center gap-2 text-muted-foreground">
               <MessageCircle className="w-6 h-6" />
               <span>{post.commentsCount}</span>
             </div>
-            
+
             <button className="flex items-center gap-2 text-muted-foreground hover:text-neon-purple transition-colors">
               <Share2 className="w-6 h-6" />
               <span>Share</span>
@@ -310,15 +309,15 @@ export default function PostDetailPage() {
           <CardContent className="p-4">
             <div className="flex gap-3">
               <Avatar className="w-10 h-10">
-                <AvatarImage 
-                  src={getMinecraftAvatarUrl(user?.minecraftUsername || user?.username || '')} 
-                  alt={user?.username} 
+                <AvatarImage
+                  src={getMinecraftAvatarUrl(user?.minecraftUsername || user?.username || '')}
+                  alt={user?.username}
                 />
                 <AvatarFallback>
                   {getInitials(user?.username || 'U')}
                 </AvatarFallback>
               </Avatar>
-              
+
               <div className="flex-1">
                 <textarea
                   value={newComment}
@@ -327,13 +326,13 @@ export default function PostDetailPage() {
                   className="w-full bg-secondary/50 border border-border rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 min-h-[80px]"
                   maxLength={500}
                 />
-                
+
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-muted-foreground">
                     {newComment.length}/500
                   </span>
-                  <Button 
-                    variant="neon" 
+                  <Button
+                    variant="neon"
                     size="sm"
                     onClick={handleComment}
                     disabled={!newComment.trim() || isSubmitting}
@@ -357,7 +356,7 @@ export default function PostDetailPage() {
       {/* Comments */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Comments ({post.comments.length})</h3>
-        
+
         {post.comments.length === 0 ? (
           <Card variant="glass">
             <CardContent className="text-center py-8">
@@ -371,15 +370,15 @@ export default function PostDetailPage() {
               <CardContent className="p-4">
                 <div className="flex gap-3">
                   <Avatar className="w-10 h-10">
-                    <AvatarImage 
-                      src={getMinecraftAvatarUrl(comment.minecraftUsername || comment.username || '')} 
-                      alt={comment.username || ''} 
+                    <AvatarImage
+                      src={getMinecraftAvatarUrl(comment.minecraftUsername || comment.username || '')}
+                      alt={comment.username || ''}
                     />
                     <AvatarFallback>
                       {getInitials(comment.username || 'U')}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold">{comment.username}</span>

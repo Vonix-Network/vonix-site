@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  CheckCircle, Crown, Sparkles, ArrowRight, 
+import {
+  CheckCircle, Crown, Sparkles, ArrowRight,
   Download, Mail, Home
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +30,7 @@ interface PaymentDetails {
 
 export default function DonationSuccessPage() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const sessionId = searchParams?.get('session_id');
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,11 +67,11 @@ export default function DonationSuccessPage() {
         <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-success/20 border-4 border-success mb-6 animate-bounce">
           <CheckCircle className="w-12 h-12 text-success" />
         </div>
-        
+
         <h1 className="text-4xl font-bold gradient-text mb-4">
           Thank You!
         </h1>
-        
+
         <p className="text-xl text-muted-foreground">
           Your donation has been processed successfully
         </p>

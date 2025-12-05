@@ -13,8 +13,8 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-  const error = searchParams.get('error');
+  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
+  const error = searchParams?.get('error');
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -43,8 +43,8 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setErrorMessage(result.error === 'CredentialsSignin' 
-          ? 'Invalid username or password' 
+        setErrorMessage(result.error === 'CredentialsSignin'
+          ? 'Invalid username or password'
           : result.error);
       } else if (result?.ok) {
         // Force a hard navigation to ensure session is loaded
@@ -90,16 +90,16 @@ export default function LoginPage() {
                   <stop offset="100%" stopColor="#EC4899" />
                 </linearGradient>
               </defs>
-              <path 
-                d="M20 25 L50 85 L80 25" 
-                stroke="url(#loginLogoGradient)" 
-                strokeWidth="8" 
-                strokeLinecap="round" 
+              <path
+                d="M20 25 L50 85 L80 25"
+                stroke="url(#loginLogoGradient)"
+                strokeWidth="8"
+                strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          
+
           <div>
             <CardTitle className="text-2xl gradient-text">Welcome Back</CardTitle>
             <CardDescription className="mt-2">
@@ -158,10 +158,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              variant="gradient" 
-              className="w-full" 
+            <Button
+              type="submit"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? (

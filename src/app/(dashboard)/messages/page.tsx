@@ -73,7 +73,7 @@ export default function MessagesPage() {
       setConversations(convs);
 
       // If no conversation selected and we have conversations, mark for auto-select
-      if (!selectedConversation && convs.length > 0 && !searchParams.get('withUserId')) {
+      if (!selectedConversation && convs.length > 0 && !searchParams?.get('withUserId')) {
         setFirstConversation(convs[0]);
         setNeedsAutoSelect(true);
       }
@@ -182,7 +182,7 @@ export default function MessagesPage() {
 
   // Handle initial load via URL param
   useEffect(() => {
-    const withUserId = searchParams.get('withUserId');
+    const withUserId = searchParams?.get('withUserId');
     if (withUserId) {
       const idNum = parseInt(withUserId);
       if (!Number.isNaN(idNum)) {

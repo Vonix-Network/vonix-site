@@ -25,7 +25,7 @@ export default function RegisterPage() {
   }, [status, session, router]);
 
   // Pre-fill registration code from URL if provided
-  const initialCode = searchParams.get('code') || '';
+  const initialCode = searchParams?.get('code') || '';
 
   const [formData, setFormData] = useState({
     email: '',
@@ -192,16 +192,16 @@ export default function RegisterPage() {
                   <stop offset="100%" stopColor="#EC4899" />
                 </linearGradient>
               </defs>
-              <path 
-                d="M20 25 L50 85 L80 25" 
-                stroke="url(#registerLogoGradient)" 
-                strokeWidth="8" 
-                strokeLinecap="round" 
+              <path
+                d="M20 25 L50 85 L80 25"
+                stroke="url(#registerLogoGradient)"
+                strokeWidth="8"
+                strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          
+
           <div>
             <CardTitle className="text-2xl gradient-text">Create Account</CardTitle>
             <CardDescription className="mt-2">
@@ -365,7 +365,7 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              
+
               {formData.password && (
                 <div className="grid grid-cols-2 gap-1 mt-2">
                   <PasswordCheck passed={passwordChecks.length} label="8+ characters" />
@@ -397,10 +397,10 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <Button 
-              type="submit" 
-              variant="gradient" 
-              className="w-full" 
+            <Button
+              type="submit"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading || !isPasswordStrong || !passwordsMatch}
             >
               {isLoading ? (
