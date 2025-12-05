@@ -10,9 +10,31 @@
  * Run with: npx tsx scripts/populate-uuids.ts
  */
 
-import { db } from '../src/db';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env.local BEFORE anything else
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+// Show database configuration
+console.log('📦 Database Configuration:');
+console.log(`  URL: ${process.env.DATABASE_URL || 'file:./data/vonix.db (default)'}`);
+console.log(`  Auth Token: ${process.env.DATABASE_AUTH_TOKEN ? '****' + process.env.DATABASE_AUTH_TOKEN.slice(-8) : 'Not set'}`);
+console.log('');
+
+// Now import db after env is loaded
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 import { users } from '../src/db/schema';
 import { isNull, eq } from 'drizzle-orm';
+
+// Create database client with loaded env vars
+const client = createClient({
+    url: process.env.DATABASE_URL || 'file:./data/vonix.db',
+    authToken: process.env.DATABASE_AUTH_TOKEN,
+});
+
+const db = drizzle(client);
 
 const MOJANG_API_URL = 'https://api.mojang.com/users/profiles/minecraft';
 
