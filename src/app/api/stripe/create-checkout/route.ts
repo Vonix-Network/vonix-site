@@ -3,7 +3,12 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { donationRanks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { createCheckoutSession, createSubscriptionCheckout, isStripeConfigured } from '@/lib/stripe';
+import {
+  createCheckoutSession,
+  createSubscriptionCheckout,
+  isStripeConfigured,
+  ensureRankStripeSetup
+} from '@/lib/stripe';
 import { calculatePriceForDays } from '@/lib/rank-pricing';
 
 export async function POST(request: NextRequest) {
@@ -75,34 +80,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Determine which price ID to use for subscriptions
-      let stripePriceId: string | null = null;
-      let subscriptionDays = 30;
+      // Calculate subscription days based on billing period
+      const billingDays: Record<string, number> = {
+        monthly: 30,
+        quarterly: 90,
+        semiannual: 180,
+        yearly: 365,
+      };
+      const subscriptionDays = billingDays[billingPeriod] || 30;
 
       if (paymentType === 'subscription') {
-        switch (billingPeriod) {
-          case 'quarterly':
-            stripePriceId = rank.stripePriceQuarterly;
-            subscriptionDays = 90;
-            break;
-          case 'semiannual':
-            stripePriceId = rank.stripePriceSemiannual;
-            subscriptionDays = 180;
-            break;
-          case 'yearly':
-            stripePriceId = rank.stripePriceYearly;
-            subscriptionDays = 365;
-            break;
-          case 'monthly':
-          default:
-            stripePriceId = rank.stripePriceMonthly;
-            subscriptionDays = 30;
-            break;
-        }
-      }
+        // Auto-create Stripe product and price if not configured
+        // This will create the product/price in Stripe and update the database
+        const stripePriceId = await ensureRankStripeSetup(
+          {
+            id: rank.id,
+            name: rank.name,
+            color: rank.color,
+            minAmount: rank.minAmount,
+            stripeProductId: rank.stripeProductId,
+            stripePriceMonthly: rank.stripePriceMonthly,
+            stripePriceQuarterly: rank.stripePriceQuarterly,
+            stripePriceSemiannual: rank.stripePriceSemiannual,
+            stripePriceYearly: rank.stripePriceYearly,
+          },
+          billingPeriod as 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
+        );
 
-      // If subscription requested and price ID exists, create subscription checkout
-      if (paymentType === 'subscription' && stripePriceId) {
         checkoutSession = await createSubscriptionCheckout({
           userId: parseInt(user.id),
           rankId,
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
           cancelUrl: `${appUrl}/donate?canceled=true`,
         });
       } else {
-        // One-time payment (or subscription without configured price)
+        // One-time payment
         const amount = customAmount || calculatePriceForDays(rankId, days) || rank.minAmount;
 
         checkoutSession = await createCheckoutSession({
