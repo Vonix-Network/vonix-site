@@ -1,0 +1,15 @@
+{
+  "source": {
+    "url": "libsql://vonix-network-vonix-network.aws-us-east-1.turso.io",
+    "authToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjAyODI1NDgsImlkIjoiMmRiZGY4YTItYzE2Mi00MjI0LWEwMzEtNjAzZDI1YWFjYTZjIiwicmlkIjoiOGEzN2Q4NWMtY2FmYi00NDZhLWJjNDMtODA2YTM5MTViOGM2In0.9EG5bP1HM8ANGvDfMPm2dP1RBle7JJpXGwQFWY0C9EQFlfCgeZLiRcz7l9ezlMZHzH7_NyKf82tnULOXwzfKAw"
+  },
+  "target": {
+    "url": "libsql://vonix-vonix-network.aws-us-east-1.turso.io",
+    "authToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjQ4Mzk0MTUsImlkIjoiODJlNDdhY2MtY2I4MC00MGNhLWE5YWEtNWRjY2QxYzU3MGFlIiwicmlkIjoiMTg2ZjgwNjItYmU4Ni00ZWNiLWE4NzUtYjE5MGU2Mjg1ODM5In0.Nek-APlt0WsGTVUsOSDbTsjKlaVESzwv2rlPjDysWwPEf1a50G2aOGOb0xyFinSgFAkhqGAO6fSoinDLzXJ8Cg"
+  },
+  "options": {
+    "dryRun": false,
+    "resetPasswords": false,
+    "defaultPassword": "ChangeMe123!"
+  }
+}

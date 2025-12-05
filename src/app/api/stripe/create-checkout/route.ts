@@ -1,0 +1,144 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '../../../../../auth';
+import { db } from '@/db';
+import { donationRanks } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { createCheckoutSession, createSubscriptionCheckout, isStripeConfigured } from '@/lib/stripe';
+import { calculatePriceForDays } from '@/lib/rank-pricing';
+
+export async function POST(request: NextRequest) {
+  try {
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      return NextResponse.json(
+        { error: 'Payment system not configured. Please contact an administrator.' },
+        { status: 503 }
+      );
+    }
+
+    // Require authentication
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Please log in to make a donation' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user as any;
+    const body = await request.json();
+    const { rankId, days = 30, amount: customAmount, paymentType = 'one_time', billingPeriod = 'monthly' } = body;
+
+    if (!['one_time', 'subscription'].includes(paymentType)) {
+      return NextResponse.json(
+        { error: 'Invalid payment type' },
+        { status: 400 }
+      );
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    let checkoutSession;
+
+    // Handle one-time donations without a rank
+    if (rankId === 'one-time' || !rankId) {
+      const amount = customAmount || 5;
+
+      if (amount < 1) {
+        return NextResponse.json(
+          { error: 'Minimum donation is $1' },
+          { status: 400 }
+        );
+      }
+
+      checkoutSession = await createCheckoutSession({
+        userId: parseInt(user.id),
+        rankId: 'one-time',
+        rankName: 'One-Time Donation',
+        amount,
+        days: 0,
+        customerEmail: user.email,
+        successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${appUrl}/donate?canceled=true`,
+      });
+    } else {
+      // Handle rank purchases/subscriptions
+      const [rank] = await db
+        .select()
+        .from(donationRanks)
+        .where(eq(donationRanks.id, rankId))
+        .limit(1);
+
+      if (!rank) {
+        return NextResponse.json(
+          { error: 'Rank not found' },
+          { status: 404 }
+        );
+      }
+
+      // Determine which price ID to use for subscriptions
+      let stripePriceId: string | null = null;
+      let subscriptionDays = 30;
+
+      if (paymentType === 'subscription') {
+        switch (billingPeriod) {
+          case 'quarterly':
+            stripePriceId = rank.stripePriceQuarterly;
+            subscriptionDays = 90;
+            break;
+          case 'semiannual':
+            stripePriceId = rank.stripePriceSemiannual;
+            subscriptionDays = 180;
+            break;
+          case 'yearly':
+            stripePriceId = rank.stripePriceYearly;
+            subscriptionDays = 365;
+            break;
+          case 'monthly':
+          default:
+            stripePriceId = rank.stripePriceMonthly;
+            subscriptionDays = 30;
+            break;
+        }
+      }
+
+      // If subscription requested and price ID exists, create subscription checkout
+      if (paymentType === 'subscription' && stripePriceId) {
+        checkoutSession = await createSubscriptionCheckout({
+          userId: parseInt(user.id),
+          rankId,
+          rankName: rank.name,
+          priceId: stripePriceId,
+          days: subscriptionDays,
+          customerEmail: user.email,
+          successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${appUrl}/donate?canceled=true`,
+        });
+      } else {
+        // One-time payment (or subscription without configured price)
+        const amount = customAmount || calculatePriceForDays(rankId, days) || rank.minAmount;
+
+        checkoutSession = await createCheckoutSession({
+          userId: parseInt(user.id),
+          rankId,
+          rankName: rank.name,
+          amount,
+          days,
+          customerEmail: user.email,
+          successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${appUrl}/donate?canceled=true`,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url,
+    });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    return NextResponse.json(
+      { error: 'Failed to create checkout session. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
