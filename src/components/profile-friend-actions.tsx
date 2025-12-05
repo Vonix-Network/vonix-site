@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { User, Clock, Heart, MessageSquare } from 'lucide-react';
+import { User, Clock, Heart, MessageSquare, Check, X } from 'lucide-react';
 
-export type FriendshipStatus = 'none' | 'pending' | 'friends';
+export type FriendshipStatus = 'none' | 'pending' | 'incoming' | 'friends';
 
 interface FriendActionsProps {
   isOwnProfile: boolean;
@@ -20,7 +20,7 @@ export function ProfileFriendActions({ isOwnProfile, friendshipStatus: initialSt
 
   if (isOwnProfile) return null;
 
-  const callAction = async (action: 'send' | 'cancel' | 'remove') => {
+  const callAction = async (action: 'send' | 'cancel' | 'remove' | 'accept' | 'decline') => {
     setBusy(true);
     try {
       const res = await fetch('/api/friends', {
@@ -59,6 +59,14 @@ export function ProfileFriendActions({ isOwnProfile, friendshipStatus: initialSt
     await callAction('cancel');
   };
 
+  const handleAcceptRequest = async () => {
+    await callAction('accept');
+  };
+
+  const handleDeclineRequest = async () => {
+    await callAction('decline');
+  };
+
   return (
     <div className="flex gap-2">
       {status === 'none' && (
@@ -72,6 +80,18 @@ export function ProfileFriendActions({ isOwnProfile, friendshipStatus: initialSt
           <Clock className="w-4 h-4 mr-2" />
           Request Pending
         </Button>
+      )}
+      {status === 'incoming' && (
+        <>
+          <Button variant="neon" onClick={handleAcceptRequest} disabled={busy}>
+            <Check className="w-4 h-4 mr-2" />
+            Accept Request
+          </Button>
+          <Button variant="ghost" onClick={handleDeclineRequest} disabled={busy}>
+            <X className="w-4 h-4 mr-2" />
+            Decline
+          </Button>
+        </>
       )}
       {status === 'friends' && (
         <Button variant="glass" onClick={handleRemoveFriend} disabled={busy}>
@@ -90,3 +110,4 @@ export function ProfileFriendActions({ isOwnProfile, friendshipStatus: initialSt
     </div>
   );
 }
+

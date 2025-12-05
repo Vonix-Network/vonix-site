@@ -108,7 +108,11 @@ async function getFriendshipStatus(viewerUserId: number | null, profileUserId: n
 
   try {
     const rows = await db
-      .select({ status: friendships.status })
+      .select({
+        status: friendships.status,
+        userId: friendships.userId,
+        friendId: friendships.friendId,
+      })
       .from(friendships)
       .where(
         or(
@@ -121,7 +125,13 @@ async function getFriendshipStatus(viewerUserId: number | null, profileUserId: n
     const row = rows[0];
     if (!row) return 'none';
     if (row.status === 'accepted') return 'friends';
-    if (row.status === 'pending') return 'pending';
+    if (row.status === 'pending') {
+      // Check if this is an incoming request (profile user sent to viewer)
+      if (row.userId === profileUserId && row.friendId === viewerUserId) {
+        return 'incoming'; // Profile user sent request TO viewer - show accept/decline
+      }
+      return 'pending'; // Viewer sent request to profile user - show pending
+    }
     return 'none';
   } catch {
     return 'none';

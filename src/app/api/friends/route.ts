@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { friendships, users } from '@/db/schema';
 import { and, or, eq } from 'drizzle-orm';
 import { notifyFriendRequest, notifyFriendAccepted } from '@/lib/notifications';
+import { isUserOnline } from '@/lib/presence';
 
 export async function GET() {
   try {
@@ -24,7 +25,7 @@ export async function GET() {
         otherId: users.id,
         otherUsername: users.username,
         otherMinecraftUsername: users.minecraftUsername,
-        otherLastLoginAt: users.lastLoginAt,
+        otherLastSeenAt: users.lastSeenAt,
       })
       .from(friendships)
       .innerJoin(
@@ -44,7 +45,8 @@ export async function GET() {
           id: row.otherId,
           username: row.otherUsername,
           minecraftUsername: row.otherMinecraftUsername,
-          lastSeen: row.otherLastLoginAt,
+          status: isUserOnline(row.otherLastSeenAt) ? 'online' : 'offline',
+          lastSeen: row.otherLastSeenAt,
         });
       } else if (row.status === 'pending') {
         const type: 'incoming' | 'outgoing' = row.userId === viewerId ? 'outgoing' : 'incoming';

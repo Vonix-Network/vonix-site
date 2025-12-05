@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   Bell, Check, Trash2, Settings, MessageSquare,
-  Heart, UserPlus, Trophy, Calendar, AlertCircle, Loader2
+  Heart, UserPlus, Trophy, Calendar, AlertCircle, Loader2, X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -145,7 +145,7 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Notifications</h1>
           <p className="text-muted-foreground">
-            {unreadCount > 0 
+            {unreadCount > 0
               ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
               : 'You\'re all caught up!'
             }
@@ -161,8 +161,8 @@ export default function NotificationsPage() {
       {/* Actions */}
       {notifications.length > 0 && (
         <div className="flex gap-2 mb-6">
-          <Button 
-            variant="neon-outline" 
+          <Button
+            variant="neon-outline"
             size="sm"
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
@@ -170,8 +170,8 @@ export default function NotificationsPage() {
             <Check className="w-4 h-4 mr-2" />
             Mark All Read
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={clearAll}
           >
@@ -187,11 +187,10 @@ export default function NotificationsPage() {
           {notifications.length > 0 ? (
             <div className="divide-y divide-border">
               {notifications.map((notification) => (
-                <div 
+                <div
                   key={notification.id}
-                  className={`flex items-start gap-4 p-4 hover:bg-secondary/50 transition-colors ${
-                    !notification.read ? 'bg-neon-cyan/5' : ''
-                  }`}
+                  className={`flex items-start gap-4 p-4 hover:bg-secondary/50 transition-colors ${!notification.read ? 'bg-neon-cyan/5' : ''
+                    }`}
                 >
                   {/* Icon */}
                   <div className="p-2 rounded-lg bg-secondary/50">
@@ -241,9 +240,83 @@ export default function NotificationsPage() {
 
                   {/* Actions */}
                   <div className="flex gap-1">
-                    {!notification.read && (
-                      <Button 
-                        variant="ghost" 
+                    {/* Friend request specific actions */}
+                    {notification.type === 'friend_request' && !notification.read && (
+                      <>
+                        <Button
+                          variant="neon"
+                          size="sm"
+                          onClick={async () => {
+                            // Extract user ID from link if available (e.g., /profile/username)
+                            // Or use the notification data
+                            try {
+                              // The link should be /friends for friend requests
+                              const res = await fetch('/api/friends');
+                              if (res.ok) {
+                                const data = await res.json();
+                                // Find matching incoming request by username from notification
+                                const incomingRequest = data.pending?.find(
+                                  (p: any) => p.type === 'incoming' && notification.message.includes(p.username)
+                                );
+                                if (incomingRequest) {
+                                  const acceptRes = await fetch('/api/friends', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ targetUserId: incomingRequest.id, action: 'accept' }),
+                                  });
+                                  if (acceptRes.ok) {
+                                    // Mark notification as read and refresh
+                                    await markAsRead(notification.id);
+                                    fetchNotifications();
+                                  }
+                                }
+                              }
+                            } catch (err) {
+                              console.error('Failed to accept friend request:', err);
+                            }
+                          }}
+                          className="h-8"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Accept
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/friends');
+                              if (res.ok) {
+                                const data = await res.json();
+                                const incomingRequest = data.pending?.find(
+                                  (p: any) => p.type === 'incoming' && notification.message.includes(p.username)
+                                );
+                                if (incomingRequest) {
+                                  const declineRes = await fetch('/api/friends', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ targetUserId: incomingRequest.id, action: 'decline' }),
+                                  });
+                                  if (declineRes.ok) {
+                                    await deleteNotification(notification.id);
+                                  }
+                                }
+                              }
+                            } catch (err) {
+                              console.error('Failed to decline friend request:', err);
+                            }
+                          }}
+                          className="h-8"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Decline
+                        </Button>
+                      </>
+                    )}
+                    {/* Standard mark as read for non-friend-request notifications */}
+                    {notification.type !== 'friend_request' && !notification.read && (
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => markAsRead(notification.id)}
                         className="h-8 w-8"
@@ -251,8 +324,8 @@ export default function NotificationsPage() {
                         <Check className="w-4 h-4" />
                       </Button>
                     )}
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => deleteNotification(notification.id)}
                       className="h-8 w-8 text-muted-foreground hover:text-error"
