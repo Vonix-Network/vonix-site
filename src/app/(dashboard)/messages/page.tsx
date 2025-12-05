@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { 
-  MessageSquare, Send, Search, Plus, 
+import {
+  MessageSquare, Send, Search, Plus,
   MoreHorizontal, Phone, Video, Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +33,7 @@ export default function MessagesPage() {
   const user = session?.user as any;
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -76,7 +76,38 @@ export default function MessagesPage() {
     }
   };
 
-  const openConversation = async (otherUserId: number) => {
+  // Load messages only, without setting selectedConversation
+  const loadMessagesForUser = async (otherUserId: number) => {
+    try {
+      setLoadingMessages(true);
+      const res = await fetch(`/api/messages?withUserId=${otherUserId}`);
+      if (!res.ok) {
+        console.error('Failed to load messages', await res.text());
+        return;
+      }
+      const data = await res.json();
+      const msgs: Message[] = (data.messages || []).map((m: any) => ({
+        id: m.id,
+        senderId: m.senderId,
+        content: m.content,
+        time: new Date(m.createdAt),
+      }));
+      setMessages(msgs);
+    } catch (err) {
+      console.error('Error loading messages', err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  // Select a conversation and load its messages
+  const selectConversation = async (conv: Conversation) => {
+    setSelectedConversation(conv);
+    await loadMessagesForUser(conv.user.id);
+  };
+
+  // Open conversation by user ID (for withUserId param or new chats)
+  const openConversationByUserId = async (otherUserId: number) => {
     try {
       setLoadingMessages(true);
       const res = await fetch(`/api/messages?withUserId=${otherUserId}`);
@@ -130,15 +161,41 @@ export default function MessagesPage() {
     loadConversations();
   }, []);
 
+  // Handle initial load via URL param
   useEffect(() => {
     const withUserId = searchParams.get('withUserId');
     if (withUserId) {
       const idNum = parseInt(withUserId);
       if (!Number.isNaN(idNum)) {
-        openConversation(idNum);
+        openConversationByUserId(idNum);
       }
     }
   }, [searchParams]);
+
+  // Poll for new messages every 5 seconds when a conversation is open
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/messages?withUserId=${selectedConversation.user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const msgs: Message[] = (data.messages || []).map((m: any) => ({
+            id: m.id,
+            senderId: m.senderId,
+            content: m.content,
+            time: new Date(m.createdAt),
+          }));
+          setMessages(msgs);
+        }
+      } catch (err) {
+        console.error('Error polling messages', err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedConversation?.user.id]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
@@ -214,22 +271,21 @@ export default function MessagesPage() {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="flex-1 overflow-y-auto p-0">
             <div className="divide-y divide-border">
               {conversations.map((conv) => (
                 <button
                   key={conv.id}
-                  onClick={() => setSelectedConversation(conv)}
-                  className={`w-full flex items-center gap-3 p-4 text-left hover:bg-secondary/50 transition-colors ${
-                    selectedConversation?.id === conv.id ? 'bg-secondary/50' : ''
-                  }`}
+                  onClick={() => selectConversation(conv)}
+                  className={`w-full flex items-center gap-3 p-4 text-left hover:bg-secondary/50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-secondary/50' : ''
+                    }`}
                 >
                   <div className="relative">
                     <Avatar>
-                      <AvatarImage 
-                        src={getMinecraftAvatarUrl(conv.user.minecraftUsername || conv.user.username)} 
-                        alt={conv.user.username} 
+                      <AvatarImage
+                        src={getMinecraftAvatarUrl(conv.user.minecraftUsername || conv.user.username)}
+                        alt={conv.user.username}
                       />
                       <AvatarFallback>
                         {getInitials(conv.user.username)}
@@ -239,7 +295,7 @@ export default function MessagesPage() {
                       <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-background" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{conv.user.username}</span>
@@ -251,7 +307,7 @@ export default function MessagesPage() {
                       {conv.lastMessage}
                     </p>
                   </div>
-                  
+
                   {conv.unread > 0 && (
                     <span className="w-5 h-5 rounded-full bg-neon-cyan text-xs flex items-center justify-center text-background font-bold">
                       {conv.unread}
@@ -272,9 +328,9 @@ export default function MessagesPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage 
-                        src={getMinecraftAvatarUrl(selectedConversation.user.minecraftUsername || selectedConversation.user.username)} 
-                        alt={selectedConversation.user.username} 
+                      <AvatarImage
+                        src={getMinecraftAvatarUrl(selectedConversation.user.minecraftUsername || selectedConversation.user.username)}
+                        alt={selectedConversation.user.username}
                       />
                       <AvatarFallback>
                         {getInitials(selectedConversation.user.username)}
@@ -309,16 +365,14 @@ export default function MessagesPage() {
                     className={`flex ${message.senderId === myId ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                        message.senderId === myId
-                          ? 'bg-neon-cyan text-background rounded-br-sm'
-                          : 'bg-secondary rounded-bl-sm'
-                      }`}
+                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${message.senderId === myId
+                        ? 'bg-neon-cyan text-background rounded-br-sm'
+                        : 'bg-secondary rounded-bl-sm'
+                        }`}
                     >
                       <p>{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.senderId === myId ? 'text-background/70' : 'text-muted-foreground'
-                      }`}>
+                      <p className={`text-xs mt-1 ${message.senderId === myId ? 'text-background/70' : 'text-muted-foreground'
+                        }`}>
                         {message.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -336,8 +390,8 @@ export default function MessagesPage() {
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                     className="flex-1"
                   />
-                  <Button 
-                    variant="gradient" 
+                  <Button
+                    variant="gradient"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim()}
                   >
