@@ -3,9 +3,7 @@ import { auth } from '../../../../auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
-
-// Presence timeout in milliseconds - user is considered offline after this period
-const PRESENCE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+import { PRESENCE_TIMEOUT } from '@/lib/presence';
 
 /**
  * POST /api/presence - Heartbeat to update user's online status
@@ -18,7 +16,7 @@ export async function POST() {
     }
 
     const userId = parseInt(session.user.id as string);
-    
+
     await db
       .update(users)
       .set({ lastSeenAt: new Date() })
@@ -44,20 +42,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userIdsParam = searchParams.get('userIds');
-    
+
     if (!userIdsParam) {
       return NextResponse.json({ error: 'Missing userIds parameter' }, { status: 400 });
     }
 
     const userIds = userIdsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
-    
+
     if (userIds.length === 0) {
       return NextResponse.json({ presence: {} });
     }
 
     // Limit to 100 users at a time
     const limitedUserIds = userIds.slice(0, 100);
-    
+
     const usersData = await db
       .select({ id: users.id, lastSeenAt: users.lastSeenAt })
       .from(users)
@@ -69,7 +67,7 @@ export async function GET(request: NextRequest) {
     for (const user of usersData) {
       const lastSeen = user.lastSeenAt ? new Date(user.lastSeenAt).getTime() : 0;
       const isOnline = lastSeen > 0 && (now - lastSeen) < PRESENCE_TIMEOUT;
-      
+
       presence[user.id] = {
         online: isOnline,
         lastSeenAt: user.lastSeenAt ? new Date(user.lastSeenAt).toISOString() : null,
@@ -82,13 +80,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch presence' }, { status: 500 });
   }
 }
-
-/**
- * Helper function to check if a user is online based on lastSeenAt
- */
-export function isUserOnline(lastSeenAt: Date | null | undefined): boolean {
-  if (!lastSeenAt) return false;
-  const lastSeen = new Date(lastSeenAt).getTime();
-  return (Date.now() - lastSeen) < PRESENCE_TIMEOUT;
-}
-
