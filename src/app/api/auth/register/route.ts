@@ -10,19 +10,19 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const windowMs = 60 * 60 * 1000; // 1 hour
-  const maxRequests = 5; // 5 registrations per hour per IP
+  const maxRequests = 100; // 100 registrations per hour per IP (generous for mod servers)
 
   const record = rateLimitMap.get(ip);
-  
+
   if (!record || now > record.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
     return true;
   }
-  
+
   if (record.count >= maxRequests) {
     return false;
   }
-  
+
   record.count++;
   return true;
 }
@@ -30,9 +30,9 @@ function checkRateLimit(ip: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 'unknown';
-    
+    const ip = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') || 'unknown';
+
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
         { error: 'Too many registration attempts. Please try again later.' },

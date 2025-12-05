@@ -11,16 +11,16 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 function checkRateLimit(key: string, maxRequests: number, windowMs: number) {
   const now = Date.now();
   const record = rateLimitMap.get(key);
-  
+
   if (!record || now > record.resetTime) {
     rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
     return { allowed: true };
   }
-  
+
   if (record.count >= maxRequests) {
     return { allowed: false, resetTime: record.resetTime };
   }
-  
+
   record.count++;
   return { allowed: true };
 }
@@ -49,11 +49,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        // Rate limiting for login attempts
-        const ip = request?.headers?.get('x-forwarded-for') || 
-                   request?.headers?.get('x-real-ip') || 'unknown';
-        const rateLimit = checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
-        
+        // Rate limiting for login attempts - generous limit for mod servers
+        const ip = request?.headers?.get('x-forwarded-for') ||
+          request?.headers?.get('x-real-ip') || 'unknown';
+        const rateLimit = checkRateLimit(`login:${ip}`, 50, 15 * 60 * 1000);
+
         if (!rateLimit.allowed) {
           throw new Error('Too many login attempts. Please try again later.');
         }
@@ -83,9 +83,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Increment failed login attempts
             await db
               .update(users)
-              .set({ 
+              .set({
                 failedLoginAttempts: (user.failedLoginAttempts || 0) + 1,
-                lockedUntil: (user.failedLoginAttempts || 0) >= 4 
+                lockedUntil: (user.failedLoginAttempts || 0) >= 4
                   ? new Date(Date.now() + 30 * 60 * 1000) // Lock for 30 minutes after 5 failed attempts
                   : null,
               })
@@ -96,7 +96,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Reset failed login attempts on successful login
           await db
             .update(users)
-            .set({ 
+            .set({
               failedLoginAttempts: 0,
               lockedUntil: null,
               lastLoginAt: new Date(),
