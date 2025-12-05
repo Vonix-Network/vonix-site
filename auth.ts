@@ -195,5 +195,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       console.log('User signed in:', { userId: user.id });
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  // Suppress noisy JWT errors from stale cookies
+  logger: {
+    error: (error) => {
+      // Suppress JWT decryption errors (stale cookies with old secret)
+      if (error.name === 'JWTSessionError' ||
+        error.message?.includes('decryption') ||
+        error.message?.includes('JWE')) {
+        // Silently ignore - user just needs to log in again
+        return;
+      }
+      console.error('[auth] Error:', error);
+    },
+    warn: (code) => {
+      // Suppress warnings in production (stale token issues, etc.)
+      if (process.env.NODE_ENV === 'production') return;
+      console.warn('[auth] Warning:', code);
+    },
+    debug: () => { }, // Disable debug logs in production
+  },
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 });
+
