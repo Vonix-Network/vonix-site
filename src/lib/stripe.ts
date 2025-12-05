@@ -3,25 +3,100 @@
  * 
  * Server-side Stripe utilities for payment processing
  * Auto-creates products and prices for ranks when needed
+ * 
+ * Keys are loaded from database (admin dashboard) first, with environment variables as fallback
  */
 
 import Stripe from 'stripe';
 import { db } from '@/db';
-import { donationRanks } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { donationRanks, siteSettings } from '@/db/schema';
+import { eq, like } from 'drizzle-orm';
 
 let stripeInstance: Stripe | null = null;
+let stripeConfigCache: {
+  secretKey: string;
+  publishableKey: string;
+  webhookSecret: string;
+  mode: 'test' | 'live';
+} | null = null;
+let configCacheTimestamp = 0;
+const CONFIG_CACHE_TTL = 60000; // 1 minute
 
-export function getStripe(): Stripe {
-  if (!stripeInstance) {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+/**
+ * Load Stripe configuration from database, with env vars as fallback
+ */
+async function loadStripeConfig(): Promise<{
+  secretKey: string;
+  publishableKey: string;
+  webhookSecret: string;
+  mode: 'test' | 'live';
+}> {
+  const now = Date.now();
 
-    if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is not configured');
+  // Return cached config if still valid
+  if (stripeConfigCache && now - configCacheTimestamp < CONFIG_CACHE_TTL) {
+    return stripeConfigCache;
+  }
+
+  try {
+    // Fetch all payment settings from database
+    const settings = await db
+      .select()
+      .from(siteSettings)
+      .where(like(siteSettings.key, 'stripe_%'));
+
+    const dbSettings: Record<string, string> = {};
+    settings.forEach(s => {
+      if (s.value) dbSettings[s.key] = s.value;
+    });
+
+    // Determine mode (test or live)
+    const mode = (dbSettings['stripe_mode'] as 'test' | 'live') || 'test';
+
+    // Get keys based on mode - database values override env vars
+    let secretKey: string;
+    let publishableKey: string;
+
+    if (mode === 'live') {
+      secretKey = dbSettings['stripe_live_secret_key'] || process.env.STRIPE_SECRET_KEY || '';
+      publishableKey = dbSettings['stripe_live_publishable_key'] || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
+    } else {
+      secretKey = dbSettings['stripe_test_secret_key'] || process.env.STRIPE_SECRET_KEY || '';
+      publishableKey = dbSettings['stripe_test_publishable_key'] || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
     }
 
-    stripeInstance = new Stripe(secretKey, {
-      apiVersion: '2025-10-29.clover',
+    const webhookSecret = dbSettings['stripe_webhook_secret'] || process.env.STRIPE_WEBHOOK_SECRET || '';
+
+    stripeConfigCache = { secretKey, publishableKey, webhookSecret, mode };
+    configCacheTimestamp = now;
+
+    return stripeConfigCache;
+  } catch (error) {
+    console.error('Error loading Stripe config from database, falling back to env vars:', error);
+
+    // Fallback to environment variables
+    return {
+      secretKey: process.env.STRIPE_SECRET_KEY || '',
+      publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+      mode: 'test',
+    };
+  }
+}
+
+/**
+ * Get Stripe instance - loads keys from database first
+ */
+export async function getStripeAsync(): Promise<Stripe> {
+  const config = await loadStripeConfig();
+
+  if (!config.secretKey) {
+    throw new Error('Stripe secret key is not configured. Please set it in the admin dashboard under Settings > Payments.');
+  }
+
+  // Create new instance if config changed or doesn't exist
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(config.secretKey, {
       typescript: true,
     });
   }
@@ -29,12 +104,84 @@ export function getStripe(): Stripe {
   return stripeInstance;
 }
 
-export function isStripeConfigured(): boolean {
+/**
+ * Synchronous getter for Stripe - uses cached config
+ * Falls back to env vars if no cached config exists
+ */
+export function getStripe(): Stripe {
+  if (!stripeInstance) {
+    // Use cached config if available, otherwise fall back to env vars
+    const secretKey = stripeConfigCache?.secretKey || process.env.STRIPE_SECRET_KEY;
+
+    if (!secretKey) {
+      throw new Error('Stripe secret key is not configured. Please set it in the admin dashboard under Settings > Payments.');
+    }
+
+    stripeInstance = new Stripe(secretKey, {
+      typescript: true,
+    });
+  }
+
+  return stripeInstance;
+}
+
+/**
+ * Check if Stripe is properly configured
+ */
+export async function isStripeConfigured(): Promise<boolean> {
+  try {
+    const config = await loadStripeConfig();
+    return !!(config.secretKey && config.publishableKey && config.webhookSecret);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Synchronous check if Stripe is configured (uses cache or env vars)
+ */
+export function isStripeConfiguredSync(): boolean {
+  if (stripeConfigCache) {
+    return !!(stripeConfigCache.secretKey && stripeConfigCache.publishableKey && stripeConfigCache.webhookSecret);
+  }
   return !!(
     process.env.STRIPE_SECRET_KEY &&
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY &&
     process.env.STRIPE_WEBHOOK_SECRET
   );
+}
+
+/**
+ * Get the current Stripe mode (test or live)
+ */
+export async function getStripeMode(): Promise<'test' | 'live'> {
+  const config = await loadStripeConfig();
+  return config.mode;
+}
+
+/**
+ * Get the publishable key for client-side usage
+ */
+export async function getPublishableKey(): Promise<string> {
+  const config = await loadStripeConfig();
+  return config.publishableKey;
+}
+
+/**
+ * Get webhook secret for verifying webhooks
+ */
+export async function getWebhookSecret(): Promise<string> {
+  const config = await loadStripeConfig();
+  return config.webhookSecret;
+}
+
+/**
+ * Clear the Stripe config cache (call when settings are updated)
+ */
+export function clearStripeConfigCache(): void {
+  stripeConfigCache = null;
+  configCacheTimestamp = 0;
+  stripeInstance = null;
 }
 
 /**

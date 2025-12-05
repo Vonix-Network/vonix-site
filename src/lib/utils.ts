@@ -216,3 +216,25 @@ export function getMinecraftHeadUrl(username: string, size = 100): string {
 export function getMinotaurBustUrl(username: string): string {
   return `https://minotar.net/armor/bust/${encodeURIComponent(username)}/100.png`;
 }
+
+/**
+ * Format playtime from seconds to human readable string
+ * @param seconds - Total playtime in seconds
+ * @returns Formatted playtime string (e.g., "2h 30m", "5d 3h")
+ */
+export function formatPlaytime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}m`;
+  }
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours < 24) {
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  }
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+}

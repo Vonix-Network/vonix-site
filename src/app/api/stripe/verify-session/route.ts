@@ -6,7 +6,8 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    if (!isStripeConfigured()) {
+    const stripeConfigured = await isStripeConfigured();
+    if (!stripeConfigured) {
       return NextResponse.json(
         { error: 'Stripe not configured' },
         { status: 503 }
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         .from(donationRanks)
         .where(eq(donationRanks.id, rankId))
         .limit(1);
-      
+
       if (rank) {
         rankName = rank.name;
       }

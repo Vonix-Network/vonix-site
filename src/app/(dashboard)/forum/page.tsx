@@ -118,8 +118,8 @@ export default async function ForumPage() {
                   <Link key={category.id} href={`/forum/category/${category.slug}`}>
                     <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-neon-purple/10 group-hover:bg-neon-purple/20 transition-colors">
-                          <MessageSquare className="w-5 h-5 text-neon-purple" />
+                        <div className="w-11 h-11 rounded-lg bg-neon-purple/10 group-hover:bg-neon-purple/20 transition-colors flex items-center justify-center text-xl">
+                          {category.icon || '💬'}
                         </div>
                         <div>
                           <h3 className="font-semibold group-hover:text-neon-cyan transition-colors">

@@ -13,10 +13,11 @@ import { calculatePriceForDays } from '@/lib/rank-pricing';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Stripe is configured
-    if (!isStripeConfigured()) {
+    // Check if Stripe is configured (loads from database first, env vars as fallback)
+    const stripeConfigured = await isStripeConfigured();
+    if (!stripeConfigured) {
       return NextResponse.json(
-        { error: 'Payment system not configured. Please contact an administrator.' },
+        { error: 'Payment system not configured. Please set up Stripe in the admin dashboard under Settings > Payments.' },
         { status: 503 }
       );
     }
@@ -139,9 +140,16 @@ export async function POST(request: NextRequest) {
       url: checkoutSession.url,
     });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error creating checkout session:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error
+    });
     return NextResponse.json(
-      { error: 'Failed to create checkout session. Please try again.' },
+      {
+        error: 'Failed to create checkout session. Please try again.',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     );
   }

@@ -148,6 +148,12 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Clear caches so new settings take effect immediately
+    const { clearSettingsCache } = await import('@/lib/settings');
+    const { clearStripeConfigCache } = await import('@/lib/stripe');
+    clearSettingsCache();
+    clearStripeConfigCache();
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     if (error.message === 'Unauthorized') {

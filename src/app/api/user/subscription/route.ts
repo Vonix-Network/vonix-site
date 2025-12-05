@@ -3,7 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users, donationRanks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getSubscription, isStripeConfigured } from '@/lib/stripe';
+import { getSubscription, isStripeConfiguredSync } from '@/lib/stripe';
 
 /**
  * GET /api/user/subscription
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Get subscription status from Stripe if available
     let stripeSubscription = null;
-    if (user.stripeSubscriptionId && isStripeConfigured()) {
+    if (user.stripeSubscriptionId && isStripeConfiguredSync()) {
       try {
         stripeSubscription = await getSubscription(user.stripeSubscriptionId);
       } catch (err) {

@@ -13,7 +13,8 @@ import { createPortalSession, getOrCreateCustomer, isStripeConfigured } from '@/
 export async function POST(request: NextRequest) {
   try {
     // Check if Stripe is configured
-    if (!isStripeConfigured()) {
+    const stripeConfigured = await isStripeConfigured();
+    if (!stripeConfigured) {
       return NextResponse.json(
         { error: 'Payment system not configured' },
         { status: 503 }

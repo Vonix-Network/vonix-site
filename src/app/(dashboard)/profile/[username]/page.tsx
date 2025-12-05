@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { db } from '@/db';
-import { users, socialPosts, forumPosts, userAchievements, achievements, donationRanks, friendships, SocialPost } from '@/db/schema';
+import { users, socialPosts, forumPosts, userAchievements, achievements, donationRanks, friendships, serverXp, SocialPost } from '@/db/schema';
 import { eq, desc, sql, and, or } from 'drizzle-orm';
 import Link from 'next/link';
 import {
@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   getMinecraftAvatarUrl, getMinecraftHeadUrl, getInitials,
-  formatDate, formatRelativeTime, formatNumber
+  formatDate, formatRelativeTime, formatNumber, formatPlaytime
 } from '@/lib/utils';
 import { getLevelProgress } from '@/lib/xp-math';
 import { RankBadge, RoleBadge, UserBadges } from '@/components/rank-badge';
@@ -72,21 +72,31 @@ async function getUser(username: string) {
 
 async function getUserStats(userId: number) {
   try {
-    const [postCount, forumCount] = await Promise.all([
+    const [postCount, forumCount, playtimeData] = await Promise.all([
       db.select({ count: sql<number>`count(*)` })
         .from(socialPosts)
         .where(eq(socialPosts.userId, userId)),
       db.select({ count: sql<number>`count(*)` })
         .from(forumPosts)
         .where(eq(forumPosts.authorId, userId)),
+      db.select({ playtimeSeconds: serverXp.playtimeSeconds })
+        .from(serverXp)
+        .where(eq(serverXp.userId, userId)),
     ]);
+
+    // Sum up playtime from all servers
+    const totalPlaytimeSeconds = playtimeData.reduce(
+      (acc, s) => acc + (s.playtimeSeconds || 0),
+      0
+    );
 
     return {
       socialPosts: postCount[0]?.count || 0,
       forumPosts: forumCount[0]?.count || 0,
+      playtimeSeconds: totalPlaytimeSeconds,
     };
   } catch {
-    return { socialPosts: 0, forumPosts: 0 };
+    return { socialPosts: 0, forumPosts: 0, playtimeSeconds: 0 };
   }
 }
 
@@ -345,6 +355,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   Achievements
                 </span>
                 <span className="font-bold">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  Play Time
+                </span>
+                <span className="font-bold">{formatPlaytime(stats.playtimeSeconds)}</span>
               </div>
             </CardContent>
           </Card>

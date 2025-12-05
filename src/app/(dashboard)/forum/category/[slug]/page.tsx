@@ -106,8 +106,8 @@ export default async function CategoryPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="p-4 rounded-xl bg-neon-purple/10">
-            <MessageSquare className="w-8 h-8 text-neon-purple" />
+          <div className="w-16 h-16 rounded-xl bg-neon-purple/10 flex items-center justify-center text-3xl">
+            {category.icon || '💬'}
           </div>
           <div>
             <h1 className="text-3xl font-bold gradient-text">

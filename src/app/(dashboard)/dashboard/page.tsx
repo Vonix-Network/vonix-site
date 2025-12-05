@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getMinecraftAvatarUrl, getInitials, formatRelativeTime } from '@/lib/utils';
+import { getMinecraftAvatarUrl, getInitials, formatRelativeTime, formatPlaytime } from '@/lib/utils';
 import { getLevelProgress } from '@/lib/xp-math';
 
 interface ActivityItem {
@@ -48,21 +48,6 @@ const quickLinks = [
   { href: '/donate', icon: Heart, label: 'Donate', color: 'text-error' },
   { href: '/events', icon: Calendar, label: 'Events', color: 'text-success' },
 ];
-
-// Format playtime from seconds to human readable string
-function formatPlaytime(seconds: number): string {
-  if (seconds < 3600) {
-    return `${Math.floor(seconds / 60)}m`;
-  }
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (hours < 24) {
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  }
-  const days = Math.floor(hours / 24);
-  const remainingHours = hours % 24;
-  return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
-}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
