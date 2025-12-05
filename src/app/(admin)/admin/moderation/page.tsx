@@ -1,8 +1,8 @@
 import { db } from '@/db';
 import { users, forumPosts, auditLogs } from '@/db/schema';
 import { desc, sql, eq } from 'drizzle-orm';
-import { 
-  Shield, AlertTriangle, Ban, Eye, 
+import {
+  Shield, AlertTriangle, Ban, Eye,
   MessageSquare, Clock, CheckCircle, XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { formatRelativeTime, getMinecraftAvatarUrl, getInitials } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 async function getModerationStats() {
   try {
@@ -136,7 +138,7 @@ export default async function AdminModerationPage() {
             {reports.length > 0 ? (
               <div className="space-y-3">
                 {reports.map((report) => (
-                  <div 
+                  <div
                     key={report.id}
                     className="p-4 rounded-lg bg-secondary/50"
                   >
@@ -193,7 +195,7 @@ export default async function AdminModerationPage() {
             {stats.recentLogs.length > 0 ? (
               <div className="space-y-3">
                 {stats.recentLogs.map((log) => (
-                  <div 
+                  <div
                     key={log.id}
                     className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50"
                   >

@@ -1,13 +1,15 @@
 import { db } from '@/db';
 import { users, donations, forumPosts, socialPosts, servers } from '@/db/schema';
 import { sql, desc } from 'drizzle-orm';
-import { 
+import {
   Users, DollarSign, MessageSquare, Server,
   TrendingUp, Activity, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatNumber, formatRelativeTime } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 async function getStats() {
   try {
@@ -18,7 +20,7 @@ async function getStats() {
       serverCount,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(users),
-      db.select({ 
+      db.select({
         total: sql<number>`COALESCE(SUM(amount), 0)`,
         count: sql<number>`count(*)`,
       }).from(donations),
@@ -76,31 +78,31 @@ export default async function AdminDashboard() {
   ]);
 
   const statCards = [
-    { 
-      title: 'Total Users', 
-      value: formatNumber(stats.users), 
-      icon: Users, 
+    {
+      title: 'Total Users',
+      value: formatNumber(stats.users),
+      icon: Users,
       color: 'text-neon-cyan',
       bgColor: 'bg-neon-cyan/10',
     },
-    { 
-      title: 'Total Donations', 
-      value: formatCurrency(stats.donations), 
-      icon: DollarSign, 
+    {
+      title: 'Total Donations',
+      value: formatCurrency(stats.donations),
+      icon: DollarSign,
       color: 'text-success',
       bgColor: 'bg-success/10',
     },
-    { 
-      title: 'Forum Posts', 
-      value: formatNumber(stats.posts), 
-      icon: MessageSquare, 
+    {
+      title: 'Forum Posts',
+      value: formatNumber(stats.posts),
+      icon: MessageSquare,
       color: 'text-neon-purple',
       bgColor: 'bg-neon-purple/10',
     },
-    { 
-      title: 'Servers', 
-      value: stats.servers.toString(), 
-      icon: Server, 
+    {
+      title: 'Servers',
+      value: stats.servers.toString(),
+      icon: Server,
       color: 'text-neon-orange',
       bgColor: 'bg-neon-orange/10',
     },
@@ -147,7 +149,7 @@ export default async function AdminDashboard() {
             {recentUsers.length > 0 ? (
               <div className="space-y-3">
                 {recentUsers.map((user) => (
-                  <div 
+                  <div
                     key={user.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                   >
@@ -158,9 +160,9 @@ export default async function AdminDashboard() {
                       </p>
                     </div>
                     <Badge variant={
-                      user.role === 'admin' ? 'neon-pink' : 
-                      user.role === 'moderator' ? 'neon-purple' : 
-                      'secondary'
+                      user.role === 'admin' ? 'neon-pink' :
+                        user.role === 'moderator' ? 'neon-purple' :
+                          'secondary'
                     }>
                       {user.role}
                     </Badge>
@@ -187,7 +189,7 @@ export default async function AdminDashboard() {
             {recentDonations.length > 0 ? (
               <div className="space-y-3">
                 {recentDonations.map((donation) => (
-                  <div 
+                  <div
                     key={donation.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                   >
@@ -253,7 +255,7 @@ export default async function AdminDashboard() {
               { name: 'Authentication', status: 'operational' },
               { name: 'Payment System', status: 'operational' },
             ].map((service) => (
-              <div 
+              <div
                 key={service.name}
                 className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
               >

@@ -2,8 +2,8 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { desc, sql } from 'drizzle-orm';
 import Link from 'next/link';
-import { 
-  Users, Search, Filter, MoreHorizontal, 
+import {
+  Users, Search, Filter, MoreHorizontal,
   Shield, Crown, UserX, Mail
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getMinecraftAvatarUrl, getInitials, formatDate } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 async function getUsers() {
   try {
@@ -146,9 +148,9 @@ export default async function AdminUsersPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage 
-                            src={getMinecraftAvatarUrl(user.minecraftUsername || user.username)} 
-                            alt={user.username} 
+                          <AvatarImage
+                            src={getMinecraftAvatarUrl(user.minecraftUsername || user.username)}
+                            alt={user.username}
                           />
                           <AvatarFallback>
                             {getInitials(user.username)}

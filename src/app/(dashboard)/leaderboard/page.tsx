@@ -1,14 +1,17 @@
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { desc } from 'drizzle-orm';
-import { 
-  Trophy, Medal, Crown, Star, TrendingUp, 
+import {
+  Trophy, Medal, Crown, Star, TrendingUp,
   Clock, MessageSquare, Heart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getMinecraftAvatarUrl, getInitials, formatNumber } from '@/lib/utils';
+
+// Force dynamic rendering to ensure fresh XP data
+export const dynamic = 'force-dynamic';
 
 async function getLeaderboard() {
   try {
@@ -61,7 +64,7 @@ export default async function LeaderboardPage() {
 
   // Calculate stats
   const totalXP = leaderboard.reduce((sum, user) => sum + (user.xp || 0), 0);
-  const avgLevel = leaderboard.length > 0 
+  const avgLevel = leaderboard.length > 0
     ? Math.round(leaderboard.reduce((sum, user) => sum + (user.level || 1), 0) / leaderboard.length)
     : 1;
 
@@ -125,9 +128,9 @@ export default async function LeaderboardPage() {
 
                   {/* Avatar */}
                   <Avatar className="w-12 h-12" glow={index < 3}>
-                    <AvatarImage 
-                      src={getMinecraftAvatarUrl(player.minecraftUsername || player.username)} 
-                      alt={player.username} 
+                    <AvatarImage
+                      src={getMinecraftAvatarUrl(player.minecraftUsername || player.username)}
+                      alt={player.username}
                     />
                     <AvatarFallback>
                       {getInitials(player.username)}

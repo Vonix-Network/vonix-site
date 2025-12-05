@@ -21,6 +21,9 @@ import { formatRankExpiration } from '@/lib/ranks';
 import { auth } from '../../../../../auth';
 import { ProfileFriendActions, FriendshipStatus } from '@/components/profile-friend-actions';
 
+// Force dynamic rendering to ensure fresh XP data
+export const dynamic = 'force-dynamic';
+
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
 }

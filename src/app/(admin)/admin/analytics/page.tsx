@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { RevenueChart, UserGrowthChart } from '@/components/analytics-charts';
 
+export const dynamic = 'force-dynamic';
+
 async function getAnalytics() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -64,13 +66,11 @@ async function getAnalytics() {
   }
 }
 
-// Get daily revenue for the last `days` days (default 90)
 async function getRevenueChartData(days: number = 90) {
   const now = new Date();
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
   try {
-    // Get all donations from the selected range
     const recentDonations = await db
       .select({
         amount: donations.amount,
@@ -79,24 +79,20 @@ async function getRevenueChartData(days: number = 90) {
       .from(donations)
       .where(gte(donations.createdAt, startDate));
 
-    // Group by day
     const dailyRevenue = new Map<string, number>();
 
-    // Initialize all days in range with 0
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateKey = date.toISOString().split('T')[0];
       dailyRevenue.set(dateKey, 0);
     }
 
-    // Sum up donations by day
     for (const donation of recentDonations) {
       const dateKey = new Date(donation.createdAt).toISOString().split('T')[0];
       const current = dailyRevenue.get(dateKey) || 0;
       dailyRevenue.set(dateKey, current + (donation.amount || 0));
     }
 
-    // Convert to array format for chart
     return Array.from(dailyRevenue.entries()).map(([date, value]) => ({
       date,
       label: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -107,13 +103,11 @@ async function getRevenueChartData(days: number = 90) {
   }
 }
 
-// Get daily user registrations for the last `days` days (default 90)
 async function getUserGrowthData(days: number = 90) {
   const now = new Date();
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
   try {
-    // Get all users from the selected range
     const recentUsers = await db
       .select({
         createdAt: users.createdAt,
@@ -121,24 +115,20 @@ async function getUserGrowthData(days: number = 90) {
       .from(users)
       .where(gte(users.createdAt, startDate));
 
-    // Group by day
     const dailyUsers = new Map<string, number>();
 
-    // Initialize all days in range with 0
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateKey = date.toISOString().split('T')[0];
       dailyUsers.set(dateKey, 0);
     }
 
-    // Count users by day
     for (const user of recentUsers) {
       const dateKey = new Date(user.createdAt).toISOString().split('T')[0];
       const current = dailyUsers.get(dateKey) || 0;
       dailyUsers.set(dateKey, current + 1);
     }
 
-    // Convert to array format for chart
     return Array.from(dailyUsers.entries()).map(([date, value]) => ({
       date,
       label: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -266,7 +256,7 @@ export default async function AdminAnalyticsPage() {
           {recentDonations.length > 0 ? (
             <div className="space-y-3">
               {recentDonations.map((donation) => (
-                <div 
+                <div
                   key={donation.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
                 >
