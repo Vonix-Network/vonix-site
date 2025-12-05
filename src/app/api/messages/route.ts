@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { privateMessages, users } from '@/db/schema';
 import { and, or, eq, desc, inArray } from 'drizzle-orm';
 import { notifyNewMessage } from '@/lib/notifications';
+import { emitNewMessage } from '@/lib/socket-emit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -124,6 +125,9 @@ export async function POST(request: NextRequest) {
       .values({ senderId: viewerId, recipientId: targetId, content: String(content).trim() })
       .returning();
 
+    // Emit via socket for real-time delivery
+    emitNewMessage(viewerId, targetId, inserted);
+
     // Send notification to the recipient
     const senderName = session.user.name || session.user.username || 'Someone';
     await notifyNewMessage(targetId, senderName);
@@ -134,3 +138,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }
+

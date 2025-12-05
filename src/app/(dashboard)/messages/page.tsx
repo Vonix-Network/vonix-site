@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getMinecraftAvatarUrl, getInitials, formatRelativeTime } from '@/lib/utils';
+import { useSocket } from '@/lib/socket-context';
 
 interface Conversation {
   id: number;
@@ -190,30 +191,54 @@ export default function MessagesPage() {
     }
   }, [searchParams]);
 
-  // Poll for new messages every 5 seconds when a conversation is open
+  // Use socket for real-time message updates
+  const { joinConversation, leaveConversation, onNewMessage } = useSocket();
+
+  // Join/leave conversation room for real-time updates
   useEffect(() => {
-    if (!selectedConversation) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/messages?withUserId=${selectedConversation.user.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          const msgs: Message[] = (data.messages || []).map((m: any) => ({
-            id: m.id,
-            senderId: m.senderId,
-            content: m.content,
-            time: new Date(m.createdAt),
-          }));
-          setMessages(msgs);
-        }
-      } catch (err) {
-        console.error('Error polling messages', err);
+    if (selectedConversation) {
+      joinConversation(selectedConversation.user.id);
+    }
+    return () => {
+      if (selectedConversation) {
+        leaveConversation(selectedConversation.user.id);
       }
-    }, 5000);
+    };
+  }, [selectedConversation?.user.id, joinConversation, leaveConversation]);
 
-    return () => clearInterval(interval);
-  }, [selectedConversation?.user.id]);
+  // Listen for new messages via socket
+  useEffect(() => {
+    const unsubscribe = onNewMessage((message: any) => {
+      if (!selectedConversation) return;
+
+      // Only add if it's for this conversation
+      if (
+        (message.senderId === selectedConversation.user.id && message.recipientId === myId) ||
+        (message.senderId === myId && message.recipientId === selectedConversation.user.id)
+      ) {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, {
+            id: message.id,
+            senderId: message.senderId,
+            content: message.content,
+            time: new Date(message.createdAt),
+          }];
+        });
+
+        // Also update conversation list
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.user.id === selectedConversation.user.id
+              ? { ...c, lastMessage: message.content, lastMessageTime: new Date(message.createdAt) }
+              : c
+          )
+        );
+      }
+    });
+    return unsubscribe;
+  }, [selectedConversation?.user.id, myId, onNewMessage]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;

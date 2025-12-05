@@ -7,6 +7,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { usePresenceHeartbeat } from '@/hooks/use-presence';
 import { Messenger } from '@/components/messenger';
+import { SocketProvider } from '@/lib/socket-context';
 
 function PresenceProvider({ children }: { children: React.ReactNode }) {
   usePresenceHeartbeat();
@@ -31,17 +32,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="dark" 
-        enableSystem 
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        enableSystem
         disableTransitionOnChange
       >
         <QueryClientProvider client={queryClient}>
-          <PresenceProvider>
-            {children}
-            <Messenger />
-          </PresenceProvider>
+          <SocketProvider>
+            <PresenceProvider>
+              {children}
+              <Messenger />
+            </PresenceProvider>
+          </SocketProvider>
           <Toaster
             position="top-right"
             richColors
@@ -59,3 +62,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </SessionProvider>
   );
 }
+

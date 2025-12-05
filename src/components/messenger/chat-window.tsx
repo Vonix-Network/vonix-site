@@ -10,6 +10,7 @@ import { cn, getMinecraftAvatarUrl, getInitials } from '@/lib/utils';
 import { PresenceBadge } from '@/components/presence-indicator';
 import { OpenChat, MessengerMessage } from './messenger-types';
 import { useMessenger } from './messenger-context';
+import { useSocket } from '@/lib/socket-context';
 
 interface ChatWindowProps {
   chat: OpenChat;
@@ -19,6 +20,7 @@ interface ChatWindowProps {
 export function ChatWindow({ chat, index }: ChatWindowProps) {
   const { data: session } = useSession();
   const { closeChat, toggleMinimize, refreshConversations } = useMessenger();
+  const { joinConversation, leaveConversation, onNewMessage } = useSocket();
   const [messages, setMessages] = useState<MessengerMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -50,13 +52,46 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
     }
   }, [chat.conversationId]);
 
+  // Initial load
   useEffect(() => {
     if (!chat.minimized) {
       loadMessages();
-      const interval = setInterval(loadMessages, 5000);
-      return () => clearInterval(interval);
     }
   }, [chat.minimized, loadMessages]);
+
+  // Join conversation room for real-time updates
+  useEffect(() => {
+    if (!chat.minimized) {
+      joinConversation(chat.conversationId);
+    }
+    return () => {
+      leaveConversation(chat.conversationId);
+    };
+  }, [chat.minimized, chat.conversationId, joinConversation, leaveConversation]);
+
+  // Listen for new messages via socket
+  useEffect(() => {
+    const unsubscribe = onNewMessage((message: any) => {
+      // Only add if it's for this conversation
+      if (
+        (message.senderId === chat.conversationId && message.recipientId === currentUserId) ||
+        (message.senderId === currentUserId && message.recipientId === chat.conversationId)
+      ) {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, {
+            id: message.id,
+            senderId: message.senderId,
+            content: message.content,
+            createdAt: new Date(message.createdAt),
+          }];
+        });
+        refreshConversations();
+      }
+    });
+    return unsubscribe;
+  }, [chat.conversationId, currentUserId, onNewMessage, refreshConversations]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -70,7 +105,7 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
-    
+
     setSending(true);
     try {
       const res = await fetch('/api/messages', {
@@ -78,7 +113,7 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId: chat.conversationId, content: newMessage }),
       });
-      
+
       if (res.ok) {
         const inserted = await res.json();
         setMessages((prev) => [...prev, {
