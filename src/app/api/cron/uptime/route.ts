@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { servers, serverUptimeRecords } from '@/db/schema';
-import { sql, lt } from 'drizzle-orm';
-
-// Secret key for cron job authentication (use env variable in production)
-const CRON_SECRET = process.env.CRON_SECRET || 'vonix-cron-secret';
+import { servers, serverUptimeRecords, siteSettings } from '@/db/schema';
+import { sql, lt, eq } from 'drizzle-orm';
 
 /**
  * GET /api/cron/uptime
@@ -19,20 +16,33 @@ const CRON_SECRET = process.env.CRON_SECRET || 'vonix-cron-secret';
  */
 export async function GET(request: NextRequest) {
     try {
-        // Verify cron secret - multiple methods for flexibility
-        const authHeader = request.headers.get('authorization');
-        const cronSecretHeader = request.headers.get('x-cron-secret');
-        const vercelCronHeader = request.headers.get('x-vercel-cron');
-        const secretParam = request.nextUrl.searchParams.get('secret');
+        // Get cron secret from database first, fallback to env var
+        const [dbSecret] = await db
+            .select()
+            .from(siteSettings)
+            .where(eq(siteSettings.key, 'cron_secret'));
 
-        const isAuthorized =
-            authHeader === `Bearer ${CRON_SECRET}` ||
-            cronSecretHeader === CRON_SECRET ||
-            secretParam === CRON_SECRET ||
-            vercelCronHeader !== null; // Vercel cron sets this automatically
+        const CRON_SECRET = dbSecret?.value || process.env.CRON_SECRET;
 
-        if (!isAuthorized) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // If no cron secret is configured anywhere, allow in development
+        if (!CRON_SECRET) {
+            console.warn('⚠️ No cron secret configured - allowing request (set one in Admin → API Keys)');
+        } else {
+            // Verify cron secret - multiple methods for flexibility
+            const authHeader = request.headers.get('authorization');
+            const cronSecretHeader = request.headers.get('x-cron-secret');
+            const vercelCronHeader = request.headers.get('x-vercel-cron');
+            const secretParam = request.nextUrl.searchParams.get('secret');
+
+            const isAuthorized =
+                authHeader === `Bearer ${CRON_SECRET}` ||
+                cronSecretHeader === CRON_SECRET ||
+                secretParam === CRON_SECRET ||
+                vercelCronHeader !== null;
+
+            if (!isAuthorized) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
         }
 
         // Get all servers

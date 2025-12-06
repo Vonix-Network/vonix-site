@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
+import {
   Key, Plus, Copy, Trash2, RefreshCw,
-  Eye, EyeOff, Check, Shield, Server
+  Eye, EyeOff, Check, Shield, Server, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,11 @@ interface ApiKey {
   createdAt: Date;
 }
 
+interface CronKeyInfo {
+  configured: boolean;
+  key?: string;
+}
+
 export default function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,9 +31,14 @@ export default function ApiKeysPage() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [visibleKeys, setVisibleKeys] = useState<Set<number>>(new Set());
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [cronKey, setCronKey] = useState<CronKeyInfo | null>(null);
+  const [showCronKey, setShowCronKey] = useState(false);
+  const [cronCopied, setCronCopied] = useState(false);
+  const [isRegeneratingCron, setIsRegeneratingCron] = useState(false);
 
   useEffect(() => {
     fetchApiKeys();
+    fetchCronKey();
   }, []);
 
   const fetchApiKeys = async () => {
@@ -42,6 +52,18 @@ export default function ApiKeysPage() {
       console.error('Failed to fetch API keys:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCronKey = async () => {
+    try {
+      const res = await fetch('/api/admin/cron-key');
+      if (res.ok) {
+        const data = await res.json();
+        setCronKey(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cron key:', err);
     }
   };
 
@@ -95,6 +117,32 @@ export default function ApiKeysPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const copyCronKey = async () => {
+    if (cronKey?.key) {
+      await navigator.clipboard.writeText(cronKey.key);
+      setCronCopied(true);
+      setTimeout(() => setCronCopied(false), 2000);
+    }
+  };
+
+  const regenerateCronKey = async () => {
+    if (!confirm('Are you sure you want to regenerate the cron key? You will need to update your cron jobs with the new key.')) return;
+
+    setIsRegeneratingCron(true);
+    try {
+      const res = await fetch('/api/admin/cron-key', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setCronKey({ configured: true, key: data.key });
+        setShowCronKey(true); // Show the new key
+      }
+    } catch (err) {
+      console.error('Failed to regenerate cron key:', err);
+    } finally {
+      setIsRegeneratingCron(false);
+    }
+  };
+
   const maskKey = (key: string) => {
     return key.substring(0, 8) + '••••••••••••••••' + key.substring(key.length - 4);
   };
@@ -139,6 +187,73 @@ export default function ApiKeysPage() {
         </CardContent>
       </Card>
 
+      {/* Cron Key Card */}
+      <Card variant="glass">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-neon-orange" />
+                Cron Job Authentication
+              </CardTitle>
+              <CardDescription>
+                Auto-generated key for scheduled tasks (uptime monitoring, rank expiration)
+              </CardDescription>
+            </div>
+            {cronKey?.configured && (
+              <Button
+                variant="neon-outline"
+                size="sm"
+                onClick={regenerateCronKey}
+                disabled={isRegeneratingCron}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRegeneratingCron ? 'animate-spin' : ''}`} />
+                Regenerate
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {cronKey?.configured ? (
+            <>
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground mb-2">Cron Secret Key</p>
+                  <code className="text-sm font-mono break-all">
+                    {showCronKey ? cronKey.key : '••••••••••••••••••••••••••••••••'}
+                  </code>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => setShowCronKey(!showCronKey)}>
+                    {showCronKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={copyCronKey}>
+                    {cronCopied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                <p className="text-sm font-medium text-neon-orange mb-2">📋 Cron Job Setup (Ubuntu/Linux)</p>
+                <p className="text-xs text-muted-foreground mb-2">Run <code>crontab -e</code> and add:</p>
+                <pre className="text-xs bg-background/50 p-2 rounded overflow-x-auto">
+                  {`# Server Uptime - Every minute
+* * * * * curl -s "https://yourdomain.com/api/cron/uptime?secret=${cronKey.key}" > /dev/null
+
+# Expire Ranks - Every hour
+0 * * * * curl -s "https://yourdomain.com/api/cron/expire-ranks?secret=${cronKey.key}" > /dev/null`}
+                </pre>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-4">Loading cron key...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* New Key Generated Alert */}
       {newKey && (
         <Card variant="neon-glow" className="border-success">
@@ -156,8 +271,8 @@ export default function ApiKeysPage() {
                   <code className="flex-1 p-2 bg-secondary rounded font-mono text-sm break-all">
                     {newKey}
                   </code>
-                  <Button 
-                    variant="neon" 
+                  <Button
+                    variant="neon"
                     size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(newKey);
@@ -172,36 +287,39 @@ export default function ApiKeysPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )
+      }
 
       {/* Add Key Form */}
-      {showAddForm && !newKey && (
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle>Generate New API Key</CardTitle>
-            <CardDescription>
-              Create a new API key for your Minecraft server
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Key name (e.g., 'Survival Server')"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                className="flex-1"
-              />
-              <Button variant="gradient" onClick={generateApiKey} disabled={!newKeyName.trim()}>
-                <Key className="w-4 h-4 mr-2" />
-                Generate
-              </Button>
-              <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {
+        showAddForm && !newKey && (
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle>Generate New API Key</CardTitle>
+              <CardDescription>
+                Create a new API key for your Minecraft server
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <Input
+                  placeholder="Key name (e.g., 'Survival Server')"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button variant="gradient" onClick={generateApiKey} disabled={!newKeyName.trim()}>
+                  <Key className="w-4 h-4 mr-2" />
+                  Generate
+                </Button>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }
 
       {/* API Keys List */}
       <Card variant="glass">
@@ -215,7 +333,7 @@ export default function ApiKeysPage() {
           {apiKeys.length > 0 ? (
             <div className="space-y-3">
               {apiKeys.map((apiKey) => (
-                <div 
+                <div
                   key={apiKey.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
                 >
@@ -246,8 +364,8 @@ export default function ApiKeysPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => copyToClipboard(apiKey.key, apiKey.id)}
                     >
@@ -257,8 +375,8 @@ export default function ApiKeysPage() {
                         <Copy className="w-4 h-4" />
                       )}
                     </Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => deleteApiKey(apiKey.id)}
                       className="text-error hover:text-error"
@@ -297,7 +415,7 @@ export default function ApiKeysPage() {
               Authenticate a user from your Minecraft auth mod. Returns user info including donation rank.
             </p>
             <pre className="p-4 bg-secondary rounded-lg text-sm overflow-x-auto">
-{`POST /api/minecraft/login
+              {`POST /api/minecraft/login
 Headers: X-API-Key: your-api-key
 
 Body:
@@ -357,7 +475,7 @@ Response (Error):
               Generate a registration code for a player. They use this code on the website to create an account.
             </p>
             <pre className="p-4 bg-secondary rounded-lg text-sm overflow-x-auto">
-{`POST /api/minecraft/register
+              {`POST /api/minecraft/register
 Headers: X-API-Key: your-api-key
 
 Body:
@@ -383,7 +501,7 @@ Response:
               Register a player directly from the Minecraft mod with /register &lt;password&gt;. Creates account immediately.
             </p>
             <pre className="p-4 bg-secondary rounded-lg text-sm overflow-x-auto">
-{`POST /api/minecraft/register-direct
+              {`POST /api/minecraft/register-direct
 Headers: X-API-Key: your-api-key
 
 Body:
@@ -419,7 +537,7 @@ Response (Error - Already Registered):
           <div>
             <h4 className="font-semibold mb-2">✅ Verify Player</h4>
             <pre className="p-4 bg-secondary rounded-lg text-sm overflow-x-auto">
-{`GET /api/minecraft/verify?uuid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+              {`GET /api/minecraft/verify?uuid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 Headers: X-API-Key: your-api-key
 
 Response:
@@ -439,7 +557,7 @@ Response:
           <div>
             <h4 className="font-semibold mb-2">Award XP</h4>
             <pre className="p-4 bg-secondary rounded-lg text-sm overflow-x-auto">
-{`POST /api/minecraft/xp
+              {`POST /api/minecraft/xp
 Headers: X-API-Key: your-api-key
 
 Body:
@@ -461,6 +579,6 @@ Response:
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

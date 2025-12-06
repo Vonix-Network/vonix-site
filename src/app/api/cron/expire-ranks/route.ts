@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { removeExpiredRanks } from '@/lib/rank-subscription';
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { db } from '@/db';
+import { siteSettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/cron/expire-ranks
@@ -12,6 +13,14 @@ const CRON_SECRET = process.env.CRON_SECRET;
  */
 export async function GET(request: NextRequest) {
   try {
+    // Get cron secret from database first, fallback to env var
+    const [dbSecret] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'cron_secret'));
+
+    const CRON_SECRET = dbSecret?.value || process.env.CRON_SECRET;
+
     // Verify cron secret - multiple methods for flexibility
     const authHeader = request.headers.get('authorization');
     const cronSecretHeader = request.headers.get('x-cron-secret');
