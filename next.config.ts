@@ -85,14 +85,15 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Packages that should be externalized for server components (discord.js native deps)
+  serverExternalPackages: ['discord.js', '@discordjs/ws', '@discordjs/rest'],
+
   // Experimental features
   experimental: {
     // Enable server actions
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // Packages that should be externalized for server components
-    serverComponentsExternalPackages: ['discord.js', '@discordjs/ws', '@discordjs/rest'],
   },
 
   // Webpack configuration
