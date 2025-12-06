@@ -1,17 +1,31 @@
-# Vonix Network - Ubuntu Auto-Start Guide
+# Vonix Network - Ubuntu Auto-Start Guide (Screen Session)
 
-This guide covers setting up Vonix Network to automatically start on system boot using **systemd** with proper permissions, logging, and reliability.
+This guide covers setting up Vonix Network to automatically start on system boot inside a **screen session** that the `ubuntu` user can attach to for viewing the live console output.
 
 ## Prerequisites
 
-- Ubuntu 20.04 or newer (or any systemd-based Linux)
+- Ubuntu 20.04 or newer
 - Node.js 20+ installed
 - Application built and ready (`npm run build` completed)
 - Application directory: `/var/www/vonix` (or your preferred location)
+- `screen` installed (usually pre-installed on Ubuntu)
 
 ---
 
-## Step 1: Create Application Directory
+## Step 1: Install Screen (if not already installed)
+
+```bash
+# Install screen
+sudo apt update
+sudo apt install screen -y
+
+# Verify installation
+screen --version
+```
+
+---
+
+## Step 2: Create Application Directory
 
 ```bash
 # Create the application directory
@@ -27,7 +41,7 @@ sudo chown -R ubuntu:ubuntu /var/www/vonix
 
 ---
 
-## Step 2: Install Dependencies and Build
+## Step 3: Install Dependencies and Build
 
 ```bash
 cd /var/www/vonix
@@ -48,50 +62,82 @@ npm run build
 
 ---
 
-## Step 3: Create Systemd Service File
+## Step 4: Create the Startup Script
 
-Create the service file:
+Create a startup script that will run the application inside a screen session:
+
+```bash
+nano /var/www/vonix/start-vonix.sh
+```
+
+Paste the following content:
+
+```bash
+#!/bin/bash
+# Vonix Network Startup Script - Runs in a screen session
+
+SESSION_NAME="vonix"
+WORK_DIR="/var/www/vonix"
+
+# Kill existing session if it exists
+screen -S "$SESSION_NAME" -X quit 2>/dev/null
+
+# Wait a moment for cleanup
+sleep 1
+
+# Start a new detached screen session running npm start
+cd "$WORK_DIR"
+screen -dmS "$SESSION_NAME" bash -c "cd $WORK_DIR && npm start; exec bash"
+
+echo "✅ Vonix started in screen session '$SESSION_NAME'"
+echo "   To view console: screen -r $SESSION_NAME"
+echo "   To detach: Press Ctrl+A, then D"
+```
+
+Make it executable:
+
+```bash
+chmod +x /var/www/vonix/start-vonix.sh
+```
+
+---
+
+## Step 5: Create Systemd Service for Auto-Start with Screen
+
+Create a systemd service that starts the screen session on boot:
 
 ```bash
 sudo nano /etc/systemd/system/vonix.service
 ```
 
-Paste the following content (replace `ubuntu` with your actual username):
+Paste the following content:
 
 ```ini
 [Unit]
-Description=Vonix Network Website
+Description=Vonix Network Website (Screen Session)
 Documentation=https://github.com/Vonix-Network/vonix-site
 After=network.target
 
 [Service]
-Type=simple
+Type=forking
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/vonix
-ExecStart=/usr/bin/npm start
-Restart=always
+
+# Start the application in a screen session
+ExecStart=/usr/bin/screen -dmS vonix bash -c "cd /var/www/vonix && NODE_ENV=production PORT=3000 npm start"
+
+# Stop by sending quit to the screen session
+ExecStop=/usr/bin/screen -S vonix -X quit
+
+# Restart configuration
+Restart=on-failure
 RestartSec=10
 
 # Environment
 Environment=NODE_ENV=production
 Environment=PORT=3000
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=vonix
-
-# Security hardening
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=/var/www/vonix/data
-PrivateTmp=true
-
-# Resource limits
-LimitNOFILE=65535
-MemoryMax=2G
+Environment=HOME=/home/ubuntu
 
 [Install]
 WantedBy=multi-user.target
@@ -99,26 +145,7 @@ WantedBy=multi-user.target
 
 ---
 
-## Step 4: Set Correct Permissions
-
-```bash
-# Ensure the application directory is owned by your user
-sudo chown -R ubuntu:ubuntu /var/www/vonix
-
-# Ensure data directory exists and is writable (for SQLite if used)
-mkdir -p /var/www/vonix/data
-chmod 755 /var/www/vonix/data
-
-# Make sure node_modules is present
-cd /var/www/vonix && npm install --production
-
-# Verify the service file
-sudo chmod 644 /etc/systemd/system/vonix.service
-```
-
----
-
-## Step 5: Enable and Start the Service
+## Step 6: Enable and Start the Service
 
 ```bash
 # Reload systemd to recognize the new service
@@ -134,16 +161,43 @@ sudo systemctl start vonix
 sudo systemctl status vonix
 ```
 
-You should see output similar to:
+---
+
+## Step 7: Accessing the Console
+
+The main advantage of using screen is that you can attach to the session and see live console output:
+
+### View Live Console
+
+```bash
+# Attach to the screen session (as ubuntu user)
+screen -r vonix
 ```
-● vonix.service - Vonix Network Website
-     Loaded: loaded (/etc/systemd/system/vonix.service; enabled)
-     Active: active (running) since ...
+
+### Detach from Session (Leave Running)
+
+While attached to the screen session, press:
+```
+Ctrl+A, then D
+```
+
+This detaches you from the session while leaving the application running.
+
+### List Active Screen Sessions
+
+```bash
+screen -ls
+```
+
+### Force Reattach (if session shows as "Attached")
+
+```bash
+screen -d -r vonix
 ```
 
 ---
 
-## Step 6: Setup Cron Jobs
+## Step 8: Setup Cron Jobs
 
 The application needs scheduled tasks for uptime monitoring and rank expiration.
 
@@ -184,7 +238,7 @@ curl "https://yourdomain.com/api/cron/uptime?secret=YOUR_CRON_KEY"
 
 ---
 
-## Step 7: Setup Nginx Reverse Proxy (Recommended)
+## Step 9: Setup Nginx Reverse Proxy (Recommended)
 
 ### Install Nginx
 
@@ -243,7 +297,7 @@ sudo systemctl enable nginx
 
 ---
 
-## Step 8: Setup SSL with Certbot
+## Step 10: Setup SSL with Certbot
 
 ```bash
 # Install Certbot
@@ -261,22 +315,38 @@ sudo certbot renew --dry-run
 
 ## Useful Commands
 
+### Screen Session Management
+
+```bash
+# View console (attach to session)
+screen -r vonix
+
+# Detach from session (Ctrl+A, then D)
+
+# List all screen sessions
+screen -ls
+
+# Force reattach if shown as "Attached"
+screen -d -r vonix
+
+# Kill the screen session manually
+screen -S vonix -X quit
+```
+
 ### Service Management
 
 ```bash
 # Check status
 sudo systemctl status vonix
 
-# View logs
-sudo journalctl -u vonix -f           # Follow logs
-sudo journalctl -u vonix --since "1 hour ago"
-sudo journalctl -u vonix -n 100       # Last 100 lines
-
-# Restart service
+# Restart service (restarts screen session)
 sudo systemctl restart vonix
 
-# Stop service
+# Stop service (kills screen session)
 sudo systemctl stop vonix
+
+# Start service
+sudo systemctl start vonix
 
 # Disable auto-start
 sudo systemctl disable vonix
@@ -301,8 +371,11 @@ npm run build
 # Push database changes (if any)
 npm run db:push
 
-# Restart service
+# Restart service (starts new screen session)
 sudo systemctl start vonix
+
+# Verify it's running
+screen -ls
 ```
 
 ### Quick Update Script
@@ -314,6 +387,9 @@ Create `/var/www/vonix/update.sh`:
 echo "🔄 Updating Vonix Network..."
 
 cd /var/www/vonix
+
+echo "⏹️ Stopping service..."
+sudo systemctl stop vonix
 
 echo "📥 Pulling latest changes..."
 git pull
@@ -327,11 +403,17 @@ npm run build
 echo "🗄️ Pushing database changes..."
 npm run db:push
 
-echo "🔄 Restarting service..."
-sudo systemctl restart vonix
+echo "🔄 Starting service..."
+sudo systemctl start vonix
+
+sleep 2
 
 echo "✅ Update complete!"
-sudo systemctl status vonix
+echo ""
+echo "Screen sessions:"
+screen -ls
+echo ""
+echo "To view console: screen -r vonix"
 ```
 
 Make it executable:
@@ -348,20 +430,45 @@ Run updates with:
 
 ## Troubleshooting
 
-### Service Won't Start
+### Screen Session Not Starting
 
 ```bash
-# Check detailed status
-sudo systemctl status vonix -l
+# Check if screen is installed
+which screen
 
-# Check logs for errors
+# Check systemd logs
 sudo journalctl -u vonix -n 50 --no-pager
+
+# Try starting manually
+cd /var/www/vonix
+screen -dmS vonix npm start
+screen -ls
+```
+
+### Cannot Attach to Screen Session
+
+```bash
+# List sessions
+screen -ls
+
+# If it shows "Attached", force detach and reattach
+screen -d -r vonix
+
+# If it shows "Dead", clean up and restart
+screen -wipe
+sudo systemctl restart vonix
+```
+
+### Console Shows Errors
+
+```bash
+# Attach to see the errors
+screen -r vonix
 
 # Common issues:
 # - Missing node_modules: Run `npm install`
 # - Missing .env.local: Copy from .env.example
 # - Port already in use: Check with `sudo lsof -i :3000`
-# - Permission denied: Check ownership with `ls -la /var/www/vonix`
 ```
 
 ### Port Already in Use
@@ -372,6 +479,9 @@ sudo lsof -i :3000
 
 # Kill the process
 sudo kill -9 <PID>
+
+# Restart the service
+sudo systemctl restart vonix
 ```
 
 ### Permission Issues
@@ -385,25 +495,17 @@ chmod -R 755 /var/www/vonix
 chmod 600 /var/www/vonix/.env.local
 ```
 
-### Database Connection Issues
-
-```bash
-# For Turso: Verify token hasn't expired
-# Check .env.local has correct DATABASE_URL and DATABASE_AUTH_TOKEN
-
-# For SQLite: Ensure data directory is writable
-mkdir -p /var/www/vonix/data
-chmod 755 /var/www/vonix/data
-```
-
 ### Nginx 502 Bad Gateway
 
 ```bash
 # Check if Node.js app is running
 curl http://127.0.0.1:3000
 
-# If not, check vonix service
-sudo systemctl status vonix
+# Check screen session
+screen -ls
+
+# If no session, restart the service
+sudo systemctl restart vonix
 
 # Check Nginx error log
 sudo tail -f /var/log/nginx/error.log
@@ -446,20 +548,37 @@ sudo tail -f /var/log/nginx/error.log
 
 ## Complete Checklist
 
+- [ ] Screen installed (`apt install screen`)
 - [ ] Application directory created at `/var/www/vonix`
 - [ ] Correct ownership set (`chown -R ubuntu:ubuntu`)
 - [ ] Dependencies installed (`npm install`)
 - [ ] Environment file configured (`.env.local`)
 - [ ] Database schema pushed (`npm run db:push`)
 - [ ] Application built (`npm run build`)
-- [ ] Systemd service file created
+- [ ] Systemd service file created (with screen)
 - [ ] Service enabled (`systemctl enable vonix`)
 - [ ] Service started and running (`systemctl start vonix`)
+- [ ] Screen session accessible (`screen -r vonix`)
 - [ ] Cron jobs configured
 - [ ] Nginx installed and configured
 - [ ] SSL certificate obtained
 - [ ] Firewall configured
 - [ ] First-time setup wizard completed in browser
+
+---
+
+## Quick Reference Card
+
+| Action | Command |
+|--------|---------|
+| View console | `screen -r vonix` |
+| Detach from console | `Ctrl+A`, then `D` |
+| Check if running | `screen -ls` |
+| Restart application | `sudo systemctl restart vonix` |
+| Stop application | `sudo systemctl stop vonix` |
+| Start application | `sudo systemctl start vonix` |
+| View service status | `sudo systemctl status vonix` |
+| Force reattach | `screen -d -r vonix` |
 
 ---
 
