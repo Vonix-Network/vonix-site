@@ -8,17 +8,34 @@ export const dynamic = 'force-dynamic';
 
 async function getRanks() {
   try {
-    // Ordering by minAmount
+    // Ordering by minAmount - auto-orders by price
     const ranks = await db.select().from(donationRanks).orderBy(donationRanks.minAmount);
-    return ranks.map(r => ({
-      id: r.id,
-      name: r.name,
-      minAmount: r.minAmount || 0,
-      color: r.color || '#00D9FF',
-      icon: r.icon || '⭐',
-      perks: typeof r.perks === 'string' ? JSON.parse(r.perks) : (r.perks || []),
-    }));
-  } catch {
+    return ranks.map(r => {
+      // Safely parse perks - handle already-parsed or malformed data
+      let perks: string[] = [];
+      try {
+        if (typeof r.perks === 'string' && r.perks) {
+          perks = JSON.parse(r.perks);
+        } else if (Array.isArray(r.perks)) {
+          perks = r.perks;
+        }
+      } catch {
+        perks = [];
+      }
+
+      return {
+        id: r.id,
+        name: r.name,
+        minAmount: r.minAmount || 0,
+        color: r.color || '#00D9FF',
+        icon: r.icon || '⭐',
+        perks,
+        stripeProductId: r.stripeProductId,
+        stripePriceMonthly: r.stripePriceMonthly,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching ranks:', error);
     return [];
   }
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Crown, Plus, Edit, Trash2, DollarSign, 
+import {
+  Crown, Plus, Edit, Trash2, DollarSign,
   Loader2, Save, X, Sparkles, GripVertical
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -69,7 +69,7 @@ export default function AdminDonorRanksPage() {
 
   const handleCreate = async () => {
     if (!formData.name || !formData.id) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch('/api/admin/donor-ranks', {
@@ -95,7 +95,7 @@ export default function AdminDonorRanksPage() {
 
   const handleUpdate = async () => {
     if (!editingRank) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch(`/api/admin/donor-ranks/${editingRank.id}`, {
@@ -218,7 +218,7 @@ export default function AdminDonorRanksPage() {
       <Card variant="glass">
         <CardHeader>
           <CardTitle>All Ranks</CardTitle>
-          <CardDescription>Drag to reorder, click to edit</CardDescription>
+          <CardDescription>Ranks are automatically ordered by price (lowest first)</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -240,8 +240,6 @@ export default function AdminDonorRanksPage() {
                   key={rank.id}
                   className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                  
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
                     style={{ backgroundColor: rank.color, color: rank.textColor }}
@@ -314,8 +312,8 @@ export default function AdminDonorRanksPage() {
                   <Input
                     value={formData.name || ''}
                     onChange={(e) => {
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         name: e.target.value,
                         id: editingRank ? formData.id : generateId(e.target.value),
                       });

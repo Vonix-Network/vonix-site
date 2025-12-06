@@ -14,11 +14,23 @@ export async function GET() {
       .from(donationRanks)
       .orderBy(asc(donationRanks.minAmount));
 
-    // Parse features JSON for each rank
-    const ranksWithFeatures = ranks.map(rank => ({
-      ...rank,
-      perks: rank.perks ? JSON.parse(rank.perks) : [],
-    }));
+    // Parse features JSON for each rank - with safe parsing
+    const ranksWithFeatures = ranks.map(rank => {
+      let perks: string[] = [];
+      try {
+        if (typeof rank.perks === 'string' && rank.perks) {
+          perks = JSON.parse(rank.perks);
+        } else if (Array.isArray(rank.perks)) {
+          perks = rank.perks;
+        }
+      } catch {
+        perks = [];
+      }
+      return {
+        ...rank,
+        perks,
+      };
+    });
 
     return NextResponse.json(ranksWithFeatures, {
       headers: {

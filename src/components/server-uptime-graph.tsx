@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Activity, Users, Loader2, Wifi, WifiOff, BarChart3, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -14,7 +14,26 @@ interface UptimeRecord {
     playersOnline: number | null;
     playersMax: number | null;
     responseTimeMs: number | null;
-    checkedAt: string;
+    checkedAt: string | Date;
+    // Aggregated data fields (present when data > 1 day)
+    _aggregated?: boolean;
+    _onlineCount?: number;
+    _offlineCount?: number;
+    _totalChecks?: number;
+    _uptimePercent?: number;
+}
+
+interface ApiResponse {
+    records: UptimeRecord[];
+    aggregated: boolean;
+    stats: {
+        uptimePercentage: number;
+        avgResponseTime: number;
+        avgPlayers: number;
+        maxPlayers: number;
+        totalChecks: number;
+        onlineChecks: number;
+    };
 }
 
 interface ServerUptimeGraphProps {
@@ -24,213 +43,288 @@ interface ServerUptimeGraphProps {
 type DataView = 'uptime' | 'players';
 type Granularity = 'minutely' | 'hourly';
 
-// Custom tooltip component matching admin dashboard style
-const CustomTooltip = ({ active, payload, label, dataView }: any) => {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload;
-        return (
-            <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                <p className="text-sm font-medium text-foreground mb-1">{label}</p>
-                {dataView === 'uptime' ? (
-                    <>
-                        <p className="text-sm text-success">Online: {data.online || 0}</p>
-                        <p className="text-sm text-error">Offline: {data.offline || 0}</p>
-                        <p className="text-sm text-neon-cyan">
-                            Uptime: {data.uptimePercent?.toFixed(1) || 0}%
+interface ChartDataPoint {
+    label: string;
+    fullTime: string;
+    online: number;
+    offline: number;
+    uptimePercent: number;
+    players: number;
+    avgPlayers: number;
+    maxSlots: number;
+    isOnline: boolean;
+}
+
+// Time range options
+const TIME_RANGES = [
+    { label: '1h', days: 0.042 },
+    { label: '24h', days: 1 },
+    { label: '7d', days: 7 },
+    { label: '30d', days: 30 },
+];
+
+// Custom tooltip component
+const CustomTooltip = ({ active, payload, dataView, granularity }: any) => {
+    if (!active || !payload?.length) return null;
+
+    const data = payload[0].payload;
+    return (
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+            <p className="text-sm font-medium text-foreground mb-1">{data.label}</p>
+            {dataView === 'uptime' ? (
+                <>
+                    {granularity === 'hourly' && (
+                        <>
+                            <p className="text-sm text-success">Online checks: {data.online || 0}</p>
+                            <p className="text-sm text-error">Offline checks: {data.offline || 0}</p>
+                        </>
+                    )}
+                    <p className="text-sm text-neon-cyan">
+                        Uptime: {data.uptimePercent?.toFixed(1) || 0}%
+                    </p>
+                </>
+            ) : (
+                <>
+                    <p className="text-sm text-neon-purple">
+                        Players: {granularity === 'hourly' ? data.avgPlayers : data.players}
+                    </p>
+                    {data.maxSlots > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            Max Slots: {data.maxSlots}
                         </p>
-                    </>
-                ) : (
-                    <>
-                        <p className="text-sm text-neon-purple">
-                            Players: {data.players || data.avgPlayers || 0}
-                        </p>
-                        {data.maxSlots > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                Max Slots: {data.maxSlots}
-                            </p>
-                        )}
-                    </>
-                )}
-            </div>
-        );
-    }
-    return null;
+                    )}
+                </>
+            )}
+        </div>
+    );
 };
+
+// Parse date from various formats
+function parseDate(value: string | Date | number): Date {
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return new Date(value * 1000); // Unix timestamp
+    return new Date(value);
+}
+
+// Format date for label based on time range
+function formatLabel(date: Date, days: number, granularity: Granularity): string {
+    if (granularity === 'minutely' || days <= 1) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' });
+}
 
 export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
     const [records, setRecords] = useState<UptimeRecord[]>([]);
+    const [isAggregated, setIsAggregated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [dataView, setDataView] = useState<DataView>('uptime');
     const [granularity, setGranularity] = useState<Granularity>('hourly');
     const [selectedDays, setSelectedDays] = useState<number>(1);
 
+    // Fetch data when serverId or time range changes
     useEffect(() => {
-        fetchUptimeData();
-    }, [serverId, selectedDays]);
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const daysToFetch = Math.max(selectedDays, 1);
+                const res = await fetch(`/api/servers/${serverId}/uptime?days=${daysToFetch}`);
+                if (!res.ok) throw new Error('Failed to fetch');
 
-    const fetchUptimeData = async () => {
-        setIsLoading(true);
-        try {
-            // For 1h option, we still request 1 day but will filter on frontend
-            const daysToFetch = selectedDays < 1 ? 1 : selectedDays;
-            const res = await fetch(`/api/servers/${serverId}/uptime?days=${daysToFetch}`);
-            if (res.ok) {
-                const data = await res.json();
+                const data: ApiResponse = await res.json();
                 let fetchedRecords = data.records || [];
 
-                // If 1h selected, filter to last hour only
+                // For 1h view, filter to last hour only
                 if (selectedDays < 1) {
-                    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-                    fetchedRecords = fetchedRecords.filter(
-                        (r: UptimeRecord) => new Date(r.checkedAt) >= oneHourAgo
-                    );
+                    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+                    fetchedRecords = fetchedRecords.filter(r => {
+                        const date = parseDate(r.checkedAt);
+                        return date.getTime() >= oneHourAgo;
+                    });
                 }
 
                 setRecords(fetchedRecords);
+                setIsAggregated(data.aggregated || false);
+            } catch (error) {
+                console.error('Failed to fetch uptime data:', error);
+                setRecords([]);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch uptime data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Calculate stats
-    const uptimePercentage = records.length > 0
-        ? (records.filter(r => r.online).length / records.length) * 100
-        : 0;
-
-    const avgResponseTime = records.length > 0
-        ? Math.round(
-            records
-                .filter(r => r.responseTimeMs)
-                .reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
-            Math.max(records.filter(r => r.responseTimeMs).length, 1)
-        )
-        : 0;
-
-    const avgPlayers = records.length > 0
-        ? Math.round(
-            records
-                .filter(r => r.playersOnline !== null)
-                .reduce((sum, r) => sum + (r.playersOnline || 0), 0) /
-            Math.max(records.filter(r => r.playersOnline !== null).length, 1)
-        )
-        : 0;
-
-    const peakPlayers = Math.max(...records.map(r => r.playersOnline || 0), 0);
-    const maxSlots = Math.max(...records.map(r => r.playersMax || 0), 1);
-
-    // Sort records by time (oldest first)
-    const sortedRecords = [...records].sort(
-        (a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime()
-    );
-
-    // Prepare minutely data for charts
-    const minutelyChartData = sortedRecords.slice(-60).map(record => {
-        const date = new Date(record.checkedAt);
-        return {
-            label: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            fullTime: date.toLocaleString(),
-            online: record.online ? 1 : 0,
-            offline: record.online ? 0 : 1,
-            uptimePercent: record.online ? 100 : 0,
-            players: record.playersOnline || 0,
-            maxSlots: record.playersMax || 0,
-            isOnline: record.online,
         };
-    });
 
-    // Prepare hourly aggregated data
-    // If data is already aggregated from the API, use it directly
-    const hourlyChartData: any[] = [];
-    if (records.length > 0) {
-        // Check if records are pre-aggregated from API (they have _aggregated flag or checkedAt is a string)
-        const isPreAggregated = records.some((r: any) => r._aggregated || typeof r.checkedAt === 'string');
+        fetchData();
+    }, [serverId, selectedDays]);
 
-        if (isPreAggregated) {
-            // Use pre-aggregated data directly from API
-            records.forEach((record: any) => {
-                const date = new Date(record.checkedAt);
-                hourlyChartData.push({
-                    label: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
+    // Calculate overall stats
+    const stats = useMemo(() => {
+        if (records.length === 0) {
+            return { uptimePercentage: 0, avgResponseTime: 0, avgPlayers: 0, peakPlayers: 0 };
+        }
+
+        let totalChecks = 0;
+        let onlineChecks = 0;
+        let responseTimes: number[] = [];
+        let playerCounts: number[] = [];
+
+        records.forEach(r => {
+            if (isAggregated && r._aggregated) {
+                totalChecks += r._totalChecks || 1;
+                onlineChecks += r._onlineCount || 0;
+            } else {
+                totalChecks++;
+                if (r.online) onlineChecks++;
+            }
+            if (r.responseTimeMs) responseTimes.push(r.responseTimeMs);
+            if (r.playersOnline != null) playerCounts.push(r.playersOnline);
+        });
+
+        return {
+            uptimePercentage: totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0,
+            avgResponseTime: responseTimes.length > 0
+                ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+                : 0,
+            avgPlayers: playerCounts.length > 0
+                ? Math.round(playerCounts.reduce((a, b) => a + b, 0) / playerCounts.length)
+                : 0,
+            peakPlayers: playerCounts.length > 0 ? Math.max(...playerCounts) : 0,
+        };
+    }, [records, isAggregated]);
+
+    // Build chart data based on granularity
+    const chartData = useMemo((): ChartDataPoint[] => {
+        if (records.length === 0) return [];
+
+        // Sort records by time (oldest first)
+        const sorted = [...records].sort((a, b) => {
+            const dateA = parseDate(a.checkedAt);
+            const dateB = parseDate(b.checkedAt);
+            return dateA.getTime() - dateB.getTime();
+        });
+
+        if (granularity === 'minutely') {
+            // Minutely view: show individual data points
+            // Limit based on time range
+            const limit = selectedDays <= 0.042 ? 60 : selectedDays <= 1 ? 1440 : 120;
+            const sliced = sorted.slice(-limit);
+
+            return sliced.map(record => {
+                const date = parseDate(record.checkedAt);
+                return {
+                    label: formatLabel(date, selectedDays, 'minutely'),
                     fullTime: date.toLocaleString(),
-                    online: record._onlineCount || (record.online ? 1 : 0),
-                    offline: record._offlineCount || (record.online ? 0 : 1),
-                    uptimePercent: record._uptimePercent ?? (record.online ? 100 : 0),
+                    online: record.online ? 1 : 0,
+                    offline: record.online ? 0 : 1,
+                    uptimePercent: record.online ? 100 : 0,
+                    players: record.playersOnline || 0,
                     avgPlayers: record.playersOnline || 0,
                     maxSlots: record.playersMax || 0,
-                });
+                    isOnline: record.online,
+                };
             });
-            // Sort by time (oldest first)
-            hourlyChartData.sort((a, b) => new Date(a.fullTime).getTime() - new Date(b.fullTime).getTime());
         } else {
-            // Group raw records by hour
-            const grouped = new Map<string, { online: number; offline: number; players: number[]; max: number }>();
-
-            records.forEach(record => {
-                const date = new Date(record.checkedAt);
-                const hourKey = date.toISOString().substring(0, 13);
-                if (!grouped.has(hourKey)) {
-                    grouped.set(hourKey, { online: 0, offline: 0, players: [], max: 0 });
-                }
-                const data = grouped.get(hourKey)!;
-                if (record.online) {
-                    data.online++;
-                } else {
-                    data.offline++;
-                }
-                if (record.playersOnline !== null) {
-                    data.players.push(record.playersOnline);
-                }
-                if (record.playersMax) {
-                    data.max = Math.max(data.max, record.playersMax);
-                }
-            });
-
-            const sortedHours = Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-
-            sortedHours.forEach(([hourKey, data]) => {
-                const date = new Date(hourKey + ':00:00');
-                const total = data.online + data.offline;
-                hourlyChartData.push({
-                    label: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
-                    fullTime: date.toLocaleString(),
-                    online: data.online,
-                    offline: data.offline,
-                    uptimePercent: total > 0 ? (data.online / total) * 100 : 0,
-                    avgPlayers: data.players.length > 0
-                        ? Math.round(data.players.reduce((a, b) => a + b, 0) / data.players.length)
-                        : 0,
-                    maxSlots: data.max,
+            // Hourly view
+            if (isAggregated) {
+                // Use pre-aggregated data from API
+                return sorted.map(record => {
+                    const date = parseDate(record.checkedAt);
+                    return {
+                        label: formatLabel(date, selectedDays, 'hourly'),
+                        fullTime: date.toLocaleString(),
+                        online: record._onlineCount || (record.online ? 1 : 0),
+                        offline: record._offlineCount || (record.online ? 0 : 1),
+                        uptimePercent: record._uptimePercent ?? (record.online ? 100 : 0),
+                        players: record.playersOnline || 0,
+                        avgPlayers: record.playersOnline || 0,
+                        maxSlots: record.playersMax || 0,
+                        isOnline: record.online,
+                    };
                 });
-            });
+            } else {
+                // Aggregate raw data by hour on the frontend
+                const hourlyMap = new Map<string, {
+                    online: number;
+                    offline: number;
+                    players: number[];
+                    maxSlots: number;
+                    date: Date;
+                }>();
+
+                sorted.forEach(record => {
+                    const date = parseDate(record.checkedAt);
+                    const hourKey = date.toISOString().substring(0, 13); // YYYY-MM-DDTHH
+
+                    if (!hourlyMap.has(hourKey)) {
+                        hourlyMap.set(hourKey, {
+                            online: 0,
+                            offline: 0,
+                            players: [],
+                            maxSlots: 0,
+                            date: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()),
+                        });
+                    }
+
+                    const bucket = hourlyMap.get(hourKey)!;
+                    if (record.online) {
+                        bucket.online++;
+                    } else {
+                        bucket.offline++;
+                    }
+                    if (record.playersOnline != null) {
+                        bucket.players.push(record.playersOnline);
+                    }
+                    if (record.playersMax) {
+                        bucket.maxSlots = Math.max(bucket.maxSlots, record.playersMax);
+                    }
+                });
+
+                // Convert to chart data
+                const result: ChartDataPoint[] = [];
+                const sortedKeys = Array.from(hourlyMap.keys()).sort();
+
+                sortedKeys.forEach(key => {
+                    const bucket = hourlyMap.get(key)!;
+                    const total = bucket.online + bucket.offline;
+                    const avgPlayers = bucket.players.length > 0
+                        ? Math.round(bucket.players.reduce((a, b) => a + b, 0) / bucket.players.length)
+                        : 0;
+
+                    result.push({
+                        label: formatLabel(bucket.date, selectedDays, 'hourly'),
+                        fullTime: bucket.date.toLocaleString(),
+                        online: bucket.online,
+                        offline: bucket.offline,
+                        uptimePercent: total > 0 ? (bucket.online / total) * 100 : 0,
+                        players: avgPlayers,
+                        avgPlayers: avgPlayers,
+                        maxSlots: bucket.maxSlots,
+                        isOnline: bucket.online > bucket.offline,
+                    });
+                });
+
+                // Limit to reasonable number of bars
+                const maxBars = selectedDays >= 7 ? 720 : 48;
+                return result.slice(-maxBars);
+            }
         }
-    }
+    }, [records, granularity, selectedDays, isAggregated]);
 
-    // Select data based on granularity
-    // For hourly view with longer ranges, show more data points
-    const maxHourlyPoints = selectedDays >= 7 ? 720 : 48; // 30 days = 720 hours
-    const chartData = granularity === 'minutely'
-        ? minutelyChartData
-        : hourlyChartData.slice(-maxHourlyPoints);
+    // Get bar color based on uptime
+    const getBarColor = (entry: ChartDataPoint): string => {
+        if (granularity === 'minutely') {
+            return entry.isOnline ? '#22c55e' : '#ef4444';
+        }
+        if (entry.uptimePercent >= 100) return '#22c55e';
+        if (entry.uptimePercent >= 50) return '#eab308';
+        return '#ef4444';
+    };
 
-    const getUptimeColor = (percentage: number) => {
+    // Get uptime color class
+    const getUptimeColorClass = (percentage: number): string => {
         if (percentage >= 99) return 'text-success';
         if (percentage >= 95) return 'text-neon-cyan';
         if (percentage >= 90) return 'text-warning';
         return 'text-error';
-    };
-
-    // Bar colors for uptime chart
-    const getBarColor = (entry: any) => {
-        if (granularity === 'minutely') {
-            return entry.isOnline ? '#22c55e' : '#ef4444';
-        }
-        // Hourly - color by uptime percentage
-        if (entry.uptimePercent >= 100) return '#22c55e';
-        if (entry.uptimePercent >= 50) return '#eab308';
-        return '#ef4444';
     };
 
     if (isLoading) {
@@ -258,8 +352,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setDataView('uptime')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${dataView === 'uptime'
-                                    ? 'bg-success text-white'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-success text-white'
+                                        : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <Wifi className="w-3 h-3 inline mr-1" />
@@ -268,8 +362,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setDataView('players')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${dataView === 'players'
-                                    ? 'bg-neon-purple text-white'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-neon-purple text-white'
+                                        : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <Users className="w-3 h-3 inline mr-1" />
@@ -282,8 +376,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setGranularity('minutely')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'minutely'
-                                    ? 'bg-neon-cyan text-white'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-neon-cyan text-white'
+                                        : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <List className="w-3 h-3 inline mr-1" />
@@ -292,8 +386,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setGranularity('hourly')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'hourly'
-                                    ? 'bg-neon-cyan text-white'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                        ? 'bg-neon-cyan text-white'
+                                        : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <BarChart3 className="w-3 h-3 inline mr-1" />
@@ -303,18 +397,13 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
                         {/* Time Range */}
                         <div className="inline-flex rounded-full border border-border bg-background/40 p-0.5">
-                            {[
-                                { label: '1h', days: 0.042 },
-                                { label: '24h', days: 1 },
-                                { label: '7d', days: 7 },
-                                { label: '30d', days: 30 },
-                            ].map(option => (
+                            {TIME_RANGES.map(option => (
                                 <button
                                     key={option.label}
                                     onClick={() => setSelectedDays(option.days)}
                                     className={`px-2 py-0.5 rounded-full text-xs transition ${selectedDays === option.days
-                                        ? 'bg-primary text-primary-foreground shadow'
-                                        : 'text-muted-foreground hover:bg-muted/40'
+                                            ? 'bg-primary text-primary-foreground shadow'
+                                            : 'text-muted-foreground hover:bg-muted/40'
                                         }`}
                                 >
                                     {option.label}
@@ -329,21 +418,21 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                 {/* Stats Row */}
                 <div className="grid grid-cols-4 gap-3">
                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                        <p className={`text-lg font-bold ${getUptimeColor(uptimePercentage)}`}>
-                            {uptimePercentage.toFixed(1)}%
+                        <p className={`text-lg font-bold ${getUptimeColorClass(stats.uptimePercentage)}`}>
+                            {stats.uptimePercentage.toFixed(1)}%
                         </p>
                         <p className="text-xs text-muted-foreground">Uptime</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                        <p className="text-lg font-bold text-neon-cyan">{avgResponseTime}ms</p>
+                        <p className="text-lg font-bold text-neon-cyan">{stats.avgResponseTime}ms</p>
                         <p className="text-xs text-muted-foreground">Avg Ping</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                        <p className="text-lg font-bold text-neon-purple">{avgPlayers}</p>
+                        <p className="text-lg font-bold text-neon-purple">{stats.avgPlayers}</p>
                         <p className="text-xs text-muted-foreground">Avg Players</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                        <p className="text-lg font-bold text-warning">{peakPlayers}</p>
+                        <p className="text-lg font-bold text-warning">{stats.peakPlayers}</p>
                         <p className="text-xs text-muted-foreground">Peak Players</p>
                     </div>
                 </div>
@@ -354,10 +443,6 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <defs>
-                                    <linearGradient id="uptimeGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0.3} />
-                                    </linearGradient>
                                     <linearGradient id="playersGradient" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8} />
                                         <stop offset="95%" stopColor="#a855f7" stopOpacity={0.3} />
@@ -380,15 +465,11 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                                     tickFormatter={(value) => dataView === 'uptime' ? `${value}%` : value}
                                 />
                                 <Tooltip
-                                    content={<CustomTooltip dataView={dataView} />}
+                                    content={<CustomTooltip dataView={dataView} granularity={granularity} />}
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 {dataView === 'uptime' ? (
-                                    <Bar
-                                        dataKey="uptimePercent"
-                                        radius={[4, 4, 0, 0]}
-                                        maxBarSize={30}
-                                    >
+                                    <Bar dataKey="uptimePercent" radius={[4, 4, 0, 0]} maxBarSize={30}>
                                         {chartData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
                                         ))}
@@ -441,7 +522,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                         </div>
                     )}
                     <span>|</span>
-                    <span>{records.length} checks</span>
+                    <span>{records.length} data points</span>
                 </div>
             </CardContent>
         </Card>
@@ -449,4 +530,3 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 }
 
 export default ServerUptimeGraph;
-
