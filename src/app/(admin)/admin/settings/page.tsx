@@ -990,6 +990,19 @@ export default function AdminSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-sm font-medium">Bot Token</label>
+                    <Input
+                      type="password"
+                      value={discordSettings.botToken}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, botToken: e.target.value })}
+                      placeholder="Your Discord bot token"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Get this from Discord Developer Portal → Your Application → Bot → Token
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Channel ID</label>
                     <Input
                       value={discordSettings.channelId}
