@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   Users, Search, Filter, MoreHorizontal,
@@ -57,6 +58,7 @@ export default function AdminUsersPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // New user form
@@ -369,46 +371,22 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)}
+                            onClick={(e) => {
+                              if (actionMenuOpen === user.id) {
+                                setActionMenuOpen(null);
+                                setDropdownPosition(null);
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setDropdownPosition({
+                                  top: rect.bottom + 4,
+                                  left: rect.right - 160, // menu width
+                                });
+                                setActionMenuOpen(user.id);
+                              }
+                            }}
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
-
-                          {/* Action Menu Dropdown */}
-                          {actionMenuOpen === user.id && (
-                            <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                              <button
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
-                                onClick={() => openEditModal(user)}
-                              >
-                                <Edit className="w-4 h-4" /> Edit User
-                              </button>
-                              <button
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
-                                onClick={() => {
-                                  // Change role quick action
-                                  const newRole = user.role === 'user' ? 'moderator' : user.role === 'moderator' ? 'admin' : 'user';
-                                  setSelectedUser(user);
-                                  setEditForm({ ...editForm, role: newRole });
-                                  openEditModal(user);
-                                }}
-                              >
-                                <UserCheck className="w-4 h-4" /> Change Role
-                              </button>
-                              <button
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-warning"
-                                onClick={() => handleBanUser(user.id)}
-                              >
-                                <Ban className="w-4 h-4" /> Ban User
-                              </button>
-                              <button
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-error"
-                                onClick={() => handleDeleteUser(user.id)}
-                              >
-                                <Trash2 className="w-4 h-4" /> Delete User
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -427,12 +405,63 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Close dropdown when clicking outside */}
-      {actionMenuOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setActionMenuOpen(null)}
-        />
+      {/* Close dropdown when clicking outside - use portal */}
+      {actionMenuOpen !== null && typeof document !== 'undefined' && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => {
+              setActionMenuOpen(null);
+              setDropdownPosition(null);
+            }}
+          />
+          {dropdownPosition && (
+            <div
+              className="fixed z-[9999] min-w-[160px] bg-card border border-border rounded-lg shadow-lg overflow-hidden"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+              }}
+            >
+              <button
+                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+                onClick={() => {
+                  const user = users.find(u => u.id === actionMenuOpen);
+                  if (user) openEditModal(user);
+                }}
+              >
+                <Edit className="w-4 h-4" /> Edit User
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+                onClick={() => {
+                  const user = users.find(u => u.id === actionMenuOpen);
+                  if (user) {
+                    const newRole = user.role === 'user' ? 'moderator' : user.role === 'moderator' ? 'admin' : 'user';
+                    setSelectedUser(user);
+                    setEditForm({ ...editForm, role: newRole });
+                    openEditModal(user);
+                  }
+                }}
+              >
+                <UserCheck className="w-4 h-4" /> Change Role
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-warning"
+                onClick={() => actionMenuOpen && handleBanUser(actionMenuOpen)}
+              >
+                <Ban className="w-4 h-4" /> Ban User
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-error"
+                onClick={() => actionMenuOpen && handleDeleteUser(actionMenuOpen)}
+              >
+                <Trash2 className="w-4 h-4" /> Delete User
+              </button>
+            </div>
+          )}
+        </>,
+        document.body
       )}
 
       {/* Add User Modal */}

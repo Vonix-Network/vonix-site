@@ -91,6 +91,18 @@ export function initSocketServer(server: NetServer): SocketIOServer {
             }
         });
 
+        // Handle joining Discord chat room
+        socket.on('join:discord-chat', () => {
+            socket.join('discord-chat');
+            console.log(`Socket ${socket.id} joined discord-chat room`);
+        });
+
+        // Handle leaving Discord chat room
+        socket.on('leave:discord-chat', () => {
+            socket.leave('discord-chat');
+            console.log(`Socket ${socket.id} left discord-chat room`);
+        });
+
         // Handle disconnect
         socket.on('disconnect', () => {
             if (userId) {

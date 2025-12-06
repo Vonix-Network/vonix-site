@@ -3,6 +3,7 @@ import { auth } from '../../../../auth';
 import { db } from '@/db';
 import { discordMessages, siteSettings, users } from '@/db/schema';
 import { desc, eq, gt } from 'drizzle-orm';
+import { emitDiscordMessage } from '@/lib/socket-emit';
 
 /**
  * GET /api/discord-chat
@@ -145,6 +146,20 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         }).returning();
 
+        // Emit to all connected clients via WebSocket
+        emitDiscordMessage({
+            id: inserted.id,
+            authorId: inserted.authorId,
+            authorName: inserted.authorName,
+            authorAvatar: inserted.authorAvatar,
+            content: inserted.content,
+            isFromWeb: inserted.isFromWeb,
+            webUserId: inserted.webUserId,
+            embeds: [],
+            attachments: [],
+            createdAt: inserted.createdAt?.toISOString(),
+        });
+
         return NextResponse.json({
             success: true,
             message: {
@@ -154,6 +169,7 @@ export async function POST(request: NextRequest) {
                 authorAvatar: inserted.authorAvatar,
                 content: inserted.content,
                 isFromWeb: inserted.isFromWeb,
+                webUserId: inserted.webUserId,
                 createdAt: inserted.createdAt,
             },
         });

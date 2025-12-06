@@ -37,3 +37,15 @@ export function emitNewMessage(senderId: number, recipientId: number, message: a
     console.log(`Emitted message to room ${room} and users ${senderId}, ${recipientId}`);
 }
 
+// Emit Discord chat message to all connected clients in the discord-chat room
+export function emitDiscordMessage(message: any) {
+    const io = getIO();
+    if (!io) {
+        console.log('Socket.io not initialized, skipping Discord message emit');
+        return;
+    }
+
+    io.to('discord-chat').emit('discord:message', message);
+    console.log(`Emitted Discord message to discord-chat room: ${message.id}`);
+}
+

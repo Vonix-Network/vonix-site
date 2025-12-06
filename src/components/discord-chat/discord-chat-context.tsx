@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSocket } from '@/lib/socket-context';
 
 interface DiscordMessage {
     id: number;
@@ -44,10 +45,11 @@ export function useDiscordChat() {
     return context;
 }
 
-const POLL_INTERVAL = 5000; // 5 seconds
+const POLL_INTERVAL = 5000; // 5 seconds fallback polling
 
 export function DiscordChatProvider({ children }: { children: ReactNode }) {
     const { data: session } = useSession();
+    const { socket, isConnected } = useSocket();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<DiscordMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -119,9 +121,57 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
         }
     }, [isOpen, messages.length, refreshMessages]);
 
-    // Poll for new messages when open
+    // Join/leave Discord chat room when socket is connected and chat is open
     useEffect(() => {
-        if (!isOpen) return;
+        if (!socket || !isConnected) return;
+
+        if (isOpen) {
+            socket.emit('join:discord-chat');
+        }
+
+        return () => {
+            if (socket?.connected) {
+                socket.emit('leave:discord-chat');
+            }
+        };
+    }, [socket, isConnected, isOpen]);
+
+    // Listen for real-time Discord messages via socket
+    useEffect(() => {
+        if (!socket || !isConnected || !isOpen) return;
+
+        const handleNewDiscordMessage = (message: any) => {
+            const newMessage: DiscordMessage = {
+                ...message,
+                createdAt: new Date(message.createdAt),
+                embeds: message.embeds || [],
+                attachments: message.attachments || [],
+            };
+
+            setMessages(prev => {
+                // Check if message already exists
+                if (prev.some(m => m.id === newMessage.id)) {
+                    return prev;
+                }
+                return [...prev, newMessage];
+            });
+
+            if (newMessage.id) {
+                setLastMessageId(prev => (prev === null || newMessage.id > prev) ? newMessage.id : prev);
+            }
+        };
+
+        socket.on('discord:message', handleNewDiscordMessage);
+
+        return () => {
+            socket.off('discord:message', handleNewDiscordMessage);
+        };
+    }, [socket, isConnected, isOpen]);
+
+    // Fallback polling for new messages when socket is not connected
+    useEffect(() => {
+        // Only poll if socket is not connected
+        if (!isOpen || isConnected) return;
 
         const poll = () => {
             if (lastMessageId !== null) {
@@ -131,7 +181,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
 
         const interval = setInterval(poll, POLL_INTERVAL);
         return () => clearInterval(interval);
-    }, [isOpen, lastMessageId, refreshMessages]);
+    }, [isOpen, isConnected, lastMessageId, refreshMessages]);
 
     // Send message
     const sendMessage = useCallback(async (content: string): Promise<boolean> => {
@@ -149,12 +199,19 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
             if (res.ok) {
                 const data = await res.json();
                 if (data.message) {
-                    setMessages(prev => [...prev, {
-                        ...data.message,
-                        createdAt: new Date(data.message.createdAt),
-                        embeds: [],
-                        attachments: [],
-                    }]);
+                    // Add message locally immediately (optimistic update)
+                    // Socket will also broadcast it, so we check for duplicates above
+                    setMessages(prev => {
+                        if (prev.some(m => m.id === data.message.id)) {
+                            return prev;
+                        }
+                        return [...prev, {
+                            ...data.message,
+                            createdAt: new Date(data.message.createdAt),
+                            embeds: [],
+                            attachments: [],
+                        }];
+                    });
                     setLastMessageId(data.message.id);
                 }
                 return true;
@@ -189,4 +246,3 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
         </DiscordChatContext.Provider>
     );
 }
-

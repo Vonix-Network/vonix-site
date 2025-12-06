@@ -14,7 +14,7 @@ import { renderDiscordMarkdown } from '@/lib/discord-markdown';
 const DISCORD_COLOR = '#5865F2';
 
 export function DiscordChatWindow() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const {
         isOpen,
         setIsOpen,
@@ -62,7 +62,11 @@ export function DiscordChatWindow() {
 
     if (!isOpen) return null;
 
-    const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : 0;
+    // Use null when session is still loading to avoid false comparisons
+    // This prevents all messages appearing on the wrong side during hydration
+    const currentUserId = status === 'authenticated' && session?.user?.id
+        ? parseInt(session.user.id as string)
+        : null;
 
     return (
         <div
@@ -120,7 +124,7 @@ export function DiscordChatWindow() {
                 {!minimized && (
                     <>
                         <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                            {isLoading ? (
+                            {isLoading || status === 'loading' ? (
                                 <div className="flex items-center justify-center h-full">
                                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: DISCORD_COLOR }} />
                                 </div>
@@ -132,7 +136,8 @@ export function DiscordChatWindow() {
                                 </div>
                             ) : (
                                 messages.map((msg) => {
-                                    const isOwn = msg.isFromWeb && msg.webUserId === currentUserId;
+                                    // Only mark messages as own when session is fully loaded and IDs match
+                                    const isOwn = currentUserId !== null && msg.isFromWeb && msg.webUserId === currentUserId;
 
                                     return (
                                         <div key={msg.id} className="group">

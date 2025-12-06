@@ -3,17 +3,19 @@
  * 
  * Integrated Discord bot that runs within the Next.js application.
  * Starts automatically when the server starts and listens for messages
- * in the configured Discord channel.
+ * in the configured Discord channels.
  */
 
 import { Client, GatewayIntentBits, Message, TextChannel, Partials } from 'discord.js';
 import { db } from '@/db';
 import { discordMessages, siteSettings } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
+import { emitDiscordMessage } from './socket-emit';
 
 let discordClient: Client | null = null;
 let isConnecting = false;
-let channelId: string | null = null;
+let chatChannelId: string | null = null;
+let viscordChannelId: string | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -29,7 +31,8 @@ async function getDiscordSettings() {
             inArray(siteSettings.key, [
                 'discord_chat_enabled',
                 'discord_bot_token',
-                'discord_chat_channel_id'
+                'discord_chat_channel_id',
+                'discord_viscord_channel_id'
             ])
         );
 
@@ -41,15 +44,21 @@ async function getDiscordSettings() {
     }
 
     const token = settingsMap.get('discord_bot_token');
-    const channelIdValue = settingsMap.get('discord_chat_channel_id');
+    const chatChannel = settingsMap.get('discord_chat_channel_id');
 
-    if (!token || !channelIdValue) {
+    if (!token) {
+        return null;
+    }
+
+    // At least one channel should be configured
+    if (!chatChannel && !settingsMap.get('discord_viscord_channel_id')) {
         return null;
     }
 
     return {
         token,
-        channelId: channelIdValue,
+        chatChannelId: chatChannel || null,
+        viscordChannelId: settingsMap.get('discord_viscord_channel_id') || null,
     };
 }
 
@@ -74,8 +83,11 @@ async function handleMessage(message: Message) {
     // 3. Previously we ignored all bots (message.author.bot). We removed that check 
     // to allow other bots and webhooks to be processed.
 
-    // Only process messages from the configured channel
-    if (message.channel.id !== channelId) {
+    // Check if message is from one of our monitored channels
+    const isChatChannel = chatChannelId && message.channel.id === chatChannelId;
+    const isViscordChannel = viscordChannelId && message.channel.id === viscordChannelId;
+
+    if (!isChatChannel && !isViscordChannel) {
         return;
     }
 
@@ -91,6 +103,18 @@ async function handleMessage(message: Message) {
             color: embed.color,
             image: embed.image ? { url: embed.image.url } : null,
             thumbnail: embed.thumbnail ? { url: embed.thumbnail.url } : null,
+            // Include fields for Viscord-style messages
+            fields: embed.fields?.map(f => ({
+                name: f.name,
+                value: f.value,
+                inline: f.inline,
+            })) || [],
+            footer: embed.footer ? { text: embed.footer.text, iconURL: embed.footer.iconURL } : null,
+            author: embed.author ? {
+                name: embed.author.name,
+                iconURL: embed.author.iconURL,
+                url: embed.author.url,
+            } : null,
         }));
 
         // Extract attachments
@@ -102,7 +126,7 @@ async function handleMessage(message: Message) {
 
         // Store in database with conflict handling to prevent race conditions
         // If message already exists (duplicate event), it will be silently ignored
-        await db.insert(discordMessages).values({
+        const [inserted] = await db.insert(discordMessages).values({
             discordMessageId: message.id,
             authorId: message.author.id,
             authorName: message.member?.displayName || message.author.displayName || message.author.username,
@@ -112,9 +136,26 @@ async function handleMessage(message: Message) {
             embeds: embeds.length > 0 ? JSON.stringify(embeds) : null,
             attachments: attachments.length > 0 ? JSON.stringify(attachments) : null,
             createdAt: message.createdAt,
-        }).onConflictDoNothing();
+        }).onConflictDoNothing().returning();
 
-        console.log(`📥 Discord message received from ${message.author.username}`);
+        // Emit to connected clients via WebSocket if message was inserted
+        if (inserted) {
+            emitDiscordMessage({
+                id: inserted.id,
+                discordMessageId: message.id,
+                authorId: message.author.id,
+                authorName: message.member?.displayName || message.author.displayName || message.author.username,
+                authorAvatar: avatarUrl,
+                content: message.content,
+                isFromWeb: false,
+                embeds: embeds,
+                attachments: attachments,
+                createdAt: message.createdAt.toISOString(),
+            });
+        }
+
+        const channelType = isViscordChannel ? 'Viscord' : 'Chat';
+        console.log(`📥 Discord ${channelType} message received from ${message.author.username}`);
     } catch (error) {
         console.error('Error storing Discord message:', error);
     }
@@ -138,7 +179,11 @@ async function handleMessageDelete(messageId: string) {
  * Handle message update
  */
 async function handleMessageUpdate(message: Message) {
-    if (message.channel.id !== channelId) return;
+    // Check if this is from one of our monitored channels
+    const isChatChannel = chatChannelId && message.channel.id === chatChannelId;
+    const isViscordChannel = viscordChannelId && message.channel.id === viscordChannelId;
+
+    if (!isChatChannel && !isViscordChannel) return;
 
     try {
         const embeds = message.embeds.map(embed => ({
@@ -147,6 +192,18 @@ async function handleMessageUpdate(message: Message) {
             url: embed.url,
             color: embed.color,
             image: embed.image ? { url: embed.image.url } : null,
+            thumbnail: embed.thumbnail ? { url: embed.thumbnail.url } : null,
+            fields: embed.fields?.map(f => ({
+                name: f.name,
+                value: f.value,
+                inline: f.inline,
+            })) || [],
+            footer: embed.footer ? { text: embed.footer.text, iconURL: embed.footer.iconURL } : null,
+            author: embed.author ? {
+                name: embed.author.name,
+                iconURL: embed.author.iconURL,
+                url: embed.author.url,
+            } : null,
         }));
 
         await db
@@ -182,7 +239,8 @@ export async function initDiscordBot() {
             return;
         }
 
-        channelId = settings.channelId;
+        chatChannelId = settings.chatChannelId;
+        viscordChannelId = settings.viscordChannelId;
 
         // Create Discord client
         discordClient = new Client({
@@ -197,7 +255,12 @@ export async function initDiscordBot() {
         // Set up event handlers
         discordClient.on('ready', () => {
             console.log(`🤖 Discord bot connected as ${discordClient?.user?.tag}`);
-            console.log(`📡 Listening to channel: ${channelId}`);
+            if (chatChannelId) {
+                console.log(`📡 Listening to chat channel: ${chatChannelId}`);
+            }
+            if (viscordChannelId) {
+                console.log(`📡 Listening to Viscord channel: ${viscordChannelId}`);
+            }
             reconnectAttempts = 0; // Reset on successful connection
         });
 
@@ -252,7 +315,8 @@ export async function stopDiscordBot() {
         console.log('🤖 Stopping Discord bot...');
         discordClient.destroy();
         discordClient = null;
-        channelId = null;
+        chatChannelId = null;
+        viscordChannelId = null;
     }
 }
 
@@ -274,11 +338,16 @@ export function isDiscordBotConnected(): boolean {
 /**
  * Get bot status
  */
-export function getDiscordBotStatus(): { connected: boolean; username?: string; channelId?: string } {
+export function getDiscordBotStatus(): {
+    connected: boolean;
+    username?: string;
+    chatChannelId?: string;
+    viscordChannelId?: string;
+} {
     return {
         connected: discordClient?.isReady() ?? false,
         username: discordClient?.user?.tag,
-        channelId: channelId ?? undefined,
+        chatChannelId: chatChannelId ?? undefined,
+        viscordChannelId: viscordChannelId ?? undefined,
     };
 }
-

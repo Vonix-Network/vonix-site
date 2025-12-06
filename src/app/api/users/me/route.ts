@@ -48,16 +48,22 @@ export async function GET() {
             );
         }
 
-        // Get total XP from all servers (serverXp.amount is XP gained on each server)
+        // Get total XP and playtime from all servers
         const serverXpData = await db.query.serverXp.findMany({
             where: eq(serverXp.userId, userId),
             columns: {
                 xp: true,
+                playtimeSeconds: true,
             },
         });
 
         const totalServerXp = serverXpData.reduce(
             (acc, s) => acc + (s.xp || 0),
+            0
+        );
+
+        const totalPlaytimeSeconds = serverXpData.reduce(
+            (acc, s) => acc + (s.playtimeSeconds || 0),
             0
         );
 
@@ -86,6 +92,7 @@ export async function GET() {
             totalServerXp,
             friendCount,
             postCount,
+            playtimeSeconds: totalPlaytimeSeconds,
         });
 
     } catch (error) {

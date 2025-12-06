@@ -112,6 +112,9 @@ export default function AdminSettingsPage() {
     botToken: '',
     channelId: '',
     channelName: '',
+    // Viscord (Minecraft server embeds) channel
+    viscordChannelId: '',
+    viscordChannelName: '',
   });
   const [discordLoading, setDiscordLoading] = useState(true);
   const [discordSaving, setDiscordSaving] = useState(false);
@@ -140,6 +143,8 @@ export default function AdminSettingsPage() {
             botToken: discordData.botToken || '',
             channelId: discordData.channelId || '',
             channelName: discordData.channelName || '',
+            viscordChannelId: discordData.viscordChannelId || '',
+            viscordChannelName: discordData.viscordChannelName || '',
           });
         }
       } catch (err) {
@@ -1023,6 +1028,52 @@ export default function AdminSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Enable Developer Mode in Discord, right-click channel → Copy ID
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Server className="w-5 h-5 text-neon-orange" />
+                    Minecraft Server Channel (Optional)
+                  </CardTitle>
+                  <CardDescription>
+                    Configure a second channel to monitor for Minecraft server embeds (Viscord messages)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                    <p className="text-sm text-neon-orange font-medium">
+                      🎮 Optional: Monitor a second Discord channel
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use this to display Viscord-style embeds (player joins/leaves, advancements, etc.) from your Minecraft server.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Viscord Channel ID</label>
+                    <Input
+                      value={discordSettings.viscordChannelId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, viscordChannelId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The Discord channel where your Minecraft server sends embeds
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Viscord Channel Name (Display)</label>
+                    <Input
+                      value={discordSettings.viscordChannelName}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, viscordChannelName: e.target.value })}
+                      placeholder="server-activity"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown in the chat widget (e.g., &quot;#server-activity&quot;)
                     </p>
                   </div>
                 </CardContent>

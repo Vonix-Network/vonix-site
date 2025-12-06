@@ -4,24 +4,63 @@ import { db } from '@/db';
 import { siteSettings } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 
+// All Discord-related setting keys
+const ALL_DISCORD_SETTINGS = [
+    'discord_chat_enabled',
+    'discord_chat_channel_name',
+    'discord_chat_webhook',
+    'discord_bot_token',
+    'discord_chat_channel_id',
+    // Second channel for Minecraft server embeds (Viscord)
+    'discord_viscord_channel_id',
+    'discord_viscord_channel_name',
+];
+
+// Public settings that can be returned to any user
+const PUBLIC_SETTINGS = [
+    'discord_chat_enabled',
+    'discord_chat_channel_name',
+];
+
 /**
  * GET /api/discord-chat/settings
- * Get public Discord chat settings (for the frontend)
+ * Get Discord chat settings
+ * - For admins: returns all settings including sensitive ones
+ * - For public: returns only non-sensitive settings
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        // Check if user is admin
+        const session = await auth();
+        const isAdmin = session?.user?.role && ['admin', 'superadmin'].includes(session.user.role);
+
+        // Fetch all or just public settings based on role
+        const keysToFetch = isAdmin ? ALL_DISCORD_SETTINGS : PUBLIC_SETTINGS;
+
         const settings = await db
             .select()
             .from(siteSettings)
-            .where(inArray(siteSettings.key, [
-                'discord_chat_enabled',
-                'discord_chat_channel_name',
-            ]));
+            .where(inArray(siteSettings.key, keysToFetch));
 
         const settingsMap = Object.fromEntries(
             settings.map(s => [s.key, s.value])
         );
 
+        if (isAdmin) {
+            // Return all settings for admin
+            return NextResponse.json({
+                enabled: settingsMap['discord_chat_enabled'] === 'true',
+                channelName: settingsMap['discord_chat_channel_name'] || '',
+                webhookUrl: settingsMap['discord_chat_webhook'] || '',
+                botToken: settingsMap['discord_bot_token'] || '',
+                channelId: settingsMap['discord_chat_channel_id'] || '',
+                // Viscord (Minecraft server embeds) channel
+                viscordChannelId: settingsMap['discord_viscord_channel_id'] || '',
+                viscordChannelName: settingsMap['discord_viscord_channel_name'] || '',
+            });
+        }
+
+        // Public response
         return NextResponse.json({
             enabled: settingsMap['discord_chat_enabled'] === 'true',
             channelName: settingsMap['discord_chat_channel_name'] || undefined,
@@ -87,6 +126,23 @@ export async function PATCH(request: NextRequest) {
             });
         }
 
+        // Viscord (second channel) settings
+        if (typeof body.viscordChannelId === 'string') {
+            updates.push({
+                key: 'discord_viscord_channel_id',
+                value: body.viscordChannelId,
+                description: 'Discord channel ID for Minecraft server embeds (Viscord)',
+            });
+        }
+
+        if (typeof body.viscordChannelName === 'string') {
+            updates.push({
+                key: 'discord_viscord_channel_name',
+                value: body.viscordChannelName,
+                description: 'Discord channel name for Minecraft server embeds display',
+            });
+        }
+
         // Upsert each setting
         for (const update of updates) {
             const [existing] = await db
@@ -108,7 +164,9 @@ export async function PATCH(request: NextRequest) {
                     value: update.value,
                     category: 'discord',
                     description: update.description,
-                    isPublic: update.key === 'discord_chat_enabled' || update.key === 'discord_chat_channel_name',
+                    isPublic: update.key === 'discord_chat_enabled' ||
+                        update.key === 'discord_chat_channel_name' ||
+                        update.key === 'discord_viscord_channel_name',
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 });
@@ -121,4 +179,3 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
     }
 }
-
