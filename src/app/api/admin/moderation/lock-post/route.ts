@@ -39,14 +39,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        if (post.locked) {
+        if (post.isLocked) {
             return NextResponse.json({ error: 'Post is already locked' }, { status: 400 });
         }
 
         await db
             .update(forumPosts)
             .set({
-                locked: true,
+                isLocked: true,
                 updatedAt: new Date(),
             })
             .where(eq(forumPosts.id, postId));

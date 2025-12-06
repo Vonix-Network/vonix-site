@@ -129,6 +129,19 @@ export default function AdminSettingsPage() {
             notifications: { ...defaultNotifications, ...(data.notifications || {}) },
           });
         }
+
+        // Also fetch Discord settings
+        const discordRes = await fetch('/api/discord-chat/settings');
+        if (discordRes.ok) {
+          const discordData = await discordRes.json();
+          setDiscordSettings({
+            enabled: discordData.enabled || false,
+            webhookUrl: discordData.webhookUrl || '',
+            botToken: discordData.botToken || '',
+            channelId: discordData.channelId || '',
+            channelName: discordData.channelName || '',
+          });
+        }
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {

@@ -53,13 +53,22 @@ async function getDiscordSettings() {
  * Handle incoming Discord message
  */
 async function handleMessage(message: Message) {
-    // Ignore messages from bots (including our own webhook messages)
-    if (message.author.bot) {
-        // But check if it's our [WEB] webhook - those are already in the DB
-        if (message.author.username.startsWith('[WEB]')) {
-            return;
-        }
+    // IGNORE logic updates per user request:
+    // "Discord bot wasnt recieving messages from discord, make sure it readings all messages including those from bots/webhooks."
+
+    // 1. Ignore ourself to prevent loops (if the bot sends a message)
+    if (message.author.id === discordClient?.user?.id) {
+        return;
     }
+
+    // 2. Ignore our specific [WEB] webhook bridge messages to avoid duplication
+    // (Assuming our bridge sends as a webhook with username starting with [WEB])
+    if (message.webhookId && message.author.username.startsWith('[WEB]')) {
+        return;
+    }
+
+    // 3. Previously we ignored all bots (message.author.bot). We removed that check 
+    // to allow other bots and webhooks to be processed.
 
     // Only process messages from the configured channel
     if (message.channel.id !== channelId) {
