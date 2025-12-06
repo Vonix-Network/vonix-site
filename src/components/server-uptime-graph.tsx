@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Activity, Users, Loader2, Wifi, WifiOff, BarChart3, List } from 'lucide-react';
+import { Activity, Users, Loader2, Wifi, BarChart3, List, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
+
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
 
 interface UptimeRecord {
     id: number;
@@ -15,7 +19,7 @@ interface UptimeRecord {
     playersMax: number | null;
     responseTimeMs: number | null;
     checkedAt: string | Date;
-    // Aggregated data fields (present when data > 1 day)
+    // Aggregated data fields (present when API returns hourly data)
     _aggregated?: boolean;
     _onlineCount?: number;
     _offlineCount?: number;
@@ -55,22 +59,113 @@ interface ChartDataPoint {
     isOnline: boolean;
 }
 
-// Time range options
+// =============================================================================
+// TIME RANGE CONFIGURATION
+// =============================================================================
+
+/**
+ * Time range options with their properties:
+ * - label: Display text
+ * - days: Number of days to request from API
+ * - hours: Number of hours this range represents (for display logic)
+ * - hasMinutelyData: Whether raw minutely data is available (only for short ranges)
+ * - maxMinutelyBars: Maximum bars to show in minutely view
+ * - maxHourlyBars: Maximum bars to show in hourly view
+ */
 const TIME_RANGES = [
-    { label: '1h', days: 0.042 },
-    { label: '24h', days: 1 },
-    { label: '7d', days: 7 },
-    { label: '30d', days: 30 },
+    {
+        label: '1h',
+        days: 1,  // Request 1 day from API, filter on frontend
+        hours: 1,
+        hasMinutelyData: true,
+        maxMinutelyBars: 60,    // 60 minutes
+        maxHourlyBars: 1,       // 1 hour
+    },
+    {
+        label: '24h',
+        days: 1,
+        hours: 24,
+        hasMinutelyData: true,
+        maxMinutelyBars: 1440,  // 24 * 60 minutes
+        maxHourlyBars: 24,      // 24 hours
+    },
+    {
+        label: '7d',
+        days: 7,
+        hours: 168,
+        hasMinutelyData: false, // Too many points, API aggregates
+        maxMinutelyBars: 0,     // Not available
+        maxHourlyBars: 168,     // 7 * 24 hours
+    },
+    {
+        label: '30d',
+        days: 30,
+        hours: 720,
+        hasMinutelyData: false,
+        maxMinutelyBars: 0,
+        maxHourlyBars: 720,     // 30 * 24 hours
+    },
+    {
+        label: '60d',
+        days: 60,
+        hours: 1440,
+        hasMinutelyData: false,
+        maxMinutelyBars: 0,
+        maxHourlyBars: 1440,    // 60 * 24 hours
+    },
+    {
+        label: '90d',
+        days: 90,
+        hours: 2160,
+        hasMinutelyData: false,
+        maxMinutelyBars: 0,
+        maxHourlyBars: 2160,    // 90 * 24 hours
+    },
 ];
 
-// Custom tooltip component
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Parse date from various formats (Date object, ISO string, Unix timestamp)
+ */
+function parseDate(value: string | Date | number): Date {
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') {
+        // Unix timestamp (seconds) - Drizzle SQLite returns this
+        return new Date(value * 1000);
+    }
+    // ISO string or date string
+    return new Date(value);
+}
+
+/**
+ * Format date for chart label based on granularity
+ */
+function formatLabel(date: Date, granularity: Granularity, rangeHours: number): string {
+    if (granularity === 'minutely') {
+        // For minutely, show time only
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    // For hourly, include date for ranges > 24h
+    if (rangeHours > 24) {
+        return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' });
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// =============================================================================
+// CUSTOM TOOLTIP COMPONENT
+// =============================================================================
+
 const CustomTooltip = ({ active, payload, dataView, granularity }: any) => {
     if (!active || !payload?.length) return null;
 
     const data = payload[0].payload;
     return (
         <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-            <p className="text-sm font-medium text-foreground mb-1">{data.label}</p>
+            <p className="text-sm font-medium text-foreground mb-1">{data.fullTime}</p>
             {dataView === 'uptime' ? (
                 <>
                     {granularity === 'hourly' && (
@@ -99,43 +194,38 @@ const CustomTooltip = ({ active, payload, dataView, granularity }: any) => {
     );
 };
 
-// Parse date from various formats
-function parseDate(value: string | Date | number): Date {
-    if (value instanceof Date) return value;
-    if (typeof value === 'number') return new Date(value * 1000); // Unix timestamp
-    return new Date(value);
-}
-
-// Format date for label based on time range
-function formatLabel(date: Date, days: number, granularity: Granularity): string {
-    if (granularity === 'minutely' || days <= 1) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' });
-}
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
+    // State
     const [records, setRecords] = useState<UptimeRecord[]>([]);
     const [isAggregated, setIsAggregated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [dataView, setDataView] = useState<DataView>('uptime');
     const [granularity, setGranularity] = useState<Granularity>('hourly');
-    const [selectedDays, setSelectedDays] = useState<number>(1);
+    const [selectedRangeIndex, setSelectedRangeIndex] = useState(1); // Default to 24h
+
+    // Get current range config
+    const currentRange = TIME_RANGES[selectedRangeIndex];
+
+    // Check if minutely data is available for current range
+    const minutelyAvailable = currentRange.hasMinutelyData;
 
     // Fetch data when serverId or time range changes
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const daysToFetch = Math.max(selectedDays, 1);
-                const res = await fetch(`/api/servers/${serverId}/uptime?days=${daysToFetch}`);
+                const res = await fetch(`/api/servers/${serverId}/uptime?days=${currentRange.days}`);
                 if (!res.ok) throw new Error('Failed to fetch');
 
                 const data: ApiResponse = await res.json();
                 let fetchedRecords = data.records || [];
 
-                // For 1h view, filter to last hour only
-                if (selectedDays < 1) {
+                // For 1h view, filter to last hour only (API returns full day)
+                if (currentRange.hours === 1) {
                     const oneHourAgo = Date.now() - 60 * 60 * 1000;
                     fetchedRecords = fetchedRecords.filter(r => {
                         const date = parseDate(r.checkedAt);
@@ -154,7 +244,14 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         };
 
         fetchData();
-    }, [serverId, selectedDays]);
+    }, [serverId, currentRange.days, currentRange.hours]);
+
+    // Auto-switch to hourly if minutely not available
+    useEffect(() => {
+        if (!minutelyAvailable && granularity === 'minutely') {
+            setGranularity('hourly');
+        }
+    }, [minutelyAvailable, granularity]);
 
     // Calculate overall stats
     const stats = useMemo(() => {
@@ -202,16 +299,19 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
             return dateA.getTime() - dateB.getTime();
         });
 
-        if (granularity === 'minutely') {
-            // Minutely view: show individual data points
-            // Limit based on time range
-            const limit = selectedDays <= 0.042 ? 60 : selectedDays <= 1 ? 1440 : 120;
+        // =================================================================
+        // MINUTELY VIEW
+        // =================================================================
+        if (granularity === 'minutely' && minutelyAvailable) {
+            // For minutely view, we need raw (non-aggregated) data
+            // This is only available for 1h and 24h ranges
+            const limit = currentRange.maxMinutelyBars;
             const sliced = sorted.slice(-limit);
 
             return sliced.map(record => {
                 const date = parseDate(record.checkedAt);
                 return {
-                    label: formatLabel(date, selectedDays, 'minutely'),
+                    label: formatLabel(date, 'minutely', currentRange.hours),
                     fullTime: date.toLocaleString(),
                     online: record.online ? 1 : 0,
                     offline: record.online ? 0 : 1,
@@ -222,92 +322,99 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                     isOnline: record.online,
                 };
             });
-        } else {
-            // Hourly view
-            if (isAggregated) {
-                // Use pre-aggregated data from API
-                return sorted.map(record => {
-                    const date = parseDate(record.checkedAt);
-                    return {
-                        label: formatLabel(date, selectedDays, 'hourly'),
-                        fullTime: date.toLocaleString(),
-                        online: record._onlineCount || (record.online ? 1 : 0),
-                        offline: record._offlineCount || (record.online ? 0 : 1),
-                        uptimePercent: record._uptimePercent ?? (record.online ? 100 : 0),
-                        players: record.playersOnline || 0,
-                        avgPlayers: record.playersOnline || 0,
-                        maxSlots: record.playersMax || 0,
-                        isOnline: record.online,
-                    };
-                });
-            } else {
-                // Aggregate raw data by hour on the frontend
-                const hourlyMap = new Map<string, {
-                    online: number;
-                    offline: number;
-                    players: number[];
-                    maxSlots: number;
-                    date: Date;
-                }>();
-
-                sorted.forEach(record => {
-                    const date = parseDate(record.checkedAt);
-                    const hourKey = date.toISOString().substring(0, 13); // YYYY-MM-DDTHH
-
-                    if (!hourlyMap.has(hourKey)) {
-                        hourlyMap.set(hourKey, {
-                            online: 0,
-                            offline: 0,
-                            players: [],
-                            maxSlots: 0,
-                            date: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()),
-                        });
-                    }
-
-                    const bucket = hourlyMap.get(hourKey)!;
-                    if (record.online) {
-                        bucket.online++;
-                    } else {
-                        bucket.offline++;
-                    }
-                    if (record.playersOnline != null) {
-                        bucket.players.push(record.playersOnline);
-                    }
-                    if (record.playersMax) {
-                        bucket.maxSlots = Math.max(bucket.maxSlots, record.playersMax);
-                    }
-                });
-
-                // Convert to chart data
-                const result: ChartDataPoint[] = [];
-                const sortedKeys = Array.from(hourlyMap.keys()).sort();
-
-                sortedKeys.forEach(key => {
-                    const bucket = hourlyMap.get(key)!;
-                    const total = bucket.online + bucket.offline;
-                    const avgPlayers = bucket.players.length > 0
-                        ? Math.round(bucket.players.reduce((a, b) => a + b, 0) / bucket.players.length)
-                        : 0;
-
-                    result.push({
-                        label: formatLabel(bucket.date, selectedDays, 'hourly'),
-                        fullTime: bucket.date.toLocaleString(),
-                        online: bucket.online,
-                        offline: bucket.offline,
-                        uptimePercent: total > 0 ? (bucket.online / total) * 100 : 0,
-                        players: avgPlayers,
-                        avgPlayers: avgPlayers,
-                        maxSlots: bucket.maxSlots,
-                        isOnline: bucket.online > bucket.offline,
-                    });
-                });
-
-                // Limit to reasonable number of bars
-                const maxBars = selectedDays >= 7 ? 720 : 48;
-                return result.slice(-maxBars);
-            }
         }
-    }, [records, granularity, selectedDays, isAggregated]);
+
+        // =================================================================
+        // HOURLY VIEW
+        // =================================================================
+        if (isAggregated) {
+            // API returned pre-aggregated hourly data (for 7d+ ranges)
+            // Use it directly
+            const limit = currentRange.maxHourlyBars;
+            const sliced = sorted.slice(-limit);
+
+            return sliced.map(record => {
+                const date = parseDate(record.checkedAt);
+                return {
+                    label: formatLabel(date, 'hourly', currentRange.hours),
+                    fullTime: date.toLocaleString(),
+                    online: record._onlineCount || (record.online ? 1 : 0),
+                    offline: record._offlineCount || (record.online ? 0 : 1),
+                    uptimePercent: record._uptimePercent ?? (record.online ? 100 : 0),
+                    players: record.playersOnline || 0,
+                    avgPlayers: record.playersOnline || 0,
+                    maxSlots: record.playersMax || 0,
+                    isOnline: record.online,
+                };
+            });
+        } else {
+            // API returned raw minutely data (for 1h/24h ranges)
+            // Aggregate on the frontend by hour
+            const hourlyMap = new Map<string, {
+                online: number;
+                offline: number;
+                players: number[];
+                maxSlots: number;
+                date: Date;
+            }>();
+
+            sorted.forEach(record => {
+                const date = parseDate(record.checkedAt);
+                // Create hour key: YYYY-MM-DDTHH
+                const hourKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}`;
+
+                if (!hourlyMap.has(hourKey)) {
+                    hourlyMap.set(hourKey, {
+                        online: 0,
+                        offline: 0,
+                        players: [],
+                        maxSlots: 0,
+                        date: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()),
+                    });
+                }
+
+                const bucket = hourlyMap.get(hourKey)!;
+                if (record.online) {
+                    bucket.online++;
+                } else {
+                    bucket.offline++;
+                }
+                if (record.playersOnline != null) {
+                    bucket.players.push(record.playersOnline);
+                }
+                if (record.playersMax) {
+                    bucket.maxSlots = Math.max(bucket.maxSlots, record.playersMax);
+                }
+            });
+
+            // Convert to chart data array
+            const result: ChartDataPoint[] = [];
+            const sortedKeys = Array.from(hourlyMap.keys()).sort();
+
+            sortedKeys.forEach(key => {
+                const bucket = hourlyMap.get(key)!;
+                const total = bucket.online + bucket.offline;
+                const avgPlayers = bucket.players.length > 0
+                    ? Math.round(bucket.players.reduce((a, b) => a + b, 0) / bucket.players.length)
+                    : 0;
+
+                result.push({
+                    label: formatLabel(bucket.date, 'hourly', currentRange.hours),
+                    fullTime: bucket.date.toLocaleString(),
+                    online: bucket.online,
+                    offline: bucket.offline,
+                    uptimePercent: total > 0 ? (bucket.online / total) * 100 : 0,
+                    players: avgPlayers,
+                    avgPlayers: avgPlayers,
+                    maxSlots: bucket.maxSlots,
+                    isOnline: bucket.online > bucket.offline,
+                });
+            });
+
+            // Limit to max hourly bars
+            return result.slice(-currentRange.maxHourlyBars);
+        }
+    }, [records, granularity, minutelyAvailable, isAggregated, currentRange]);
 
     // Get bar color based on uptime
     const getBarColor = (entry: ChartDataPoint): string => {
@@ -326,6 +433,10 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         if (percentage >= 90) return 'text-warning';
         return 'text-error';
     };
+
+    // =============================================================================
+    // RENDER
+    // =============================================================================
 
     if (isLoading) {
         return (
@@ -374,11 +485,15 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                         {/* Granularity Toggle */}
                         <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary/50">
                             <button
-                                onClick={() => setGranularity('minutely')}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'minutely'
+                                onClick={() => minutelyAvailable && setGranularity('minutely')}
+                                disabled={!minutelyAvailable}
+                                className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'minutely' && minutelyAvailable
                                         ? 'bg-neon-cyan text-white'
-                                        : 'text-muted-foreground hover:text-foreground'
+                                        : minutelyAvailable
+                                            ? 'text-muted-foreground hover:text-foreground'
+                                            : 'text-muted-foreground/50 cursor-not-allowed'
                                     }`}
+                                title={!minutelyAvailable ? 'Minutely data not available for ranges > 24h' : ''}
                             >
                                 <List className="w-3 h-3 inline mr-1" />
                                 Minutely
@@ -397,16 +512,16 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
                         {/* Time Range */}
                         <div className="inline-flex rounded-full border border-border bg-background/40 p-0.5">
-                            {TIME_RANGES.map(option => (
+                            {TIME_RANGES.map((range, index) => (
                                 <button
-                                    key={option.label}
-                                    onClick={() => setSelectedDays(option.days)}
-                                    className={`px-2 py-0.5 rounded-full text-xs transition ${selectedDays === option.days
+                                    key={range.label}
+                                    onClick={() => setSelectedRangeIndex(index)}
+                                    className={`px-2 py-0.5 rounded-full text-xs transition ${selectedRangeIndex === index
                                             ? 'bg-primary text-primary-foreground shadow'
                                             : 'text-muted-foreground hover:bg-muted/40'
                                         }`}
                                 >
-                                    {option.label}
+                                    {range.label}
                                 </button>
                             ))}
                         </div>
@@ -495,7 +610,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                     )}
                 </div>
 
-                {/* Legend */}
+                {/* Legend and Info */}
                 <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground flex-wrap">
                     {dataView === 'uptime' && (
                         <>
@@ -522,7 +637,18 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                         </div>
                     )}
                     <span>|</span>
-                    <span>{records.length} data points</span>
+                    <span>
+                        {chartData.length} {granularity === 'hourly' ? 'hours' : 'data points'}
+                    </span>
+                    {!minutelyAvailable && (
+                        <>
+                            <span>|</span>
+                            <span className="flex items-center gap-1 text-neon-orange">
+                                <AlertCircle className="w-3 h-3" />
+                                Minutely N/A for {currentRange.label}
+                            </span>
+                        </>
+                    )}
                 </div>
             </CardContent>
         </Card>
