@@ -222,8 +222,8 @@ export default async function AdminDashboard() {
           <h3 className="font-bold mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Add Server', icon: Server, href: '/admin/servers/new' },
-              { label: 'Create Post', icon: MessageSquare, href: '/admin/announcements/new' },
+              { label: 'Add Server', icon: Server, href: '/admin/servers' },
+              { label: 'Announcement', icon: MessageSquare, href: '/admin/announcements/new' },
               { label: 'View Reports', icon: AlertTriangle, href: '/admin/moderation' },
               { label: 'System Status', icon: Activity, href: '/admin/status' },
             ].map((action) => (

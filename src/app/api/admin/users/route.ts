@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { desc, sql, gte } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 
 async function requireAdmin() {
   const session = await auth();
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
         xp: users.xp,
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
+        emailVerified: users.emailVerified,
       })
       .from(users)
       .orderBy(desc(users.createdAt))
@@ -78,3 +80,62 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST /api/admin/users
+ * Create a new user from admin panel
+ */
+export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin();
+
+    const body = await request.json();
+    const { username, email, password, role, minecraftUsername } = body;
+
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: 'Username and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create user
+    const [newUser] = await db.insert(users).values({
+      username,
+      email: email || null,
+      password: hashedPassword,
+      role: role || 'user',
+      minecraftUsername: minecraftUsername || null,
+    }).returning();
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Handle unique constraint violation
+    if (error?.message?.includes('UNIQUE constraint failed')) {
+      return NextResponse.json(
+        { error: 'Username or email already exists' },
+        { status: 400 }
+      );
+    }
+
+    console.error('Error creating user:', error);
+    return NextResponse.json(
+      { error: 'Failed to create user' },
+      { status: 500 }
+    );
+  }
+}

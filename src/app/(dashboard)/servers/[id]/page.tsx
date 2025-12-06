@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, Wifi, WifiOff, Map, ArrowLeft, Loader2 } from 'lucide-react';
 import { Suspense } from 'react';
+import { ServerUptimeGraph } from '@/components/server-uptime-graph';
 
 interface ServerDetailParams {
   params: Promise<{ id: string }>;
@@ -140,7 +141,7 @@ async function ServerDetailContent({ serverId }: { serverId: number }) {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {server.description && (
             <p className="text-muted-foreground">{server.description}</p>
           )}
@@ -149,6 +150,9 @@ async function ServerDetailContent({ serverId }: { serverId: number }) {
               {server.motd}
             </p>
           )}
+
+          {/* Server Statistics Graph */}
+          <ServerUptimeGraph serverId={serverId} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Players list */}
@@ -231,3 +235,4 @@ export default async function ServerDetailPage({ params }: ServerDetailParams) {
     </Suspense>
   );
 }
+

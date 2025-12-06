@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       siteName: settingsObject['site_name'] || 'Vonix Network',
       siteDescription: settingsObject['site_description'] || 'The Ultimate Minecraft Community',
       maintenanceMode: settingsObject['maintenance_mode'] || false,
+      maintenanceMessage: settingsObject['maintenance_message'] || 'Under Maintenance, Expect possible downtimes.',
       registrationEnabled: settingsObject['registration_enabled'] !== false,
       requireRegistrationCode: settingsObject['require_registration_code'] !== false,
       defaultUserRole: settingsObject['default_user_role'] || 'user',
@@ -68,6 +69,17 @@ export async function GET(request: NextRequest) {
       smtpFromEmail: settingsObject['smtp_from_email'] || '',
       smtpFromName: settingsObject['smtp_from_name'] || 'Vonix Network',
       smtpSecure: settingsObject['smtp_secure'] !== false,
+      // Notification settings
+      notifications: settingsObject['notifications'] || {
+        emailNotifications: true,
+        forumReplies: true,
+        friendRequests: true,
+        privateMessages: true,
+        serverUpdates: true,
+        announcements: true,
+        donationConfirmations: true,
+        levelUpNotifications: true,
+      },
     };
 
     return NextResponse.json(result);
@@ -90,10 +102,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // Map frontend keys to database keys
-    const keyMapping: Record<string, { dbKey: string; category: string; isPublic: boolean }> = {
+    const keyMapping: Record<string, { dbKey: string; category: string; isPublic: boolean; isJson?: boolean }> = {
       siteName: { dbKey: 'site_name', category: 'general', isPublic: true },
       siteDescription: { dbKey: 'site_description', category: 'general', isPublic: true },
       maintenanceMode: { dbKey: 'maintenance_mode', category: 'general', isPublic: false },
+      maintenanceMessage: { dbKey: 'maintenance_message', category: 'general', isPublic: false },
       registrationEnabled: { dbKey: 'registration_enabled', category: 'security', isPublic: false },
       requireRegistrationCode: { dbKey: 'require_registration_code', category: 'security', isPublic: false },
       defaultUserRole: { dbKey: 'default_user_role', category: 'security', isPublic: false },
@@ -113,6 +126,8 @@ export async function PUT(request: NextRequest) {
       smtpFromEmail: { dbKey: 'smtp_from_email', category: 'email', isPublic: false },
       smtpFromName: { dbKey: 'smtp_from_name', category: 'email', isPublic: false },
       smtpSecure: { dbKey: 'smtp_secure', category: 'email', isPublic: false },
+      // Notification settings (stored as JSON)
+      notifications: { dbKey: 'notifications', category: 'notifications', isPublic: false, isJson: true },
     };
 
     // Upsert each setting
@@ -123,7 +138,9 @@ export async function PUT(request: NextRequest) {
       // Skip masked values (don't overwrite existing secrets with placeholder)
       if (typeof value === 'string' && value.includes('••••')) continue;
 
-      const stringValue = typeof value === 'boolean' ? String(value) : String(value);
+      const stringValue = mapping.isJson
+        ? JSON.stringify(value)
+        : (typeof value === 'boolean' ? String(value) : String(value));
 
       // Try to update first
       const result = await db

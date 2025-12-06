@@ -1,10 +1,11 @@
-import { db } from '@/db';
-import { users } from '@/db/schema';
-import { desc, sql } from 'drizzle-orm';
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users, Search, Filter, MoreHorizontal,
-  Shield, Crown, UserX, Mail
+  Shield, Crown, UserX, Mail, Plus, Loader2,
+  Check, X, Edit, Trash2, Ban, UserCheck, Copy
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,49 +13,26 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getMinecraftAvatarUrl, getInitials, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
-export const dynamic = 'force-dynamic';
-
-async function getUsers() {
-  try {
-    return await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        role: users.role,
-        minecraftUsername: users.minecraftUsername,
-        xp: users.xp,
-        level: users.level,
-        createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
-        emailVerified: users.emailVerified,
-      })
-      .from(users)
-      .orderBy(desc(users.createdAt))
-      .limit(50);
-  } catch {
-    return [];
-  }
+interface UserData {
+  id: number;
+  username: string;
+  email: string | null;
+  role: string;
+  minecraftUsername: string | null;
+  xp: number;
+  level: number;
+  createdAt: Date;
+  lastLoginAt: Date | null;
+  emailVerified: boolean;
 }
 
-async function getUserStats() {
-  try {
-    const [total, admins, mods, today] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(users),
-      db.select({ count: sql<number>`count(*)` }).from(users).where(sql`${users.role} = 'admin'`),
-      db.select({ count: sql<number>`count(*)` }).from(users).where(sql`${users.role} = 'moderator'`),
-      db.select({ count: sql<number>`count(*)` }).from(users).where(sql`date(${users.createdAt}) = date('now')`),
-    ]);
-    return {
-      total: total[0]?.count || 0,
-      admins: admins[0]?.count || 0,
-      mods: mods[0]?.count || 0,
-      today: today[0]?.count || 0,
-    };
-  } catch {
-    return { total: 0, admins: 0, mods: 0, today: 0 };
-  }
+interface UserStats {
+  total: number;
+  admins: number;
+  mods: number;
+  today: number;
 }
 
 const getRoleBadge = (role: string) => {
@@ -70,11 +48,192 @@ const getRoleBadge = (role: string) => {
   }
 };
 
-export default async function AdminUsersPage() {
-  const [allUsers, stats] = await Promise.all([
-    getUsers(),
-    getUserStats(),
-  ]);
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [stats, setStats] = useState<UserStats>({ total: 0, admins: 0, mods: 0, today: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // New user form
+  const [newUser, setNewUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: 'user',
+    minecraftUsername: '',
+  });
+
+  // Edit user form
+  const [editForm, setEditForm] = useState({
+    role: 'user',
+    email: '',
+    minecraftUsername: '',
+  });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchStats();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/admin/users/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.username || !newUser.password) {
+      toast.error('Username and password are required');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
+
+      if (res.ok) {
+        toast.success('User created successfully');
+        setShowAddModal(false);
+        setNewUser({ username: '', email: '', password: '', role: 'user', minecraftUsername: '' });
+        fetchUsers();
+        fetchStats();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to create user');
+      }
+    } catch (error) {
+      toast.error('Failed to create user');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        toast.success('User updated successfully');
+        setShowEditModal(false);
+        setSelectedUser(null);
+        fetchUsers();
+        fetchStats();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to update user');
+      }
+    } catch (error) {
+      toast.error('Failed to update user');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('User deleted');
+        fetchUsers();
+        fetchStats();
+      } else {
+        toast.error('Failed to delete user');
+      }
+    } catch (error) {
+      toast.error('Failed to delete user');
+    }
+    setActionMenuOpen(null);
+  };
+
+  const handleBanUser = async (userId: number) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/ban`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('User banned');
+        fetchUsers();
+      } else {
+        toast.error('Failed to ban user');
+      }
+    } catch (error) {
+      toast.error('Failed to ban user');
+    }
+    setActionMenuOpen(null);
+  };
+
+  const handleCopyEmail = async (email: string) => {
+    // Check if on mobile (no clipboard API or touch device)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // On mobile, open mail app
+      window.location.href = `mailto:${email}`;
+    } else {
+      // On desktop, copy to clipboard
+      try {
+        await navigator.clipboard.writeText(email);
+        toast.success('Email copied to clipboard');
+      } catch (err) {
+        // Fallback to mailto
+        window.location.href = `mailto:${email}`;
+      }
+    }
+  };
+
+  const openEditModal = (user: UserData) => {
+    setSelectedUser(user);
+    setEditForm({
+      role: user.role,
+      email: user.email || '',
+      minecraftUsername: user.minecraftUsername || '',
+    });
+    setShowEditModal(true);
+    setActionMenuOpen(null);
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.minecraftUsername?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -85,8 +244,8 @@ export default async function AdminUsersPage() {
             Manage users, roles, and permissions
           </p>
         </div>
-        <Button variant="gradient">
-          <Users className="w-4 h-4 mr-2" />
+        <Button variant="gradient" onClick={() => setShowAddModal(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
       </div>
@@ -114,7 +273,12 @@ export default async function AdminUsersPage() {
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search users..." className="pl-10" />
+              <Input
+                placeholder="Search users..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <Button variant="neon-outline">
               <Filter className="w-4 h-4 mr-2" />
@@ -130,69 +294,122 @@ export default async function AdminUsersPage() {
           <CardTitle>All Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-4 font-medium text-muted-foreground">User</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Role</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Level</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Last Login</th>
-                  <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-border hover:bg-secondary/50">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage
-                            src={getMinecraftAvatarUrl(user.minecraftUsername || user.username)}
-                            alt={user.username}
-                          />
-                          <AvatarFallback>
-                            {getInitials(user.username)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.username}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.email || 'No email'}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{getRoleBadge(user.role)}</td>
-                    <td className="p-4">
-                      <span className="text-neon-cyan font-medium">
-                        Lv. {user.level || 1}
-                      </span>
-                    </td>
-                    <td className="p-4 text-muted-foreground">
-                      {formatDate(user.createdAt)}
-                    </td>
-                    <td className="p-4 text-muted-foreground">
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-4 font-medium text-muted-foreground">User</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Role</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Level</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Last Login</th>
+                    <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="border-b border-border hover:bg-secondary/50">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage
+                              src={getMinecraftAvatarUrl(user.minecraftUsername || user.username)}
+                              alt={user.username}
+                            />
+                            <AvatarFallback>
+                              {getInitials(user.username)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.username}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {user.email || 'No email'}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">{getRoleBadge(user.role)}</td>
+                      <td className="p-4">
+                        <span className="text-neon-cyan font-medium">
+                          Lv. {user.level || 1}
+                        </span>
+                      </td>
+                      <td className="p-4 text-muted-foreground">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="p-4 text-muted-foreground">
+                        {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2 relative">
+                          {user.email && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleCopyEmail(user.email!)}
+                              title="Copy email or open mail app"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
 
-          {allUsers.length === 0 && (
+                          {/* Action Menu Dropdown */}
+                          {actionMenuOpen === user.id && (
+                            <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+                                onClick={() => openEditModal(user)}
+                              >
+                                <Edit className="w-4 h-4" /> Edit User
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+                                onClick={() => {
+                                  // Change role quick action
+                                  const newRole = user.role === 'user' ? 'moderator' : user.role === 'moderator' ? 'admin' : 'user';
+                                  setSelectedUser(user);
+                                  setEditForm({ ...editForm, role: newRole });
+                                  openEditModal(user);
+                                }}
+                              >
+                                <UserCheck className="w-4 h-4" /> Change Role
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-warning"
+                                onClick={() => handleBanUser(user.id)}
+                              >
+                                <Ban className="w-4 h-4" /> Ban User
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-error"
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                <Trash2 className="w-4 h-4" /> Delete User
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!isLoading && filteredUsers.length === 0 && (
             <div className="text-center py-12">
               <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">No users found</p>
@@ -200,6 +417,140 @@ export default async function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Close dropdown when clicking outside */}
+      {actionMenuOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setActionMenuOpen(null)}
+        />
+      )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Add New User
+                <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Username *</label>
+                <Input
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  placeholder="Enter username"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password *</label>
+                <Input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Enter password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Minecraft Username</label>
+                <Input
+                  value={newUser.minecraftUsername}
+                  onChange={(e) => setNewUser({ ...newUser, minecraftUsername: e.target.value })}
+                  placeholder="Steve"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                >
+                  <option value="user">User</option>
+                  <option value="moderator">Moderator</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="ghost" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                <Button variant="gradient" onClick={handleCreateUser} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Create User
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Edit User: {selectedUser.username}
+                <Button variant="ghost" size="icon" onClick={() => { setShowEditModal(false); setSelectedUser(null); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Minecraft Username</label>
+                <Input
+                  value={editForm.minecraftUsername}
+                  onChange={(e) => setEditForm({ ...editForm, minecraftUsername: e.target.value })}
+                  placeholder="Steve"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                >
+                  <option value="user">User</option>
+                  <option value="moderator">Moderator</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="ghost" onClick={() => { setShowEditModal(false); setSelectedUser(null); }}>Cancel</Button>
+                <Button variant="gradient" onClick={handleUpdateUser} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                  Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

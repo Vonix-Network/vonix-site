@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { db } from '@/db';
 import { forumCategories, forumPosts, users, donationRanks } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
-import { 
-  MessageSquare, Plus, Eye, MessageCircle, 
+import {
+  MessageSquare, Plus, Eye, MessageCircle,
   Pin, Lock, ChevronRight, Folder
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { UserInfoWithRank } from '@/components/user-info-with-rank';
 async function getCategories() {
   try {
     const categories = await db.select().from(forumCategories).orderBy(forumCategories.orderIndex);
-    
+
     // Get post counts for each category
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
@@ -24,14 +24,14 @@ async function getCategories() {
           .select({ count: sql<number>`count(*)` })
           .from(forumPosts)
           .where(eq(forumPosts.categoryId, category.id));
-        
+
         return {
           ...category,
           postCount: postCount[0]?.count || 0,
         };
       })
     );
-    
+
     return categoriesWithCounts;
   } catch {
     return [];
@@ -112,7 +112,7 @@ export default async function ForumPage() {
                 Categories
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-4">
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <Link key={category.id} href={`/forum/category/${category.slug}`}>
@@ -183,14 +183,14 @@ export default async function ForumPage() {
                             donationRank={
                               post.authorRankId && post.authorRankExpiresAt && new Date(post.authorRankExpiresAt) > new Date()
                                 ? {
-                                    id: post.authorRankId,
-                                    name: post.rankName || 'Supporter',
-                                    color: post.rankColor || '#00D9FF',
-                                    textColor: post.rankTextColor || '#00D9FF',
-                                    icon: post.rankIcon,
-                                    badge: post.rankBadge,
-                                    glow: post.rankGlow || false,
-                                  }
+                                  id: post.authorRankId,
+                                  name: post.rankName || 'Supporter',
+                                  color: post.rankColor || '#00D9FF',
+                                  textColor: post.rankTextColor || '#00D9FF',
+                                  icon: post.rankIcon,
+                                  badge: post.rankBadge,
+                                  glow: post.rankGlow || false,
+                                }
                                 : null
                             }
                             showAvatar={false}

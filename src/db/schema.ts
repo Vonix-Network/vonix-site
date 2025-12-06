@@ -433,6 +433,37 @@ export const apiKeys = sqliteTable('api_keys', {
 });
 
 // ===================================
+// SERVER UPTIME TRACKING
+// ===================================
+
+export const serverUptimeRecords = sqliteTable('server_uptime_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  serverId: integer('server_id').notNull().references(() => servers.id, { onDelete: 'cascade' }),
+  online: integer('online', { mode: 'boolean' }).notNull(),
+  playersOnline: integer('players_online').default(0),
+  playersMax: integer('players_max').default(0),
+  responseTimeMs: integer('response_time_ms'),
+  checkedAt: integer('checked_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
+// ANNOUNCEMENTS
+// ===================================
+
+export const announcements = sqliteTable('announcements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  type: text('type', { enum: ['info', 'warning', 'success', 'error'] }).default('info').notNull(),
+  authorId: integer('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  published: integer('published', { mode: 'boolean' }).default(false).notNull(),
+  sendNotification: integer('send_notification', { mode: 'boolean' }).default(true).notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
 // TYPE EXPORTS
 // ===================================
 
@@ -454,4 +485,5 @@ export type Event = typeof events.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
 export type ReportedContent = typeof reportedContent.$inferSelect;
-
+export type ServerUptimeRecord = typeof serverUptimeRecords.$inferSelect;
+export type Announcement = typeof announcements.$inferSelect;

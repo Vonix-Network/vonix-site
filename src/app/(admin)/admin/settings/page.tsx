@@ -3,18 +3,32 @@
 import { useState, useEffect } from 'react';
 import {
   Settings, Save, Loader2, Check, Globe,
-  Shield, CreditCard, Bell, Database, Key, Mail, Send, CheckCircle, XCircle
+  Shield, CreditCard, Bell, Database, Key, Mail, Send, CheckCircle, XCircle,
+  AlertTriangle, MessageSquare, UserPlus, Server, Heart, FileText, Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ToggleCard } from '@/components/ui/toggle-switch';
+import { toast } from 'sonner';
+
+interface NotificationSettings {
+  emailNotifications: boolean;
+  forumReplies: boolean;
+  friendRequests: boolean;
+  privateMessages: boolean;
+  serverUpdates: boolean;
+  announcements: boolean;
+  donationConfirmations: boolean;
+  levelUpNotifications: boolean;
+}
 
 interface SiteSettings {
   siteName: string;
   siteDescription: string;
   maintenanceMode: boolean;
+  maintenanceMessage: string;
   registrationEnabled: boolean;
   requireRegistrationCode: boolean;
   defaultUserRole: string;
@@ -35,12 +49,26 @@ interface SiteSettings {
   smtpFromEmail: string;
   smtpFromName: string;
   smtpSecure: boolean;
+  // Notification settings
+  notifications: NotificationSettings;
 }
+
+const defaultNotifications: NotificationSettings = {
+  emailNotifications: true,
+  forumReplies: true,
+  friendRequests: true,
+  privateMessages: true,
+  serverUpdates: true,
+  announcements: true,
+  donationConfirmations: true,
+  levelUpNotifications: true,
+};
 
 const defaultSettings: SiteSettings = {
   siteName: 'Vonix Network',
   siteDescription: 'The Ultimate Minecraft Community',
   maintenanceMode: false,
+  maintenanceMessage: 'Under Maintenance, Expect possible downtimes.',
   registrationEnabled: true,
   requireRegistrationCode: true,
   defaultUserRole: 'user',
@@ -61,6 +89,8 @@ const defaultSettings: SiteSettings = {
   smtpFromEmail: '',
   smtpFromName: 'Vonix Network',
   smtpSecure: true,
+  // Notification defaults
+  notifications: defaultNotifications,
 };
 
 export default function AdminSettingsPage() {
@@ -82,7 +112,11 @@ export default function AdminSettingsPage() {
         const res = await fetch('/api/admin/settings');
         if (res.ok) {
           const data = await res.json();
-          setSettings({ ...defaultSettings, ...data });
+          setSettings({
+            ...defaultSettings,
+            ...data,
+            notifications: { ...defaultNotifications, ...(data.notifications || {}) },
+          });
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
@@ -113,13 +147,27 @@ export default function AdminSettingsPage() {
 
       if (res.ok) {
         setSaved(true);
+        toast.success('Settings saved successfully');
         setTimeout(() => setSaved(false), 2000);
+      } else {
+        toast.error('Failed to save settings');
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
+      toast.error('Failed to save settings');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const updateNotification = (key: keyof NotificationSettings, value: boolean) => {
+    setSettings({
+      ...settings,
+      notifications: {
+        ...settings.notifications,
+        [key]: value,
+      },
+    });
   };
 
   const sendTestEmail = async () => {
@@ -148,6 +196,14 @@ export default function AdminSettingsPage() {
       setIsSendingTest(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -208,38 +264,78 @@ export default function AdminSettingsPage() {
         <div className="lg:col-span-3 space-y-6">
           {/* General Settings */}
           {activeTab === 'general' && (
-            <Card variant="glass">
-              <CardHeader>
-                <CardTitle>General Settings</CardTitle>
-                <CardDescription>
-                  Basic site configuration
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Site Name</label>
-                  <Input
-                    value={settings.siteName}
-                    onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-                    placeholder="Vonix Network"
+            <>
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle>General Settings</CardTitle>
+                  <CardDescription>
+                    Basic site configuration
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Site Name</label>
+                    <Input
+                      value={settings.siteName}
+                      onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                      placeholder="Vonix Network"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Site Description</label>
+                    <Input
+                      value={settings.siteDescription}
+                      onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
+                      placeholder="The Ultimate Minecraft Community"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Maintenance Mode Card */}
+              <Card variant="glass" className={settings.maintenanceMode ? 'border-warning' : ''}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className={`w-5 h-5 ${settings.maintenanceMode ? 'text-warning' : 'text-muted-foreground'}`} />
+                    Maintenance Mode
+                  </CardTitle>
+                  <CardDescription>
+                    Enable maintenance mode to restrict site access
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ToggleCard
+                    checked={settings.maintenanceMode}
+                    onChange={(val) => setSettings({ ...settings, maintenanceMode: val })}
+                    label="Enable Maintenance Mode"
+                    description="Only admins, moderators, and owners can access the site"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Site Description</label>
-                  <Input
-                    value={settings.siteDescription}
-                    onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
-                    placeholder="The Ultimate Minecraft Community"
-                  />
-                </div>
-                <ToggleCard
-                  checked={settings.maintenanceMode}
-                  onChange={(val) => setSettings({ ...settings, maintenanceMode: val })}
-                  label="Maintenance Mode"
-                  description="Temporarily disable site access for non-admins"
-                />
-              </CardContent>
-            </Card>
+
+                  {settings.maintenanceMode && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Maintenance Message</label>
+                      <textarea
+                        value={settings.maintenanceMessage}
+                        onChange={(e) => setSettings({ ...settings, maintenanceMessage: e.target.value })}
+                        placeholder="Under Maintenance, Expect possible downtimes."
+                        className="w-full min-h-[80px] px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                      />
+                    </div>
+                  )}
+
+                  {settings.maintenanceMode && (
+                    <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+                      <p className="text-sm text-warning font-medium">
+                        ⚠️ Maintenance mode is enabled
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Regular users will see the maintenance page. Staff members can log in to bypass.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Security Settings */}
@@ -264,6 +360,27 @@ export default function AdminSettingsPage() {
                   label="Require Registration Code"
                   description="Users must verify via Minecraft server first"
                 />
+
+                {/* Info box based on registration code setting */}
+                <div className={`p-4 rounded-lg border ${settings.requireRegistrationCode
+                    ? 'bg-neon-cyan/10 border-neon-cyan/30'
+                    : 'bg-neon-purple/10 border-neon-purple/30'
+                  }`}>
+                  <p className={`text-sm font-medium ${settings.requireRegistrationCode ? 'text-neon-cyan' : 'text-neon-purple'
+                    }`}>
+                    {settings.requireRegistrationCode
+                      ? '🎮 Registration requires Minecraft verification'
+                      : '📝 Standard username/password registration enabled'
+                    }
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {settings.requireRegistrationCode
+                      ? 'Users must run /register in-game to get a registration code'
+                      : 'Users can register with just a username and password'
+                    }
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Max Login Attempts</label>
                   <Input
@@ -439,34 +556,149 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle>Notification Types</CardTitle>
                 <CardDescription>
-                  Configure which notifications are enabled site-wide
+                  Configure which notifications are enabled site-wide. Changes affect all users.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ToggleCard
-                  checked={true}
-                  onChange={() => { }}
+                  checked={settings.notifications.emailNotifications}
+                  onChange={(val) => updateNotification('emailNotifications', val)}
                   label="Email Notifications"
-                  description="Send email notifications to users"
+                  description="Master toggle for all email notifications"
                 />
-                <ToggleCard
-                  checked={true}
-                  onChange={() => { }}
-                  label="Forum Replies"
-                  description="Notify users when they receive forum replies"
-                />
-                <ToggleCard
-                  checked={true}
-                  onChange={() => { }}
-                  label="Friend Requests"
-                  description="Notify users of new friend requests"
-                />
-                <ToggleCard
-                  checked={true}
-                  onChange={() => { }}
-                  label="Server Updates"
-                  description="Notify users of server status changes"
-                />
+
+                <div className="border-t border-border pt-4 space-y-4">
+                  <h4 className="text-sm font-medium text-muted-foreground">In-App Notification Types</h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-purple/20">
+                        <MessageSquare className="w-4 h-4 text-neon-purple" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Forum Replies</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.forumReplies}
+                            onChange={(e) => updateNotification('forumReplies', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">When someone replies to a forum post</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-cyan/20">
+                        <UserPlus className="w-4 h-4 text-neon-cyan" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Friend Requests</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.friendRequests}
+                            onChange={(e) => updateNotification('friendRequests', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">New friend requests</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-pink/20">
+                        <Mail className="w-4 h-4 text-neon-pink" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Private Messages</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.privateMessages}
+                            onChange={(e) => updateNotification('privateMessages', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">New direct messages</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-orange/20">
+                        <Server className="w-4 h-4 text-neon-orange" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Server Updates</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.serverUpdates}
+                            onChange={(e) => updateNotification('serverUpdates', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Server status changes</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-warning/20">
+                        <Bell className="w-4 h-4 text-warning" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Announcements</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.announcements}
+                            onChange={(e) => updateNotification('announcements', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Site-wide announcements</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-success/20">
+                        <Heart className="w-4 h-4 text-success" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Donation Confirmations</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.donationConfirmations}
+                            onChange={(e) => updateNotification('donationConfirmations', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Donation receipts</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-cyan/20">
+                        <FileText className="w-4 h-4 text-neon-cyan" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Level Up</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.notifications.levelUpNotifications}
+                            onChange={(e) => updateNotification('levelUpNotifications', e.target.checked)}
+                            className="w-4 h-4 accent-neon-cyan"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">XP level achievements</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
                   <p className="text-sm text-neon-cyan">
                     💡 Configure SMTP settings in the Email / SMTP tab to enable email notifications.
@@ -591,8 +823,8 @@ export default function AdminSettingsPage() {
 
                   {testResult && (
                     <div className={`p-4 rounded-lg border ${testResult.success
-                        ? 'bg-success/10 border-success/30'
-                        : 'bg-error/10 border-error/30'
+                      ? 'bg-success/10 border-success/30'
+                      : 'bg-error/10 border-error/30'
                       }`}>
                       <div className="flex items-center gap-2">
                         {testResult.success ? (

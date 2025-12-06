@@ -6,8 +6,8 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/update-servers",
-      "schedule": "*/5 * * * *"
+      "path": "/api/cron/uptime",
+      "schedule": "* * * * *"
     }
   ],
   "headers": [

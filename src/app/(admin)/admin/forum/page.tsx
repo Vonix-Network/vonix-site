@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
+import { useState, useEffect, useRef } from 'react';
+import {
   MessageSquare, Plus, Edit, Trash2, GripVertical,
   Loader2, Save, X, FolderOpen, Eye, EyeOff, Lock
 } from 'lucide-react';
@@ -42,6 +42,11 @@ export default function AdminForumPage() {
   const [formData, setFormData] = useState<Partial<ForumCategory>>(defaultCategory);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState<ForumCategory | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounter = useRef(0);
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -73,7 +78,7 @@ export default function AdminForumPage() {
       toast.error('Name and slug are required');
       return;
     }
-    
+
     setIsSaving(true);
     try {
       const res = await fetch('/api/admin/forum/categories', {
@@ -104,7 +109,7 @@ export default function AdminForumPage() {
 
   const handleUpdate = async () => {
     if (!editingCategory) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch(`/api/admin/forum/categories/${editingCategory.id}`, {
@@ -154,6 +159,90 @@ export default function AdminForumPage() {
   const openEditModal = (category: ForumCategory) => {
     setEditingCategory(category);
     setFormData(category);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, category: ForumCategory) => {
+    setDraggedItem(category);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a slight delay to prevent the drag image from disappearing
+    setTimeout(() => {
+      const element = e.target as HTMLElement;
+      element.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const element = e.target as HTMLElement;
+    element.style.opacity = '1';
+    setDraggedItem(null);
+    setDragOverIndex(null);
+    dragCounter.current = 0;
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    dragCounter.current++;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+    dragCounter.current = 0;
+
+    if (!draggedItem) return;
+
+    const sourceIndex = categories.findIndex(c => c.id === draggedItem.id);
+    if (sourceIndex === targetIndex) return;
+
+    // Reorder locally first for immediate feedback
+    const newCategories = [...categories];
+    newCategories.splice(sourceIndex, 1);
+    newCategories.splice(targetIndex, 0, draggedItem);
+
+    // Update orderIndex for all items
+    const reordered = newCategories.map((cat, idx) => ({
+      ...cat,
+      orderIndex: idx,
+    }));
+
+    setCategories(reordered);
+
+    // Save to server
+    try {
+      const res = await fetch('/api/admin/forum/categories/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryOrder: reordered.map(c => ({ id: c.id, orderIndex: c.orderIndex })),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Category order updated');
+      } else {
+        // Revert on failure
+        await fetchCategories();
+        toast.error('Failed to update order');
+      }
+    } catch (error) {
+      await fetchCategories();
+      toast.error('Failed to update order');
+    }
   };
 
   return (
@@ -222,7 +311,7 @@ export default function AdminForumPage() {
       <Card variant="glass">
         <CardHeader>
           <CardTitle>Forum Categories</CardTitle>
-          <CardDescription>Drag to reorder, click to edit</CardDescription>
+          <CardDescription>Drag to reorder using the grip handle, click edit to modify</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -239,13 +328,21 @@ export default function AdminForumPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {categories.sort((a, b) => a.orderIndex - b.orderIndex).map((category) => (
+              {categories.sort((a, b) => a.orderIndex - b.orderIndex).map((category, index) => (
                 <div
                   key={category.id}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, category)}
+                  onDragEnd={handleDragEnd}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className={`flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors ${dragOverIndex === index ? 'border-2 border-neon-cyan border-dashed' : ''
+                    } ${draggedItem?.id === category.id ? 'opacity-50' : ''}`}
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                  
+                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-neon-cyan/20">
                     {category.icon || '💬'}
                   </div>
@@ -320,8 +417,8 @@ export default function AdminForumPage() {
                 <Input
                   value={formData.name || ''}
                   onChange={(e) => {
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       name: e.target.value,
                       slug: editingCategory ? formData.slug : generateSlug(e.target.value),
                     });

@@ -124,38 +124,172 @@ Settings are organized by category:
 
 ## 🎯 Production Deployment
 
-### Vercel
-1. Set environment variables in Vercel dashboard:
-   - `NEXTAUTH_SECRET`
-   - `AUTH_URL` (your production domain)
-   - `DATABASE_URL` (Turso connection string)
-   - `DATABASE_AUTH_TOKEN` (Turso auth token)
+### Self-Hosted (Ubuntu/AWS)
 
-2. Deploy: `vercel`
+#### 1. Install Node.js 20+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
 
-3. First visit will redirect to `/setup`
+#### 2. Clone and Install
+```bash
+git clone <your-repo-url> /var/www/vonix
+cd /var/www/vonix
+npm install
+```
 
-### Other Platforms
-1. Configure environment variables
-2. Run `npm run build`
-3. Run `npm start`
-4. Visit your domain and complete setup
+#### 3. Configure Environment
+```bash
+cp .env.example .env.local
+nano .env.local
+```
 
-## 🔄 Cron Jobs (Production)
+Required variables for production:
+```env
+# Generate with: openssl rand -base64 32
+NEXTAUTH_SECRET=your-secret-key-here
 
-Two automated tasks run via Vercel Cron:
+# Your production domain
+AUTH_URL=https://vonix.network
+AUTH_TRUST_HOST=true
 
-### Expire Ranks (Hourly)
-- Removes expired donation ranks
-- Endpoint: `/api/cron/expire-ranks`
-- Schedule: `0 * * * *`
+# Database - Turso (recommended for production)
+DATABASE_URL=libsql://your-db.turso.io
+DATABASE_AUTH_TOKEN=your_turso_token
 
-### Update Servers (Every 5 minutes)
-- Fetches Minecraft server status
-- Endpoint: `/api/cron/update-servers`
-- Schedule: `*/5 * * * *`
+# OR Local SQLite (not recommended for production)
+# DATABASE_URL=file:./data/vonix.db
 
-Configure `CRON_SECRET` in production for authentication.
+# Cron secret - generate with: openssl rand -base64 32
+CRON_SECRET=your-cron-secret-here
+
+# App URL
+NEXT_PUBLIC_APP_URL=https://vonix.network
+```
+
+#### 4. Build Application
+```bash
+npm run db:push  # Initialize database
+npm run build    # Build for production
+```
+
+#### 5. Install PM2 (Process Manager)
+```bash
+sudo npm install -g pm2
+```
+
+#### 6. Create PM2 Ecosystem File
+Create `ecosystem.config.js`:
+```javascript
+module.exports = {
+  apps: [{
+    name: 'vonix-network',
+    script: 'npm',
+    args: 'start',
+    cwd: '/var/www/vonix',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    instances: 'max',
+    exec_mode: 'cluster',
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+  }]
+};
+```
+
+#### 7. Start with PM2
+```bash
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup  # Enable auto-start on reboot
+```
+
+#### 8. Setup Nginx Reverse Proxy
+```bash
+sudo apt install nginx
+sudo nano /etc/nginx/sites-available/vonix
+```
+
+```nginx
+server {
+    listen 80;
+    server_name vonix.network www.vonix.network;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/vonix /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+#### 9. Setup SSL with Certbot
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d vonix.network -d www.vonix.network
+```
+
+## 🔄 Cron Jobs (Self-Hosted)
+
+Since you're self-hosting, you need to set up cron jobs manually using crontab.
+
+### Setup Crontab
+```bash
+crontab -e
+```
+
+Add these lines (replace `YOUR_CRON_SECRET` with your actual `CRON_SECRET` value):
+
+```cron
+# Vonix Network Cron Jobs
+
+# Server Uptime Check - Every minute (pings servers, records uptime data)
+* * * * * curl -s "https://vonix.network/api/cron/uptime?secret=YOUR_CRON_SECRET" > /dev/null 2>&1
+
+# Expire Ranks - Every hour (removes expired donation ranks)
+0 * * * * curl -s "https://vonix.network/api/cron/expire-ranks?secret=YOUR_CRON_SECRET" > /dev/null 2>&1
+```
+
+### Alternative: With Headers
+If you prefer using headers instead of query params:
+```cron
+* * * * * curl -s -H "x-cron-secret: YOUR_CRON_SECRET" "https://vonix.network/api/cron/uptime" > /dev/null 2>&1
+```
+
+### Verify Cron is Running
+```bash
+# Check cron logs
+grep CRON /var/log/syslog | tail -20
+
+# Test manually
+curl "https://vonix.network/api/cron/uptime?secret=YOUR_CRON_SECRET"
+```
+
+## 📊 Useful PM2 Commands
+
+```bash
+pm2 status              # Check app status
+pm2 logs vonix-network  # View logs
+pm2 restart all         # Restart app
+pm2 reload all          # Zero-downtime reload
+pm2 monit               # Real-time monitoring
+```
 
 ## 📝 Post-Setup Checklist
 
