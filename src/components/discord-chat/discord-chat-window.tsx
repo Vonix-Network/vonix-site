@@ -180,24 +180,100 @@ export function DiscordChatWindow() {
                                                             {msg.embeds.map((embed: any, i: number) => (
                                                                 <div
                                                                     key={i}
-                                                                    className="rounded-lg border border-border bg-secondary/50 p-2 text-left"
-                                                                    style={{ borderLeftColor: embed.color ? `#${embed.color.toString(16)}` : DISCORD_COLOR, borderLeftWidth: '3px' }}
+                                                                    className="rounded-lg border border-border bg-secondary/50 p-3 text-left max-w-xs"
+                                                                    style={{ borderLeftColor: embed.color ? `#${embed.color.toString(16).padStart(6, '0')}` : DISCORD_COLOR, borderLeftWidth: '3px' }}
                                                                 >
-                                                                    {embed.title && (
-                                                                        <div className="font-medium text-sm mb-1">
-                                                                            {embed.url ? (
-                                                                                <a href={embed.url} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: DISCORD_COLOR }}>
-                                                                                    {embed.title}
-                                                                                </a>
-                                                                            ) : embed.title}
+                                                                    <div className="flex gap-3">
+                                                                        {/* Main content */}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            {/* Author */}
+                                                                            {embed.author && (
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    {embed.author.iconURL && (
+                                                                                        <img
+                                                                                            src={embed.author.iconURL}
+                                                                                            alt=""
+                                                                                            className="w-5 h-5 rounded-full"
+                                                                                        />
+                                                                                    )}
+                                                                                    <span className="text-xs font-medium">
+                                                                                        {embed.author.url ? (
+                                                                                            <a href={embed.author.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                                                                {embed.author.name}
+                                                                                            </a>
+                                                                                        ) : embed.author.name}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Title */}
+                                                                            {embed.title && (
+                                                                                <div className="font-semibold text-sm mb-1">
+                                                                                    {embed.url ? (
+                                                                                        <a href={embed.url} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: DISCORD_COLOR }}>
+                                                                                            {embed.title}
+                                                                                        </a>
+                                                                                    ) : embed.title}
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Description */}
+                                                                            {embed.description && (
+                                                                                <p className="text-xs text-muted-foreground mb-2">{embed.description}</p>
+                                                                            )}
+
+                                                                            {/* Fields */}
+                                                                            {embed.fields && embed.fields.length > 0 && (
+                                                                                <div className="grid gap-1 mt-2">
+                                                                                    {embed.fields.map((field: any, fi: number) => (
+                                                                                        <div
+                                                                                            key={fi}
+                                                                                            className={field.inline ? 'inline-block mr-4' : 'block'}
+                                                                                        >
+                                                                                            <div className="text-xs font-semibold text-foreground">{field.name}</div>
+                                                                                            <div className="text-xs text-muted-foreground">{field.value}</div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Image */}
+                                                                            {embed.image?.url && (
+                                                                                <img
+                                                                                    src={embed.image.url}
+                                                                                    alt=""
+                                                                                    className="mt-2 rounded max-h-40 max-w-full object-cover"
+                                                                                />
+                                                                            )}
+
+                                                                            {/* Footer */}
+                                                                            {embed.footer && (
+                                                                                <div className="flex items-center gap-1 mt-2 pt-1 border-t border-border/50">
+                                                                                    {embed.footer.iconURL && (
+                                                                                        <img
+                                                                                            src={embed.footer.iconURL}
+                                                                                            alt=""
+                                                                                            className="w-4 h-4 rounded-full"
+                                                                                        />
+                                                                                    )}
+                                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                                        {embed.footer.text}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
-                                                                    {embed.description && (
-                                                                        <p className="text-xs text-muted-foreground">{embed.description}</p>
-                                                                    )}
-                                                                    {embed.image?.url && (
-                                                                        <img src={embed.image.url} alt="" className="mt-2 rounded max-h-32 object-cover" />
-                                                                    )}
+
+                                                                        {/* Thumbnail */}
+                                                                        {embed.thumbnail?.url && (
+                                                                            <div className="flex-shrink-0">
+                                                                                <img
+                                                                                    src={embed.thumbnail.url}
+                                                                                    alt=""
+                                                                                    className="w-16 h-16 rounded object-cover"
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>

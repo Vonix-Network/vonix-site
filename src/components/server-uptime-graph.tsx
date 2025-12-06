@@ -142,53 +142,78 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
     });
 
     // Prepare hourly aggregated data
+    // If data is already aggregated from the API, use it directly
     const hourlyChartData: any[] = [];
     if (records.length > 0) {
-        const grouped = new Map<string, { online: number; offline: number; players: number[]; max: number }>();
+        // Check if records are pre-aggregated from API (they have _aggregated flag or checkedAt is a string)
+        const isPreAggregated = records.some((r: any) => r._aggregated || typeof r.checkedAt === 'string');
 
-        records.forEach(record => {
-            const date = new Date(record.checkedAt);
-            const hourKey = date.toISOString().substring(0, 13);
-            if (!grouped.has(hourKey)) {
-                grouped.set(hourKey, { online: 0, offline: 0, players: [], max: 0 });
-            }
-            const data = grouped.get(hourKey)!;
-            if (record.online) {
-                data.online++;
-            } else {
-                data.offline++;
-            }
-            if (record.playersOnline !== null) {
-                data.players.push(record.playersOnline);
-            }
-            if (record.playersMax) {
-                data.max = Math.max(data.max, record.playersMax);
-            }
-        });
-
-        const sortedHours = Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-
-        sortedHours.forEach(([hourKey, data]) => {
-            const date = new Date(hourKey + ':00:00');
-            const total = data.online + data.offline;
-            hourlyChartData.push({
-                label: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
-                fullTime: date.toLocaleString(),
-                online: data.online,
-                offline: data.offline,
-                uptimePercent: total > 0 ? (data.online / total) * 100 : 0,
-                avgPlayers: data.players.length > 0
-                    ? Math.round(data.players.reduce((a, b) => a + b, 0) / data.players.length)
-                    : 0,
-                maxSlots: data.max,
+        if (isPreAggregated) {
+            // Use pre-aggregated data directly from API
+            records.forEach((record: any) => {
+                const date = new Date(record.checkedAt);
+                hourlyChartData.push({
+                    label: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
+                    fullTime: date.toLocaleString(),
+                    online: record._onlineCount || (record.online ? 1 : 0),
+                    offline: record._offlineCount || (record.online ? 0 : 1),
+                    uptimePercent: record._uptimePercent ?? (record.online ? 100 : 0),
+                    avgPlayers: record.playersOnline || 0,
+                    maxSlots: record.playersMax || 0,
+                });
             });
-        });
+            // Sort by time (oldest first)
+            hourlyChartData.sort((a, b) => new Date(a.fullTime).getTime() - new Date(b.fullTime).getTime());
+        } else {
+            // Group raw records by hour
+            const grouped = new Map<string, { online: number; offline: number; players: number[]; max: number }>();
+
+            records.forEach(record => {
+                const date = new Date(record.checkedAt);
+                const hourKey = date.toISOString().substring(0, 13);
+                if (!grouped.has(hourKey)) {
+                    grouped.set(hourKey, { online: 0, offline: 0, players: [], max: 0 });
+                }
+                const data = grouped.get(hourKey)!;
+                if (record.online) {
+                    data.online++;
+                } else {
+                    data.offline++;
+                }
+                if (record.playersOnline !== null) {
+                    data.players.push(record.playersOnline);
+                }
+                if (record.playersMax) {
+                    data.max = Math.max(data.max, record.playersMax);
+                }
+            });
+
+            const sortedHours = Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+            sortedHours.forEach(([hourKey, data]) => {
+                const date = new Date(hourKey + ':00:00');
+                const total = data.online + data.offline;
+                hourlyChartData.push({
+                    label: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' }),
+                    fullTime: date.toLocaleString(),
+                    online: data.online,
+                    offline: data.offline,
+                    uptimePercent: total > 0 ? (data.online / total) * 100 : 0,
+                    avgPlayers: data.players.length > 0
+                        ? Math.round(data.players.reduce((a, b) => a + b, 0) / data.players.length)
+                        : 0,
+                    maxSlots: data.max,
+                });
+            });
+        }
     }
 
     // Select data based on granularity
+    // For hourly view with longer ranges, show more data points
+    const maxHourlyPoints = selectedDays >= 7 ? 720 : 48; // 30 days = 720 hours
     const chartData = granularity === 'minutely'
         ? minutelyChartData
-        : hourlyChartData.slice(-48); // Last 48 hours max
+        : hourlyChartData.slice(-maxHourlyPoints);
 
     const getUptimeColor = (percentage: number) => {
         if (percentage >= 99) return 'text-success';
