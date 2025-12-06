@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, apiKeys } from '@/db/schema';
+import { users, apiKeys, xpTransactions } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Verify API key from Minecraft server/mod
@@ -89,7 +89,13 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(users.id, user.id));
 
-    // Note: XP transaction logging removed - table doesn't exist in schema
+    // Record XP transaction for history
+    await db.insert(xpTransactions).values({
+      userId: user.id,
+      amount,
+      source,
+      description: description || `XP from ${source}`,
+    });
 
     return NextResponse.json({
       success: true,

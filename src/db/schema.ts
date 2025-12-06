@@ -124,6 +124,16 @@ export const serverXp = sqliteTable('server_xp', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
 
+export const xpTransactions = sqliteTable('xp_transactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  source: text('source').notNull(),
+  sourceId: integer('source_id'),
+  description: text('description'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
 // ===================================
 // FORUM
 // ===================================
@@ -284,21 +294,26 @@ export const notifications = sqliteTable('notifications', {
 // ===================================
 
 export const achievements = sqliteTable('achievements', {
-  id: text('id').primaryKey(), // e.g., 'first_login', 'level_10'
+  id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
-  icon: text('icon').notNull(), // Lucide icon name
-  xpReward: integer('xp_reward').default(0),
-  secret: integer('secret', { mode: 'boolean' }).default(false),
+  icon: text('icon'),
+  category: text('category', { enum: ['social', 'forum', 'leveling', 'special'] }).notNull(),
+  xpReward: integer('xp_reward').default(0).notNull(),
+  requirement: text('requirement').notNull(),
+  hidden: integer('hidden', { mode: 'boolean' }).default(false).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
 
 export const userAchievements = sqliteTable('user_achievements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   achievementId: text('achievement_id').notNull().references(() => achievements.id, { onDelete: 'cascade' }),
-  unlockedAt: integer('unlocked_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.achievementId] }),
-}));
+  progress: integer('progress').default(0).notNull(),
+  completed: integer('completed', { mode: 'boolean' }).default(false).notNull(),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
 
 // ===================================
 // REPORTING
@@ -399,6 +414,7 @@ export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type Server = typeof servers.$inferSelect;
 export type ServerXp = typeof serverXp.$inferSelect;
+export type XpTransaction = typeof xpTransactions.$inferSelect;
 export type ForumCategory = typeof forumCategories.$inferSelect;
 export type ForumPost = typeof forumPosts.$inferSelect;
 export type ForumReply = typeof forumReplies.$inferSelect;
@@ -411,6 +427,7 @@ export type Group = typeof groups.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
+export type UserAchievement = typeof userAchievements.$inferSelect;
 export type ReportedContent = typeof reportedContent.$inferSelect;
 export type ServerUptimeRecord = typeof serverUptimeRecords.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
