@@ -112,7 +112,6 @@ export default function AdminSettingsPage() {
     botToken: '',
     channelId: '',
     channelName: '',
-    botSecret: '',
   });
   const [discordLoading, setDiscordLoading] = useState(true);
   const [discordSaving, setDiscordSaving] = useState(false);
@@ -1014,26 +1013,13 @@ export default function AdminSettingsPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Bot Secret Key</label>
-                    <Input
-                      type="password"
-                      value={discordSettings.botSecret}
-                      onChange={(e) => setDiscordSettings({ ...discordSettings, botSecret: e.target.value })}
-                      placeholder="Generate a secure random string"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Used to authenticate requests from your Discord bot
-                    </p>
-                  </div>
-
                   <div className="p-4 rounded-lg bg-secondary/50">
                     <h4 className="font-medium mb-2">Webhook Endpoint</h4>
                     <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
                       {typeof window !== 'undefined' ? window.location.origin : ''}/api/discord-chat/webhook
                     </code>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Your bot should POST to this URL with Authorization: Bearer [bot_secret]
+                      Your bot should POST messages to this URL
                     </p>
                   </div>
                 </CardContent>

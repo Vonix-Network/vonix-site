@@ -87,14 +87,6 @@ export async function PATCH(request: NextRequest) {
             });
         }
 
-        if (typeof body.botSecret === 'string') {
-            updates.push({
-                key: 'discord_bot_secret',
-                value: body.botSecret,
-                description: 'Secret key for bot webhook authentication',
-            });
-        }
-
         // Upsert each setting
         for (const update of updates) {
             const [existing] = await db

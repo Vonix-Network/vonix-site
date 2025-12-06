@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { discordMessages, siteSettings } from '@/db/schema';
+import { discordMessages } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -12,23 +12,6 @@ import { eq } from 'drizzle-orm';
  */
 export async function POST(request: NextRequest) {
     try {
-        // Verify bot secret
-        const authHeader = request.headers.get('authorization');
-
-        const [botSecretSetting] = await db
-            .select()
-            .from(siteSettings)
-            .where(eq(siteSettings.key, 'discord_bot_secret'));
-
-        if (!botSecretSetting?.value) {
-            console.warn('Discord bot secret not configured');
-            return NextResponse.json({ error: 'Bot not configured' }, { status: 503 });
-        }
-
-        if (authHeader !== `Bearer ${botSecretSetting.value}`) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
         const body = await request.json();
         const { type, message } = body;
 
