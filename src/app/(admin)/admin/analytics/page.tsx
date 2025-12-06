@@ -35,7 +35,7 @@ async function getAnalytics() {
       db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(donations).where(gte(donations.createdAt, thirtyDaysAgo)),
       db.select({ count: sql<number>`count(*)` }).from(forumPosts),
       db.select({ count: sql<number>`count(*)` }).from(forumPosts).where(gte(forumPosts.createdAt, thirtyDaysAgo)),
-      db.select({ count: sql<number>`count(*)` }).from(servers).where(eq(servers.online, true)),
+      db.select({ count: sql<number>`count(*)` }).from(servers).where(eq(servers.status, 'online')),
     ]);
 
     return {
@@ -146,8 +146,8 @@ async function getRecentDonations() {
         id: donations.id,
         amount: donations.amount,
         createdAt: donations.createdAt,
-        type: donations.type,
-        itemId: donations.itemId,
+        paymentType: donations.paymentType,
+        rankId: donations.rankId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
       })
@@ -274,7 +274,7 @@ export default async function AdminAnalyticsPage() {
                       {donation.minecraftUsername || donation.username || 'Anonymous'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {donation.type === 'rank' ? `Rank Upgrade: ${donation.itemId}` : 'Donation'}
+                      {donation.paymentType === 'subscription' ? `Subscription: ${donation.rankId || 'Rank'}` : 'One-time'}
                     </p>
                   </div>
                   <div className="text-right">
@@ -330,3 +330,4 @@ export default async function AdminAnalyticsPage() {
     </div>
   );
 }
+

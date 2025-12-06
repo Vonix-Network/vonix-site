@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
         const stripePriceId = await ensureRankStripeSetup({
           id: rank.id,
           name: rank.name,
-          priceMonth: rank.priceMonth,
-          stripePriceId: rank.stripePriceId,
+          priceMonth: rank.minAmount,
+          stripePriceMonthly: rank.stripePriceMonthly,
         });
 
         checkoutSession = await createSubscriptionCheckout({
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       } else {
         // One-time payment - calculate price based on days
         // priceMonth is in cents, convert to dollars for checkout
-        const monthlyPriceDollars = (rank.priceMonth || 500) / 100;
+        const monthlyPriceDollars = (rank.minAmount || 500) / 100;
         const pricePerDay = monthlyPriceDollars / 30;
         const calculatedAmount = customAmount || Math.round(pricePerDay * days * 100) / 100;
 
@@ -139,3 +139,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

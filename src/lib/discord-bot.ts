@@ -281,3 +281,4 @@ export function getDiscordBotStatus(): { connected: boolean; username?: string; 
         channelId: channelId ?? undefined,
     };
 }
+

@@ -23,3 +23,4 @@ export default async function MaintenanceRoute() {
 
     return <MaintenancePage message={message} />;
 }
+

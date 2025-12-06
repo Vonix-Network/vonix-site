@@ -153,7 +153,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
   const [existingReceipt] = await db
     .select()
     .from(donations)
-    .where(eq(donations.stripePaymentIntentId, (invoice as any).payment_intent as string))
+    .where(eq(donations.paymentId, (invoice as any).payment_intent as string))
     .limit(1);
 
   if (existingReceipt) {
@@ -236,19 +236,16 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
 
   await db.insert(donations).values({
     userId: userIdNum,
-    amount: amountPaidCents,
+    amount: amountPaidDollars,
     currency: invoice.currency?.toUpperCase() || 'USD',
-    status: 'succeeded',
-    stripePaymentIntentId: (invoice as any).payment_intent as string,
-    type: 'subscription',
-    itemId: rankId,
-    metadata: JSON.stringify({
-      subscriptionId,
-      days,
-      message: `${rank.name} Rank - ${days} days ${isFirstPayment ? '(Subscription)' : '(Renewal)'}`,
-      receiptNumber: `VN-${Date.now()}-${userId}`,
-      paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal'
-    }),
+    status: 'completed',
+    paymentId: (invoice as any).payment_intent as string,
+    subscriptionId: subscriptionId,
+    paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal',
+    rankId: rankId,
+    days,
+    message: `${rank.name} Rank - ${days} days ${isFirstPayment ? '(Subscription)' : '(Renewal)'}`,
+    receiptNumber: `VN-${Date.now()}-${userId}`,
   });
 
   console.log(`✅ Rank extended for user ${userIdNum} until ${expiresAt}`);
@@ -369,7 +366,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   const [existingReceipt] = await db
     .select()
     .from(donations)
-    .where(eq(donations.stripePaymentIntentId, paymentIntent.id))
+    .where(eq(donations.paymentId, paymentIntent.id))
     .limit(1);
 
   if (existingReceipt) {
@@ -451,17 +448,15 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
   await db.insert(donations).values({
     userId: userIdNum,
-    amount: amountCents,
+    amount: amountDollars,
     currency: paymentIntent.currency?.toUpperCase() || 'USD',
-    status: 'succeeded',
-    stripePaymentIntentId: paymentIntent.id,
-    type: rank ? 'rank' : 'one_time',
-    itemId: rank ? rankId : null,
-    metadata: JSON.stringify({
-      days: daysNum,
-      message: donationMessage,
-      receiptNumber: `VN-${Date.now()}-${userId}`,
-      paymentType: 'one_time'
-    }),
+    status: 'completed',
+    paymentId: paymentIntent.id,
+    paymentType: rank ? 'one_time' : 'one_time',
+    rankId: rank ? rankId : null,
+    days: daysNum,
+    message: donationMessage,
+    receiptNumber: `VN-${Date.now()}-${userId}`,
   });
 }
+

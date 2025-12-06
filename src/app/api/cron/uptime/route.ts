@@ -133,9 +133,9 @@ async function tryApiPing(host: string, port: number, retries: number = 2): Prom
  * Only marks offline if ALL attempts fail
  */
 async function pingServerWithRetry(
-    server: { id: number; name: string; address: string; port: number }
+    server: { id: number; name: string; ipAddress: string; port: number }
 ): Promise<PingResult> {
-    const host = server.address;
+    const host = server.ipAddress;
     const port = server.port;
 
     console.log(`   🔍 Checking ${server.name} (${host}:${port})...`);
@@ -267,7 +267,7 @@ export async function GET(request: NextRequest) {
             allServers.map(server => pingServerWithRetry({
                 id: server.id,
                 name: server.name,
-                address: server.address,
+                ipAddress: server.ipAddress,
                 port: server.port,
             }))
         );
@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
             await db
                 .update(servers)
                 .set({
-                    online: result.online,
+                    status: result.online ? 'online' : 'offline',
                     playersOnline: result.playersOnline,
                     playersMax: result.playersMax,
                     updatedAt: new Date(),
@@ -336,3 +336,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to check servers' }, { status: 500 });
     }
 }
+

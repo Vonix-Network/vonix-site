@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
                     await db
                         .update(serverXp)
                         .set({
-                            amount: newXp,
-                            updatedAt: new Date(),
+                            xp: newXp,
+                            lastSyncedAt: new Date(),
                         })
                         .where(eq(serverXp.id, existingServerXp.id));
                 } else {
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
                     await db.insert(serverXp).values({
                         userId: user.id,
                         serverId: server.id,
-                        amount: newXp,
+                        xp: newXp,
                     });
                 }
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
                     where: eq(serverXp.userId, user.id),
                 });
 
-                const totalMinecraftXp = allServerXp.reduce((sum, s) => sum + (s.amount || 0), 0);
+                const totalMinecraftXp = allServerXp.reduce((sum, s) => sum + (s.xp || 0), 0);
 
                 // Calculate new total XP and level
                 const totalXp = totalMinecraftXp + (user.websiteXp || 0);
@@ -191,3 +191,4 @@ export async function GET() {
         },
     });
 }
+

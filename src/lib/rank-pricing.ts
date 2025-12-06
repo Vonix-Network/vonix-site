@@ -119,3 +119,4 @@ export function getRankValueInfo(rankId: string): {
     pricePerYear: Math.round(pricePerDay * 365 * 0.85 * 100) / 100,
   };
 }
+

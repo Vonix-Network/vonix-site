@@ -81,3 +81,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to ban user' }, { status: 500 });
     }
 }
+

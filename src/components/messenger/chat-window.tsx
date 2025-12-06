@@ -236,3 +236,4 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
   );
 }
 
+

@@ -15,7 +15,7 @@ import { UserInfoWithRank } from '@/components/user-info-with-rank';
 
 async function getCategories() {
   try {
-    const categories = await db.select().from(forumCategories).orderBy(forumCategories.order);
+    const categories = await db.select().from(forumCategories).orderBy(forumCategories.orderIndex);
 
     // Get post counts for each category
     const categoriesWithCounts = await Promise.all(
@@ -46,8 +46,8 @@ async function getRecentPosts() {
         title: forumPosts.title,
         createdAt: forumPosts.createdAt,
         views: forumPosts.views,
-        pinned: forumPosts.isPinned,
-        locked: forumPosts.isLocked,
+        pinned: forumPosts.pinned,
+        locked: forumPosts.locked,
         authorId: forumPosts.authorId,
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
@@ -65,7 +65,7 @@ async function getRecentPosts() {
       .leftJoin(users, eq(forumPosts.authorId, users.id))
       .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .leftJoin(forumCategories, eq(forumPosts.categoryId, forumCategories.id))
-      .orderBy(desc(forumPosts.isPinned), desc(forumPosts.createdAt))
+      .orderBy(desc(forumPosts.pinned), desc(forumPosts.createdAt))
       .limit(10);
   } catch {
     return [];
@@ -271,3 +271,4 @@ export default async function ForumPage() {
     </div>
   );
 }
+

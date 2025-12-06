@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
             categoryOrder.map(({ id, order }: { id: number; order: number }) =>
                 db
                     .update(forumCategories)
-                    .set({ order })
+                    .set({ orderIndex: order })
                     .where(eq(forumCategories.id, id))
             )
         );
@@ -48,3 +48,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to reorder categories' }, { status: 500 });
     }
 }
+

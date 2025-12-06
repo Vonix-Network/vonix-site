@@ -8,7 +8,7 @@ export async function GET() {
     const categories = await db
       .select()
       .from(forumCategories)
-      .orderBy(asc(forumCategories.order));
+      .orderBy(asc(forumCategories.orderIndex));
 
     return NextResponse.json(categories);
   } catch (error) {
@@ -19,3 +19,4 @@ export async function GET() {
     );
   }
 }
+

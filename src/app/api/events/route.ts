@@ -19,16 +19,16 @@ export async function GET(request: NextRequest) {
         location: events.location,
         startTime: events.startTime,
         endTime: events.endTime,
-        coverImage: events.banner,
+        coverImage: events.coverImage,
         createdAt: events.createdAt,
-        creatorId: events.hostId,
+        creatorId: events.creatorId,
         creatorUsername: users.username,
         creatorMinecraft: users.minecraftUsername,
         // attendeeCount removed as table doesn't exist
         attendeeCount: sql<number>`0`,
       })
       .from(events)
-      .leftJoin(users, eq(events.hostId, users.id))
+      .leftJoin(users, eq(events.creatorId, users.id))
       .orderBy(desc(events.startTime))
       .limit(limit);
 
@@ -80,10 +80,8 @@ export async function POST(request: NextRequest) {
         location: location || null,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        banner: coverImage || null,
-        hostId: parseInt(user.id),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        coverImage: coverImage || null,
+        creatorId: parseInt(user.id),
       })
       .returning();
 
@@ -96,3 +94,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

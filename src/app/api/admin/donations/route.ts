@@ -37,17 +37,17 @@ export async function GET(request: NextRequest) {
         or(
           like(users.username, `%${search}%`),
           like(users.minecraftUsername, `%${search}%`),
-          like(donations.stripePaymentIntentId, `%${search}%`)
+          like(donations.paymentId, `%${search}%`)
         )
       );
     }
 
     if (status) {
-      conditions.push(eq(donations.status, status));
+      conditions.push(eq(donations.status, status as 'completed' | 'pending' | 'failed' | 'refunded'));
     }
 
     if (type) {
-      conditions.push(eq(donations.type, type as any));
+      conditions.push(eq(donations.paymentType, type as any));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -62,10 +62,10 @@ export async function GET(request: NextRequest) {
         minecraftUsername: users.minecraftUsername, // Use user's MC username as fallback or main source
         amount: donations.amount,
         currency: donations.currency,
-        message: donations.metadata, // Assuming metadata might contain message
-        stripePaymentIntentId: donations.stripePaymentIntentId,
-        itemId: donations.itemId,
-        type: donations.type,
+        message: donations.message,
+        paymentId: donations.paymentId,
+        rankId: donations.rankId,
+        paymentType: donations.paymentType,
         status: donations.status,
         createdAt: donations.createdAt,
         // Rank info if applicable
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       })
       .from(donations)
       .leftJoin(users, eq(donations.userId, users.id))
-      .leftJoin(donationRanks, eq(donations.itemId, donationRanks.id))
+      .leftJoin(donationRanks, eq(donations.rankId, donationRanks.id))
       .where(whereClause)
       .orderBy(desc(donations.createdAt))
       .limit(limit)
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const [stats] = await db
       .select({
         total: sql<number>`COALESCE(SUM(${donations.amount}), 0)`,
-        completed: sql<number>`SUM(CASE WHEN ${donations.status} = 'succeeded' THEN ${donations.amount} ELSE 0 END)`,
+        completed: sql<number>`SUM(CASE WHEN ${donations.status} = 'completed' THEN ${donations.amount} ELSE 0 END)`,
         refunded: sql<number>`SUM(CASE WHEN ${donations.status} = 'refunded' THEN ${donations.amount} ELSE 0 END)`,
         count: sql<number>`COUNT(*)`,
       })
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
       currency = 'USD',
       message,
       rankId, // This maps to itemId
-      type = 'one_time',
-      status = 'succeeded',
+      paymentType = 'one_time',
+      status = 'completed',
       userId,
       createdAt,
     } = body;
@@ -156,9 +156,9 @@ export async function POST(request: NextRequest) {
         amount,
         currency,
         status,
-        type,
-        itemId: rankId || null,
-        metadata: message ? JSON.stringify({ message }) : null,
+        paymentType,
+        rankId: rankId || null,
+        message: message || null,
         createdAt: donationDate,
       })
       .returning();
@@ -172,3 +172,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create donation' }, { status: 500 });
   }
 }
+

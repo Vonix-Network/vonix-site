@@ -23,7 +23,7 @@ export async function GET() {
     const ranks = await db
       .select()
       .from(donationRanks)
-      .orderBy(asc(donationRanks.priceMonth)); // Ordered by price
+      .orderBy(asc(donationRanks.minAmount));
 
     return NextResponse.json(ranks, {
       headers: {
@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      id, name, description, priceMonth, color,
-      features, weight, stripePriceId, showInStore
+      id, name, subtitle, minAmount, color, textColor,
+      icon, badge, glow, duration, perks, stripePriceMonthly
     } = body;
 
-    if (!id || !name || priceMonth === undefined) {
+    if (!id || !name || minAmount === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields: id, name, priceMonth' },
+        { error: 'Missing required fields: id, name, minAmount' },
         { status: 400 }
       );
     }
@@ -64,13 +64,16 @@ export async function POST(request: NextRequest) {
       .values({
         id,
         name,
-        description: description || null,
-        priceMonth: priceMonth || 0,
+        subtitle: subtitle || null,
+        minAmount: minAmount || 0,
         color: color || '#00D9FF',
-        features: features ? JSON.stringify(features) : null,
-        weight: weight || 0,
-        stripePriceId: stripePriceId || null,
-        showInStore: showInStore ?? true,
+        textColor: textColor || '#FFFFFF',
+        icon: icon || null,
+        badge: badge || null,
+        glow: glow || false,
+        duration: duration || 30,
+        perks: perks ? JSON.stringify(perks) : null,
+        stripePriceMonthly: stripePriceMonthly || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -95,8 +98,8 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const {
-      id, name, description, priceMonth, color,
-      features, weight, stripePriceId, showInStore
+      id, name, subtitle, minAmount, color, textColor,
+      icon, badge, glow, duration, perks, stripePriceMonthly
     } = body;
 
     if (!id) {
@@ -110,13 +113,16 @@ export async function PUT(request: NextRequest) {
       .update(donationRanks)
       .set({
         name,
-        description,
-        priceMonth,
+        subtitle,
+        minAmount,
         color,
-        features: features ? JSON.stringify(features) : undefined,
-        weight,
-        stripePriceId,
-        showInStore,
+        textColor,
+        icon,
+        badge,
+        glow,
+        duration,
+        perks: perks ? JSON.stringify(perks) : undefined,
+        stripePriceMonthly,
         updatedAt: new Date(),
       })
       .where(eq(donationRanks.id, id))

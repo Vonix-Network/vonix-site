@@ -14,15 +14,15 @@ export async function GET(request: NextRequest) {
       .select({
         id: socialPosts.id,
         content: socialPosts.content,
-        likes: socialPosts.likes,
+        likesCount: socialPosts.likesCount,
         createdAt: socialPosts.createdAt,
-        authorId: socialPosts.authorId,
+        userId: socialPosts.userId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
         userRole: users.role,
       })
       .from(socialPosts)
-      .leftJoin(users, eq(socialPosts.authorId, users.id))
+      .leftJoin(users, eq(socialPosts.userId, users.id))
       .orderBy(desc(socialPosts.createdAt))
       .limit(limit)
       .offset(offset);
@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
     const userId = parseInt(session.user.id as string);
 
     const [newPost] = await db.insert(socialPosts).values({
-      authorId: userId,
+      userId: userId,
       content: content.trim(),
-      likes: 0,
+      likesCount: 0,
     }).returning();
 
     return NextResponse.json(newPost, { status: 201 });
@@ -82,3 +82,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

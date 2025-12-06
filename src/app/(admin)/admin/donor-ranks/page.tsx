@@ -475,3 +475,4 @@ export default function AdminDonorRanksPage() {
     </div>
   );
 }
+

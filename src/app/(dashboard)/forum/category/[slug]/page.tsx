@@ -39,8 +39,8 @@ async function getCategoryPosts(categoryId: number) {
         content: forumPosts.content,
         createdAt: forumPosts.createdAt,
         views: forumPosts.views,
-        pinned: forumPosts.isPinned,
-        locked: forumPosts.isLocked,
+        pinned: forumPosts.pinned,
+        locked: forumPosts.locked,
         authorId: forumPosts.authorId,
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
@@ -54,7 +54,7 @@ async function getCategoryPosts(categoryId: number) {
       .leftJoin(users, eq(forumPosts.authorId, users.id))
       .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .where(eq(forumPosts.categoryId, categoryId))
-      .orderBy(desc(forumPosts.isPinned), desc(forumPosts.createdAt));
+      .orderBy(desc(forumPosts.pinned), desc(forumPosts.createdAt));
 
     // Get reply counts for each post
     const postsWithReplies = await Promise.all(

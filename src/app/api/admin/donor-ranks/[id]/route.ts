@@ -43,26 +43,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const {
       name,
-      description,
-      priceMonth,
+      subtitle,
+      minAmount,
       color,
-      features,
-      weight,
-      showInStore,
-      stripePriceId
+      textColor,
+      icon,
+      badge,
+      glow,
+      duration,
+      perks,
+      stripePriceMonthly
     } = body;
 
     const [updated] = await db
       .update(donationRanks)
       .set({
         name,
-        description,
-        priceMonth,
+        subtitle,
+        minAmount,
         color,
-        features: typeof features === 'string' ? features : JSON.stringify(features),
-        weight,
-        showInStore,
-        stripePriceId,
+        textColor,
+        icon,
+        badge,
+        glow,
+        duration,
+        perks: typeof perks === 'string' ? perks : JSON.stringify(perks),
+        stripePriceMonthly,
         updatedAt: new Date(),
       })
       .where(eq(donationRanks.id, id))

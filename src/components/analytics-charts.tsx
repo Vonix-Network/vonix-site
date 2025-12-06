@@ -213,3 +213,4 @@ export function UserGrowthChart({ data, totalUsers, newThisWeek }: UserGrowthCha
   );
 }
 
+

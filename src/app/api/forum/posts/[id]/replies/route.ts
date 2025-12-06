@@ -35,7 +35,7 @@ export async function POST(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    if (post.isLocked) {
+    if (post.locked) {
       return NextResponse.json({ error: 'This post is locked' }, { status: 403 });
     }
 

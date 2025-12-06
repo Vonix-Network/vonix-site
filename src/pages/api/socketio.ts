@@ -33,3 +33,4 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithSoc
 export function getIO(): SocketIOServer | undefined {
     return io;
 }
+

@@ -22,3 +22,4 @@ export async function register() {
     console.log('✅ Server initialization complete');
   }
 }
+

@@ -245,3 +245,4 @@ export async function getUserRankStatus(userId: number): Promise<{
     return { hasRank: false };
   }
 }
+

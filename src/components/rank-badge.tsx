@@ -120,3 +120,4 @@ export function UserBadges({ role, donationRank, className, size = 'md' }: UserB
     </div>
   );
 }
+

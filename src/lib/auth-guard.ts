@@ -160,3 +160,4 @@ export function createPermissionChecker(role: string | undefined) {
     isSuperAdmin: () => role === 'superadmin',
   };
 }
+

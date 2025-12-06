@@ -30,7 +30,7 @@ export async function GET() {
                 .where(sql`${users.lockedUntil} > unixepoch()`),
             db.select({ count: sql<number>`count(*)` })
                 .from(forumPosts)
-                .where(eq(forumPosts.isLocked, true)),
+                .where(eq(forumPosts.locked, true)),
         ]);
 
         // Get pending reports
@@ -66,3 +66,4 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
     }
 }
+

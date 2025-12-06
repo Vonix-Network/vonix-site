@@ -8,15 +8,15 @@ export const dynamic = 'force-dynamic';
 
 async function getRanks() {
   try {
-    // Ordering by priceMonth or weight if available. Using priceMonth for now.
-    const ranks = await db.select().from(donationRanks).orderBy(donationRanks.priceMonth);
+    // Ordering by minAmount
+    const ranks = await db.select().from(donationRanks).orderBy(donationRanks.minAmount);
     return ranks.map(r => ({
       id: r.id,
       name: r.name,
-      minAmount: r.priceMonth ? r.priceMonth / 100 : 0, // Converting cents to dollars for minAmount equivalent
+      minAmount: r.minAmount || 0,
       color: r.color || '#00D9FF',
-      icon: '⭐', // Default icon as it's missing from schema
-      perks: typeof r.features === 'string' ? JSON.parse(r.features) : (r.features || []), // Mapping features to perks
+      icon: r.icon || '⭐',
+      perks: typeof r.perks === 'string' ? JSON.parse(r.perks) : (r.perks || []),
     }));
   } catch {
     return [];
@@ -30,14 +30,14 @@ async function getRecentDonations() {
         id: donations.id,
         amount: donations.amount,
         createdAt: donations.createdAt,
-        type: donations.type,
-        itemId: donations.itemId,
+        paymentType: donations.paymentType,
+        rankId: donations.rankId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
       })
       .from(donations)
       .leftJoin(users, eq(donations.userId, users.id))
-      .where(eq(donations.status, 'succeeded')) // Assuming 'succeeded' is the correct status
+      .where(eq(donations.status, 'completed'))
       .orderBy(desc(donations.createdAt))
       .limit(10);
 
@@ -45,7 +45,7 @@ async function getRecentDonations() {
       id: d.id,
       minecraftUsername: d.minecraftUsername || d.username || 'Anonymous',
       amount: d.amount,
-      message: d.type === 'rank' ? `Rank Upgrade: ${d.itemId}` : 'Donation',
+      message: d.paymentType === 'subscription' ? `Subscription: ${d.rankId || 'Rank'}` : 'One-time',
       createdAt: d.createdAt?.toISOString() || new Date().toISOString(),
     }));
   } catch {
@@ -61,7 +61,7 @@ async function getDonationStats() {
         count: sql<number>`COUNT(*)`,
       })
       .from(donations)
-      .where(eq(donations.status, 'succeeded'));
+      .where(eq(donations.status, 'completed'));
     return result[0] || { total: 0, count: 0 };
   } catch {
     return { total: 0, count: 0 };
@@ -135,3 +135,4 @@ export default async function DonatePage() {
     />
   );
 }
+

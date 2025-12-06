@@ -238,3 +238,4 @@ export function formatPlaytime(seconds: number): string {
   const remainingHours = hours % 24;
   return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 }
+

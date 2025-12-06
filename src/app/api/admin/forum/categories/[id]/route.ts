@@ -31,7 +31,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, slug, description, icon, color, order, minRole, isPrivate } = body;
+    const { name, slug, description, icon, orderIndex, createPermission, replyPermission, viewPermission } = body;
 
     // Check if category exists
     const [existing] = await db
@@ -66,11 +66,10 @@ export async function PUT(
         slug: slug || existing.slug,
         description: description !== undefined ? description : existing.description,
         icon: icon || existing.icon,
-        color: color !== undefined ? color : existing.color,
-        order: order !== undefined ? order : existing.order,
-        minRole: minRole || existing.minRole,
-        isPrivate: isPrivate !== undefined ? isPrivate : existing.isPrivate,
-        updatedAt: new Date(),
+        orderIndex: orderIndex !== undefined ? orderIndex : existing.orderIndex,
+        createPermission: createPermission || existing.createPermission,
+        replyPermission: replyPermission || existing.replyPermission,
+        viewPermission: viewPermission || existing.viewPermission,
       })
       .where(eq(forumCategories.id, categoryId))
       .returning();

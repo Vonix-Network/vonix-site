@@ -152,3 +152,4 @@ export function clearSettingsCache() {
   settingsCache = {};
   cacheTimestamp = 0;
 }
+

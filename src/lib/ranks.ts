@@ -177,3 +177,4 @@ export function formatRankExpiration(expiresAt: Date | null): string {
   const months = Math.floor(days / 30);
   return months === 1 ? '1 month remaining' : `${months} months remaining`;
 }
+

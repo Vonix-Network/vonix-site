@@ -23,13 +23,13 @@ async function getUpcomingEvents() {
         location: events.location,
         startTime: events.startTime,
         endTime: events.endTime,
-        coverImage: events.banner,
-        creatorId: events.hostId,
+        coverImage: events.coverImage,
+        creatorId: events.creatorId,
         creatorUsername: users.username,
         creatorMinecraft: users.minecraftUsername,
       })
       .from(events)
-      .leftJoin(users, eq(events.hostId, users.id))
+      .leftJoin(users, eq(events.creatorId, users.id))
       .where(gte(events.startTime, now))
       .orderBy(events.startTime)
       .limit(10);
@@ -273,3 +273,4 @@ export default async function EventsPage() {
     </div>
   );
 }
+

@@ -230,13 +230,13 @@ export async function getOrCreatePrice(
     id: string;
     name: string;
     priceMonth: number | null;
-    stripePriceId: string | null;
+    stripePriceMonthly: string | null;
   }
 ): Promise<string> {
   const stripe = getStripe();
 
   // We only support monthly intervals in the current schema (stripePriceId corresponds to monthly)
-  const existingPriceId = rank.stripePriceId;
+  const existingPriceId = rank.stripePriceMonthly;
 
   // Check if price exists in Stripe
   if (existingPriceId) {
@@ -280,7 +280,7 @@ export async function getOrCreatePrice(
   // Update database with new price ID
   await db
     .update(donationRanks)
-    .set({ stripePriceId: price.id, updatedAt: new Date() })
+    .set({ stripePriceMonthly: price.id, updatedAt: new Date() })
     .where(eq(donationRanks.id, rank.id));
 
   console.log(`Created Stripe price ${price.id} for rank ${rank.id}`);
@@ -295,7 +295,7 @@ export async function ensureRankStripeSetup(
     id: string;
     name: string;
     priceMonth: number | null;
-    stripePriceId: string | null;
+    stripePriceMonthly: string | null;
   }
 ): Promise<string> {
   // First ensure product exists
@@ -521,3 +521,4 @@ export async function verifyWebhookSignature(
 
   return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }
+

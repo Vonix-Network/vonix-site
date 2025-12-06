@@ -26,14 +26,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         location: events.location,
         startTime: events.startTime,
         endTime: events.endTime,
-        coverImage: events.banner,
+        coverImage: events.coverImage,
         createdAt: events.createdAt,
-        creatorId: events.hostId,
+        creatorId: events.creatorId,
         creatorUsername: users.username,
         creatorMinecraft: users.minecraftUsername,
       })
       .from(events)
-      .leftJoin(users, eq(events.hostId, users.id))
+      .leftJoin(users, eq(events.creatorId, users.id))
       .where(eq(events.id, eventId));
 
     if (!event) {
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         location,
         startTime: startTime ? new Date(startTime) : undefined,
         endTime: endTime ? new Date(endTime) : undefined,
-        banner: coverImage,
+        coverImage: coverImage,
       })
       .where(eq(events.id, eventId))
       .returning();

@@ -65,8 +65,8 @@ async function getRecentDonations() {
         id: donations.id,
         amount: donations.amount,
         createdAt: donations.createdAt,
-        type: donations.type,
-        itemId: donations.itemId,
+        paymentType: donations.paymentType,
+        rankId: donations.rankId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
       })
@@ -283,3 +283,4 @@ export default async function AdminDashboard() {
     </div>
   );
 }
+

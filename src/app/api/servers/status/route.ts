@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
     // Ping all servers in parallel using hybrid approach
     const statusPromises = allServers.map(async (server) => {
       // Try native ping first
-      let result = await pingServerNative(server.address, server.port);
+      let result = await pingServerNative(server.ipAddress, server.port);
 
       // If native ping failed, try mcstatus.io API
       if (!result.success || !result.data?.online) {
-        console.log(`[servers/status] Native ping failed for ${server.address}:${server.port}, trying API...`);
-        result = await getServerStatus(server.address, server.port, false);
+        console.log(`[servers/status] Native ping failed for ${server.ipAddress}:${server.port}, trying API...`);
+        result = await getServerStatus(server.ipAddress, server.port, false);
       }
 
       return { server, result };
@@ -110,15 +110,15 @@ export async function GET(request: NextRequest) {
       return {
         id: server.id,
         name: server.name,
-        description: null, // Schema missing description
-        address: server.address,
+        description: server.description,
+        address: server.ipAddress,
         port: server.port,
-        hidePort: false, // Schema missing hidePort
-        modpackName: null, // Schema missing modpackName
-        bluemapUrl: null, // Schema missing bluemapUrl
-        curseforgeUrl: null, // Schema missing curseforgeUrl
-        orderIndex: 0, // Schema missing orderIndex
-        apiKey: null, // Schema missing apiKey
+        hidePort: server.hidePort,
+        modpackName: server.modpackName,
+        bluemapUrl: server.bluemapUrl,
+        curseforgeUrl: server.curseforgeUrl,
+        orderIndex: server.orderIndex,
+        apiKey: server.apiKey,
         // Live status data ONLY (no DB fallbacks for dynamic fields)
         online: data?.online ?? false,
         version,
@@ -151,3 +151,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

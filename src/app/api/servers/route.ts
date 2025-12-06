@@ -13,7 +13,7 @@ export async function GET() {
         id: servers.id,
         name: servers.name,
         // description: null, // missing
-        address: servers.address,
+        ipAddress: servers.ipAddress,
         port: servers.port,
         // modpackName: null, // missing
         // bluemapUrl: null, // missing
@@ -66,15 +66,14 @@ export async function POST(request: NextRequest) {
 
     const [newServer] = await db.insert(servers).values({
       name,
-      // description ignored
-      address: serverAddress,
+      description: description || null,
+      ipAddress: serverAddress,
       port: port || 25565,
-      // hidePort ignored
-      // modpackName ignored
-      // bluemapUrl ignored
-      // curseforgeUrl ignored
-      type: type || 'survival', // Default type
-      online: false,
+      hidePort: hidePort || false,
+      modpackName: modpackName || null,
+      bluemapUrl: bluemapUrl || null,
+      curseforgeUrl: curseforgeUrl || null,
+      status: 'offline',
       playersOnline: 0,
       playersMax: 0,
     }).returning();
@@ -88,3 +87,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

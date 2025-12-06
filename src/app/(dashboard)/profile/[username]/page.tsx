@@ -70,11 +70,11 @@ async function getUserStats(userId: number) {
     const [postCount, forumCount, playtimeData] = await Promise.all([
       db.select({ count: sql<number>`count(*)` })
         .from(socialPosts)
-        .where(eq(socialPosts.authorId, userId)),
+        .where(eq(socialPosts.userId, userId)),
       db.select({ count: sql<number>`count(*)` })
         .from(forumPosts)
         .where(eq(forumPosts.authorId, userId)),
-      db.select({ playtimeSeconds: serverXp.amount }) // Assuming amount is close to playtime or similar, adjusted based on schema
+      db.select({ playtimeSeconds: serverXp.playtimeSeconds })
         .from(serverXp)
         .where(eq(serverXp.userId, userId)),
     ]);
@@ -101,7 +101,7 @@ async function getRecentPosts(userId: number) {
     return await db
       .select()
       .from(socialPosts)
-      .where(eq(socialPosts.authorId, userId))
+      .where(eq(socialPosts.userId, userId))
       .orderBy(desc(socialPosts.createdAt))
       .limit(5);
   } catch {
@@ -116,14 +116,14 @@ async function getFriendshipStatus(viewerUserId: number | null, profileUserId: n
     const rows = await db
       .select({
         status: friendships.status,
-        requesterId: friendships.requesterId,
-        addresseeId: friendships.addresseeId,
+        userId: friendships.userId,
+        friendId: friendships.friendId,
       })
       .from(friendships)
       .where(
         or(
-          and(eq(friendships.requesterId, viewerUserId), eq(friendships.addresseeId, profileUserId)),
-          and(eq(friendships.requesterId, profileUserId), eq(friendships.addresseeId, viewerUserId)),
+          and(eq(friendships.userId, viewerUserId), eq(friendships.friendId, profileUserId)),
+          and(eq(friendships.userId, profileUserId), eq(friendships.friendId, viewerUserId)),
         ),
       )
       .limit(1);
@@ -133,7 +133,7 @@ async function getFriendshipStatus(viewerUserId: number | null, profileUserId: n
     if (row.status === 'accepted') return 'friends';
     if (row.status === 'pending') {
       // Check if this is an incoming request (profile user sent to viewer)
-      if (row.requesterId === profileUserId && row.addresseeId === viewerUserId) {
+      if (row.userId === profileUserId && row.friendId === viewerUserId) {
         return 'incoming'; // Profile user sent request TO viewer - show accept/decline
       }
       return 'pending'; // Viewer sent request to profile user - show pending
@@ -299,7 +299,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Heart className="w-4 h-4" />
-                          {post.likes}
+                          {post.likesCount}
                         </span>
                         <span className="flex items-center gap-1">
                           <MessageSquare className="w-4 h-4" />

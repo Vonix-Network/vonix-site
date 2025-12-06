@@ -105,3 +105,4 @@ export function getLevelProgress(xp: number): { level: number; currentXp: number
     progress: Math.min(100, Math.max(0, progress))
   };
 }
+

@@ -52,12 +52,12 @@ export async function GET() {
         const serverXpData = await db.query.serverXp.findMany({
             where: eq(serverXp.userId, userId),
             columns: {
-                amount: true,
+                xp: true,
             },
         });
 
         const totalServerXp = serverXpData.reduce(
-            (acc, s) => acc + (s.amount || 0),
+            (acc, s) => acc + (s.xp || 0),
             0
         );
 
@@ -67,8 +67,8 @@ export async function GET() {
             .where(
                 and(
                     or(
-                        eq(friendships.requesterId, userId),
-                        eq(friendships.addresseeId, userId)
+                        eq(friendships.userId, userId),
+                        eq(friendships.friendId, userId)
                     ),
                     eq(friendships.status, 'accepted')
                 )
@@ -96,3 +96,4 @@ export async function GET() {
         );
     }
 }
+

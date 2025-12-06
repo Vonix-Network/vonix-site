@@ -12,12 +12,12 @@ export async function GET() {
     const ranks = await db
       .select()
       .from(donationRanks)
-      .orderBy(asc(donationRanks.priceMonth));
+      .orderBy(asc(donationRanks.minAmount));
 
     // Parse features JSON for each rank
     const ranksWithFeatures = ranks.map(rank => ({
       ...rank,
-      features: rank.features ? JSON.parse(rank.features) : [],
+      perks: rank.perks ? JSON.parse(rank.perks) : [],
     }));
 
     return NextResponse.json(ranksWithFeatures, {
@@ -33,3 +33,4 @@ export async function GET() {
     );
   }
 }
+

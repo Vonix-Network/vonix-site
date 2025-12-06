@@ -41,7 +41,7 @@ export async function POST(
     }
 
     // Prevent self-liking
-    if (post.authorId === userId) {
+    if (post.userId === userId) {
       return NextResponse.json(
         { error: 'You cannot like your own post', selfLike: true },
         { status: 400 }
@@ -51,7 +51,7 @@ export async function POST(
     // Increment likes count (without a likes table, we can't track individual likes)
     await db
       .update(socialPosts)
-      .set({ likes: sql`COALESCE(${socialPosts.likes}, 0) + 1` })
+      .set({ likesCount: sql`COALESCE(${socialPosts.likesCount}, 0) + 1` })
       .where(eq(socialPosts.id, postId));
 
     // Send notification to post owner
@@ -62,7 +62,7 @@ export async function POST(
       .limit(1);
 
     if (liker) {
-      await notifyPostLike(post.authorId, liker.username, postId);
+      await notifyPostLike(post.userId, liker.username, postId);
     }
 
     return NextResponse.json({ liked: true, message: 'Post liked' });
@@ -82,12 +82,12 @@ export async function GET(
     const postId = parseInt(id);
 
     const [post] = await db
-      .select({ likes: socialPosts.likes })
+      .select({ likesCount: socialPosts.likesCount })
       .from(socialPosts)
       .where(eq(socialPosts.id, postId))
       .limit(1);
 
-    return NextResponse.json({ likes: post?.likes || 0 });
+    return NextResponse.json({ likes: post?.likesCount || 0 });
   } catch (error) {
     console.error('Error getting likes:', error);
     return NextResponse.json({ likes: 0 });

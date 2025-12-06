@@ -36,3 +36,4 @@ export function emitNewMessage(senderId: number, recipientId: number, message: a
 
     console.log(`Emitted message to room ${room} and users ${senderId}, ${recipientId}`);
 }
+

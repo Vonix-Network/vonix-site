@@ -9,3 +9,4 @@ export function isUserOnline(lastSeenAt: Date | null | undefined): boolean {
     const lastSeen = new Date(lastSeenAt).getTime();
     return (Date.now() - lastSeen) < PRESENCE_TIMEOUT;
 }
+

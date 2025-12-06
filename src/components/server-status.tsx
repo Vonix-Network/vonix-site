@@ -697,3 +697,4 @@ export function SingleServerStatus({ address, port = 25565, name, className }: S
     </div>
   );
 }
+

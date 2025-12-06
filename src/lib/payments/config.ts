@@ -52,3 +52,4 @@ export function validateStripeConfig(): { valid: boolean; missing: string[] } {
     missing,
   };
 }
+

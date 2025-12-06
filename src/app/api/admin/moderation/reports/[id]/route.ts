@@ -31,16 +31,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const body = await request.json();
         const { status } = body;
 
-        if (!status || !['pending', 'resolved', 'dismissed'].includes(status)) {
+        if (!status || !['pending', 'reviewed', 'dismissed', 'actioned'].includes(status)) {
             return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
 
         const [updated] = await db
             .update(reportedContent)
             .set({
-                status,
-                resolvedBy: parseInt(adminUser.id),
-                resolvedAt: new Date(),
+                status: status as 'pending' | 'reviewed' | 'dismissed' | 'actioned',
+                reviewedBy: parseInt(adminUser.id),
+                reviewedAt: new Date(),
             })
             .where(eq(reportedContent.id, reportId))
             .returning();

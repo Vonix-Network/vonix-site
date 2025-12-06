@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
             .select({
                 id: servers.id,
                 name: servers.name,
-                address: servers.address,
+                address: servers.ipAddress,
             })
             .from(servers)
             .orderBy(servers.id);
@@ -141,3 +141,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch uptime data' }, { status: 500 });
     }
 }
+

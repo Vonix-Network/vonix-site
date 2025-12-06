@@ -55,9 +55,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .update(servers)
       .set({
         name,
-        address: serverAddress,
+        ipAddress: serverAddress,
         port,
-        type: type || 'survival', // Default type if not provided
         updatedAt: new Date(),
       })
       .where(eq(servers.id, serverId))

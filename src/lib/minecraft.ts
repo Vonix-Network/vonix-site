@@ -142,3 +142,4 @@ export async function batchFetchUUIDs(usernames: string[]): Promise<MinecraftPro
     return [];
   }
 }
+

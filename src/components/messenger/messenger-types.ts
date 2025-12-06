@@ -26,3 +26,4 @@ export interface OpenChat {
   minimized: boolean;
 }
 
+

@@ -67,12 +67,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       hasRank: !!user.donationRankId,
-      rank: rank ? {
-        id: rank.id,
-        name: rank.name,
-        color: rank.color,
-        weight: rank.weight,
-      } : null,
+      rank: rank ? { id: rank.id, name: rank.name, color: rank.color } : null,
       expiresAt: user.rankExpiresAt?.toISOString() || null,
       isExpired: user.rankExpiresAt ? new Date(user.rankExpiresAt) < new Date() : true,
       hasSubscription: !!user.stripeSubscriptionId,
@@ -92,4 +87,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 

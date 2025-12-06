@@ -17,20 +17,20 @@ export async function GET(
     }
 
     // Get post with user info
-    // Schema: socialPosts has: id, content, authorId, likes, createdAt, updatedAt
+    // Schema: socialPosts has: id, content, userId, likesCount, createdAt, updatedAt
     const [post] = await db
       .select({
         id: socialPosts.id,
         content: socialPosts.content,
-        likes: socialPosts.likes,
+        likesCount: socialPosts.likesCount,
         createdAt: socialPosts.createdAt,
-        authorId: socialPosts.authorId,
+        userId: socialPosts.userId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
         userRole: users.role,
       })
       .from(socialPosts)
-      .leftJoin(users, eq(socialPosts.authorId, users.id))
+      .leftJoin(users, eq(socialPosts.userId, users.id))
       .where(eq(socialPosts.id, postId));
 
     if (!post) {
@@ -75,7 +75,7 @@ export async function DELETE(
     }
 
     // Check if user owns the post or is admin
-    if (post.authorId !== userId && !['admin', 'superadmin', 'moderator'].includes(userRole)) {
+    if (post.userId !== userId && !['admin', 'superadmin', 'moderator'].includes(userRole)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

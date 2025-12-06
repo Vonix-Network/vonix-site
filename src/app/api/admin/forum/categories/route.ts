@@ -28,15 +28,15 @@ export async function GET() {
         slug: forumCategories.slug,
         description: forumCategories.description,
         icon: forumCategories.icon,
-        color: forumCategories.color,
-        order: forumCategories.order,
-        minRole: forumCategories.minRole,
-        isPrivate: forumCategories.isPrivate,
+        orderIndex: forumCategories.orderIndex,
+        createPermission: forumCategories.createPermission,
+        replyPermission: forumCategories.replyPermission,
+        viewPermission: forumCategories.viewPermission,
         createdAt: forumCategories.createdAt,
         postCount: sql<number>`(SELECT COUNT(*) FROM forum_posts WHERE forum_posts.category_id = ${forumCategories.id})`,
       })
       .from(forumCategories)
-      .orderBy(asc(forumCategories.order));
+      .orderBy(asc(forumCategories.orderIndex));
 
     return NextResponse.json(categoriesWithCounts, {
       headers: {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     await requireAdmin();
 
     const body = await request.json();
-    const { name, slug, description, icon, color, order, minRole, isPrivate } = body;
+    const { name, slug, description, icon, orderIndex, createPermission, replyPermission, viewPermission } = body;
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
         slug,
         description: description || null,
         icon: icon || '💬',
-        color: color || null,
-        order: order || 0,
-        minRole: minRole || 'user',
-        isPrivate: isPrivate || false,
+        orderIndex: orderIndex || 0,
+        createPermission: createPermission || 'user',
+        replyPermission: replyPermission || 'user',
+        viewPermission: viewPermission || 'user',
       })
       .returning();
 
@@ -109,3 +109,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
