@@ -973,18 +973,18 @@ export default function AdminSettingsPage() {
 
               <Card variant="glass">
                 <CardHeader>
-                  <CardTitle>Bot Configuration (Advanced)</CardTitle>
+                  <CardTitle>Bot Configuration</CardTitle>
                   <CardDescription>
-                    Configure a Discord bot to receive messages from Discord to website
+                    Configure the Discord bot to receive messages from Discord to website
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
-                    <p className="text-sm text-neon-orange font-medium">
-                      ⚠️ Bot setup requires a separate Discord bot application
+                  <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                    <p className="text-sm text-neon-cyan font-medium">
+                      🤖 The Discord bot runs integrated with the website
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      The bot must be deployed separately and configured to call your webhook endpoint
+                      It starts automatically when the server starts. After saving settings, restart the server for changes to take effect.
                     </p>
                   </div>
 
@@ -1010,16 +1010,6 @@ export default function AdminSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Enable Developer Mode in Discord, right-click channel → Copy ID
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-secondary/50">
-                    <h4 className="font-medium mb-2">Webhook Endpoint</h4>
-                    <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
-                      {typeof window !== 'undefined' ? window.location.origin : ''}/api/discord-chat/webhook
-                    </code>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Your bot should POST messages to this URL
                     </p>
                   </div>
                 </CardContent>
