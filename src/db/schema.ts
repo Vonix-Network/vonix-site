@@ -464,6 +464,25 @@ export const announcements = sqliteTable('announcements', {
 });
 
 // ===================================
+// DISCORD CHAT BRIDGE
+// ===================================
+
+export const discordMessages = sqliteTable('discord_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  discordMessageId: text('discord_message_id').unique(), // Discord's message ID
+  authorId: text('author_id').notNull(), // Discord user ID or 'web:{userId}'
+  authorName: text('author_name').notNull(), // Display name
+  authorAvatar: text('author_avatar'), // Avatar URL
+  content: text('content').notNull(),
+  isFromWeb: integer('is_from_web', { mode: 'boolean' }).default(false).notNull(),
+  webUserId: integer('web_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // For embeds and attachments
+  embeds: text('embeds'), // JSON array of embed objects
+  attachments: text('attachments'), // JSON array of attachment URLs
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
 // TYPE EXPORTS
 // ===================================
 
@@ -487,3 +506,4 @@ export type Achievement = typeof achievements.$inferSelect;
 export type ReportedContent = typeof reportedContent.$inferSelect;
 export type ServerUptimeRecord = typeof serverUptimeRecords.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
+export type DiscordMessage = typeof discordMessages.$inferSelect;

@@ -7,6 +7,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { usePresenceHeartbeat } from '@/hooks/use-presence';
 import { Messenger } from '@/components/messenger';
+import { DiscordChat } from '@/components/discord-chat';
 import { SocketProvider } from '@/lib/socket-context';
 
 function PresenceProvider({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <SocketProvider>
             <PresenceProvider>
               {children}
+              {/* Messenger on right side, Discord Chat on left side */}
               <Messenger />
+              <DiscordChat />
             </PresenceProvider>
           </SocketProvider>
           <Toaster

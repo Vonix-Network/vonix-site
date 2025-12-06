@@ -105,6 +105,18 @@ export default function AdminSettingsPage() {
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Discord settings state
+  const [discordSettings, setDiscordSettings] = useState({
+    enabled: false,
+    webhookUrl: '',
+    botToken: '',
+    channelId: '',
+    channelName: '',
+    botSecret: '',
+  });
+  const [discordLoading, setDiscordLoading] = useState(true);
+  const [discordSaving, setDiscordSaving] = useState(false);
+
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -133,6 +145,7 @@ export default function AdminSettingsPage() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'email', label: 'Email / SMTP', icon: Mail },
+    { id: 'discord', label: 'Discord', icon: MessageSquare },
     { id: 'database', label: 'Database', icon: Database },
   ];
 
@@ -363,8 +376,8 @@ export default function AdminSettingsPage() {
 
                 {/* Info box based on registration code setting */}
                 <div className={`p-4 rounded-lg border ${settings.requireRegistrationCode
-                    ? 'bg-neon-cyan/10 border-neon-cyan/30'
-                    : 'bg-neon-purple/10 border-neon-purple/30'
+                  ? 'bg-neon-cyan/10 border-neon-cyan/30'
+                  : 'bg-neon-purple/10 border-neon-purple/30'
                   }`}>
                   <p className={`text-sm font-medium ${settings.requireRegistrationCode ? 'text-neon-cyan' : 'text-neon-purple'
                     }`}>
@@ -887,6 +900,168 @@ export default function AdminSettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+            </>
+          )}
+
+          {/* Discord Settings */}
+          {activeTab === 'discord' && (
+            <>
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" style={{ color: '#5865F2' }} />
+                    Discord Chat Bridge
+                  </CardTitle>
+                  <CardDescription>
+                    Connect your Discord server to the website for live chat
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ToggleCard
+                    checked={discordSettings.enabled}
+                    onChange={(val) => setDiscordSettings({ ...discordSettings, enabled: val })}
+                    label="Enable Discord Chat"
+                    description="Show Discord chat widget on the website"
+                  />
+
+                  {discordSettings.enabled && (
+                    <div className="p-4 rounded-lg border" style={{ background: 'rgba(88, 101, 242, 0.1)', borderColor: 'rgba(88, 101, 242, 0.3)' }}>
+                      <p className="text-sm font-medium" style={{ color: '#5865F2' }}>
+                        Discord chat is enabled
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Website users can send and receive messages from your Discord channel
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle>Webhook Configuration</CardTitle>
+                  <CardDescription>
+                    Configure the Discord webhook for sending messages from website to Discord
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Webhook URL</label>
+                    <Input
+                      type="password"
+                      value={discordSettings.webhookUrl}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, webhookUrl: e.target.value })}
+                      placeholder="https://discord.com/api/webhooks/..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Create a webhook in Discord: Server Settings → Integrations → Webhooks
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Channel Name (Display)</label>
+                    <Input
+                      value={discordSettings.channelName}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, channelName: e.target.value })}
+                      placeholder="general"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown in the chat widget header (e.g., "#general")
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle>Bot Configuration (Advanced)</CardTitle>
+                  <CardDescription>
+                    Configure a Discord bot to receive messages from Discord to website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                    <p className="text-sm text-neon-orange font-medium">
+                      ⚠️ Bot setup requires a separate Discord bot application
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The bot must be deployed separately and configured to call your webhook endpoint
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Channel ID</label>
+                    <Input
+                      value={discordSettings.channelId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, channelId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enable Developer Mode in Discord, right-click channel → Copy ID
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Bot Secret Key</label>
+                    <Input
+                      type="password"
+                      value={discordSettings.botSecret}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, botSecret: e.target.value })}
+                      placeholder="Generate a secure random string"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Used to authenticate requests from your Discord bot
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-secondary/50">
+                    <h4 className="font-medium mb-2">Webhook Endpoint</h4>
+                    <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/api/discord-chat/webhook
+                    </code>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Your bot should POST to this URL with Authorization: Bearer [bot_secret]
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button
+                variant="gradient"
+                onClick={async () => {
+                  setDiscordSaving(true);
+                  try {
+                    const res = await fetch('/api/discord-chat/settings', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(discordSettings),
+                    });
+                    if (res.ok) {
+                      toast.success('Discord settings saved');
+                    } else {
+                      toast.error('Failed to save Discord settings');
+                    }
+                  } catch (err) {
+                    toast.error('Failed to save Discord settings');
+                  } finally {
+                    setDiscordSaving(false);
+                  }
+                }}
+                disabled={discordSaving}
+                className="w-full"
+              >
+                {discordSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving Discord Settings...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Discord Settings
+                  </>
+                )}
+              </Button>
             </>
           )}
 
