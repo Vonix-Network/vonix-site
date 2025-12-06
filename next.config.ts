@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Packages that should be externalized for server components
+    serverComponentsExternalPackages: ['discord.js', '@discordjs/ws', '@discordjs/rest'],
   },
 
   // Webpack configuration
@@ -105,6 +107,19 @@ const nextConfig: NextConfig = {
         crypto: false,
       };
     }
+
+    // Externalize discord.js optional dependencies to prevent bundling issues
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'zlib-sync': 'commonjs zlib-sync',
+        'bufferutil': 'commonjs bufferutil',
+        'utf-8-validate': 'commonjs utf-8-validate',
+        '@discordjs/opus': 'commonjs @discordjs/opus',
+        'sodium': 'commonjs sodium',
+      });
+    }
+
     return config;
   },
 };
