@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../auth';
 import { db } from '@/db';
-import { events, eventAttendees, users } from '@/db/schema';
+import { events, users } from '@/db/schema';
 import { eq, desc, gte, sql } from 'drizzle-orm';
 
 // GET - List events
@@ -19,15 +19,16 @@ export async function GET(request: NextRequest) {
         location: events.location,
         startTime: events.startTime,
         endTime: events.endTime,
-        coverImage: events.coverImage,
+        coverImage: events.banner,
         createdAt: events.createdAt,
-        creatorId: events.creatorId,
+        creatorId: events.hostId,
         creatorUsername: users.username,
         creatorMinecraft: users.minecraftUsername,
-        attendeeCount: sql<number>`(SELECT COUNT(*) FROM event_attendees WHERE event_id = ${events.id} AND status = 'going')`,
+        // attendeeCount removed as table doesn't exist
+        attendeeCount: sql<number>`0`,
       })
       .from(events)
-      .leftJoin(users, eq(events.creatorId, users.id))
+      .leftJoin(users, eq(events.hostId, users.id))
       .orderBy(desc(events.startTime))
       .limit(limit);
 
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, description, location, startTime, endTime, coverImage } = body;
 
-    if (!title || !startTime) {
+    if (!title || !startTime || !endTime) {
       return NextResponse.json(
-        { error: 'Title and start time are required' },
+        { error: 'Title, start time, and end time are required' },
         { status: 400 }
       );
     }
@@ -75,13 +76,14 @@ export async function POST(request: NextRequest) {
       .insert(events)
       .values({
         title,
-        description: description || null,
+        description: description || '',
         location: location || null,
         startTime: new Date(startTime),
-        endTime: endTime ? new Date(endTime) : null,
-        coverImage: coverImage || null,
-        creatorId: parseInt(user.id),
+        endTime: new Date(endTime),
+        banner: coverImage || null,
+        hostId: parseInt(user.id),
         createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 

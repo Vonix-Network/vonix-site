@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { desc, sql, gte } from 'drizzle-orm';
+import { desc, sql, gte, or, like } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 async function requireAdmin() {
@@ -27,13 +27,24 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
+    const search = searchParams.get('search') || '';
+
+    let whereClause = undefined;
+    if (search) {
+      whereClause = or(
+        like(users.username, `%${search}%`),
+        like(users.email, `%${search}%`),
+        like(users.minecraftUsername, `%${search}%`)
+      );
+    }
 
     // Get total count
     const [{ count: total }] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(users);
+      .from(users)
+      .where(whereClause);
 
-    // Get recently active count (last 24 hours)
+    // Get recently active count (last 24 hours) - Global stat, unaffected by search
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [{ count: recentlyActive }] = await db
       .select({ count: sql<number>`count(*)` })
@@ -57,6 +68,7 @@ export async function GET(request: NextRequest) {
         emailVerified: users.emailVerified,
       })
       .from(users)
+      .where(whereClause)
       .orderBy(desc(users.createdAt))
       .limit(limit)
       .offset(offset);

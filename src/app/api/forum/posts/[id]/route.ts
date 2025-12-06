@@ -11,7 +11,7 @@ export async function GET(
   try {
     const { id } = await params;
     const postId = parseInt(id);
-    
+
     if (isNaN(postId)) {
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
     }
@@ -30,8 +30,8 @@ export async function GET(
         content: forumPosts.content,
         createdAt: forumPosts.createdAt,
         views: forumPosts.views,
-        pinned: forumPosts.pinned,
-        locked: forumPosts.locked,
+        pinned: forumPosts.isPinned,
+        locked: forumPosts.isLocked,
         authorId: forumPosts.authorId,
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
@@ -80,14 +80,14 @@ export async function DELETE(
   try {
     const session = await auth();
     const user = session?.user as any;
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
     const postId = parseInt(id);
-    
+
     if (isNaN(postId)) {
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
     }
@@ -104,7 +104,7 @@ export async function DELETE(
     }
 
     // Check if user can delete (owner or admin/mod)
-    const canDelete = post.authorId === user.id || 
+    const canDelete = post.authorId === user.id ||
       ['admin', 'superadmin', 'moderator'].includes(user.role);
 
     if (!canDelete) {

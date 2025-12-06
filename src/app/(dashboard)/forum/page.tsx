@@ -15,7 +15,7 @@ import { UserInfoWithRank } from '@/components/user-info-with-rank';
 
 async function getCategories() {
   try {
-    const categories = await db.select().from(forumCategories).orderBy(forumCategories.orderIndex);
+    const categories = await db.select().from(forumCategories).orderBy(forumCategories.order);
 
     // Get post counts for each category
     const categoriesWithCounts = await Promise.all(
@@ -46,8 +46,8 @@ async function getRecentPosts() {
         title: forumPosts.title,
         createdAt: forumPosts.createdAt,
         views: forumPosts.views,
-        pinned: forumPosts.pinned,
-        locked: forumPosts.locked,
+        pinned: forumPosts.isPinned,
+        locked: forumPosts.isLocked,
         authorId: forumPosts.authorId,
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
@@ -57,10 +57,6 @@ async function getRecentPosts() {
         // Rank details
         rankName: donationRanks.name,
         rankColor: donationRanks.color,
-        rankTextColor: donationRanks.textColor,
-        rankIcon: donationRanks.icon,
-        rankBadge: donationRanks.badge,
-        rankGlow: donationRanks.glow,
         categoryId: forumPosts.categoryId,
         categoryName: forumCategories.name,
         categorySlug: forumCategories.slug,
@@ -69,7 +65,7 @@ async function getRecentPosts() {
       .leftJoin(users, eq(forumPosts.authorId, users.id))
       .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .leftJoin(forumCategories, eq(forumPosts.categoryId, forumCategories.id))
-      .orderBy(desc(forumPosts.pinned), desc(forumPosts.createdAt))
+      .orderBy(desc(forumPosts.isPinned), desc(forumPosts.createdAt))
       .limit(10);
   } catch {
     return [];
@@ -186,10 +182,10 @@ export default async function ForumPage() {
                                   id: post.authorRankId,
                                   name: post.rankName || 'Supporter',
                                   color: post.rankColor || '#00D9FF',
-                                  textColor: post.rankTextColor || '#00D9FF',
-                                  icon: post.rankIcon,
-                                  badge: post.rankBadge,
-                                  glow: post.rankGlow || false,
+                                  textColor: post.rankColor || '#00D9FF',
+                                  icon: null,
+                                  badge: null,
+                                  glow: false,
                                 }
                                 : null
                             }

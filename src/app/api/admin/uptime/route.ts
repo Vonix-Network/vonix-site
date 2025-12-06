@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
             .select({
                 id: servers.id,
                 name: servers.name,
-                ipAddress: servers.ipAddress,
+                address: servers.address,
             })
             .from(servers)
-            .orderBy(servers.orderIndex);
+            .orderBy(servers.id);
 
         // Calculate date range
         const startDate = new Date();

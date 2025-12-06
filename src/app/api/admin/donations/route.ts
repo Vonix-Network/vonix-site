@@ -25,29 +25,29 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
-    const paymentType = searchParams.get('paymentType');
+    const type = searchParams.get('type');
 
     const offset = (page - 1) * limit;
 
     // Build conditions
     const conditions = [];
-    
+
     if (search) {
       conditions.push(
         or(
-          like(donations.minecraftUsername, `%${search}%`),
-          like(donations.receiptNumber, `%${search}%`),
-          like(donations.paymentId, `%${search}%`)
+          like(users.username, `%${search}%`),
+          like(users.minecraftUsername, `%${search}%`),
+          like(donations.stripePaymentIntentId, `%${search}%`)
         )
       );
     }
-    
+
     if (status) {
-      conditions.push(eq(donations.status, status as any));
+      conditions.push(eq(donations.status, status));
     }
-    
-    if (paymentType) {
-      conditions.push(eq(donations.paymentType, paymentType as any));
+
+    if (type) {
+      conditions.push(eq(donations.type, type as any));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -59,27 +59,22 @@ export async function GET(request: NextRequest) {
         userId: donations.userId,
         username: users.username,
         avatar: users.avatar,
-        minecraftUsername: donations.minecraftUsername,
+        minecraftUsername: users.minecraftUsername, // Use user's MC username as fallback or main source
         amount: donations.amount,
         currency: donations.currency,
-        method: donations.method,
-        message: donations.message,
-        displayed: donations.displayed,
-        receiptNumber: donations.receiptNumber,
-        paymentId: donations.paymentId,
-        subscriptionId: donations.subscriptionId,
-        rankId: donations.rankId,
+        message: donations.metadata, // Assuming metadata might contain message
+        stripePaymentIntentId: donations.stripePaymentIntentId,
+        itemId: donations.itemId,
+        type: donations.type,
+        status: donations.status,
+        createdAt: donations.createdAt,
+        // Rank info if applicable
         rankName: donationRanks.name,
         rankColor: donationRanks.color,
-        days: donations.days,
-        paymentType: donations.paymentType,
-        status: donations.status,
-        stripeInvoiceUrl: donations.stripeInvoiceUrl,
-        createdAt: donations.createdAt,
       })
       .from(donations)
       .leftJoin(users, eq(donations.userId, users.id))
-      .leftJoin(donationRanks, eq(donations.rankId, donationRanks.id))
+      .leftJoin(donationRanks, eq(donations.itemId, donationRanks.id))
       .where(whereClause)
       .orderBy(desc(donations.createdAt))
       .limit(limit)
@@ -89,13 +84,14 @@ export async function GET(request: NextRequest) {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(donations)
+      .leftJoin(users, eq(donations.userId, users.id)) // Join needed for search filters
       .where(whereClause);
 
     // Get stats
     const [stats] = await db
       .select({
         total: sql<number>`COALESCE(SUM(${donations.amount}), 0)`,
-        completed: sql<number>`SUM(CASE WHEN ${donations.status} = 'completed' THEN ${donations.amount} ELSE 0 END)`,
+        completed: sql<number>`SUM(CASE WHEN ${donations.status} = 'succeeded' THEN ${donations.amount} ELSE 0 END)`,
         refunded: sql<number>`SUM(CASE WHEN ${donations.status} = 'refunded' THEN ${donations.amount} ELSE 0 END)`,
         count: sql<number>`COUNT(*)`,
       })
@@ -132,24 +128,23 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      minecraftUsername,
       amount,
       currency = 'USD',
       message,
-      displayed = true,
-      rankId,
-      days,
-      paymentType = 'one_time',
-      status = 'completed',
-      createdAt, // Optional: if not provided, use now
+      rankId, // This maps to itemId
+      type = 'one_time',
+      status = 'succeeded',
+      userId,
+      createdAt,
     } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Amount is required and must be positive' }, { status: 400 });
     }
 
-    // Generate receipt number
-    const receiptNumber = `VN-MANUAL-${Date.now()}`;
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
 
     // Determine the creation date
     const donationDate = createdAt ? new Date(createdAt) : new Date();
@@ -157,17 +152,13 @@ export async function POST(request: NextRequest) {
     const [newDonation] = await db
       .insert(donations)
       .values({
-        minecraftUsername: minecraftUsername || null,
+        userId,
         amount,
         currency,
-        method: 'manual',
-        message: message || null,
-        displayed,
-        receiptNumber,
-        rankId: rankId || null,
-        days: days || null,
-        paymentType,
         status,
+        type,
+        itemId: rankId || null,
+        metadata: message ? JSON.stringify({ message }) : null,
         createdAt: donationDate,
       })
       .returning();
@@ -181,4 +172,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create donation' }, { status: 500 });
   }
 }
-

@@ -1,8 +1,8 @@
 import { db } from '@/db';
-import { events, eventAttendees, users } from '@/db/schema';
+import { events, users } from '@/db/schema';
 import { desc, eq, sql, gte } from 'drizzle-orm';
 import Link from 'next/link';
-import { 
+import {
   Calendar, Clock, MapPin, Users, Plus,
   CalendarDays, ChevronRight, Sparkles
 } from 'lucide-react';
@@ -23,13 +23,13 @@ async function getUpcomingEvents() {
         location: events.location,
         startTime: events.startTime,
         endTime: events.endTime,
-        coverImage: events.coverImage,
-        creatorId: events.creatorId,
+        coverImage: events.banner,
+        creatorId: events.hostId,
         creatorUsername: users.username,
         creatorMinecraft: users.minecraftUsername,
       })
       .from(events)
-      .leftJoin(users, eq(events.creatorId, users.id))
+      .leftJoin(users, eq(events.hostId, users.id))
       .where(gte(events.startTime, now))
       .orderBy(events.startTime)
       .limit(10);
@@ -128,9 +128,9 @@ export default async function EventsPage() {
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              {new Date(event.startTime).toLocaleTimeString('en-US', { 
-                                hour: 'numeric', 
-                                minute: '2-digit' 
+                              {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit'
                               })}
                             </span>
                             {event.location && (
@@ -145,9 +145,9 @@ export default async function EventsPage() {
                             <div className="flex items-center gap-2">
                               <Avatar className="w-6 h-6">
                                 {event.creatorMinecraft ? (
-                                  <AvatarImage 
-                                    src={getMinecraftAvatarUrl(event.creatorMinecraft)} 
-                                    alt={event.creatorUsername} 
+                                  <AvatarImage
+                                    src={getMinecraftAvatarUrl(event.creatorMinecraft)}
+                                    alt={event.creatorUsername}
                                   />
                                 ) : null}
                                 <AvatarFallback className="text-xs">
@@ -236,7 +236,7 @@ export default async function EventsPage() {
               {pastEvents.length > 0 ? (
                 <div className="space-y-3">
                   {pastEvents.map((event) => (
-                    <div 
+                    <div
                       key={event.id}
                       className="p-3 rounded-lg bg-secondary/50"
                     >

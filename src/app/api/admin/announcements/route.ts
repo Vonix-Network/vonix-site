@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             // Create notifications in batches
             const notificationValues = allUsers.map(user => ({
                 userId: user.id,
-                type: 'announcement',
+                type: 'system' as const,
                 title: `📢 ${title}`,
                 message: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
                 link: '/announcements',

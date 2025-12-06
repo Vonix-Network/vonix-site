@@ -8,14 +8,15 @@ export const dynamic = 'force-dynamic';
 
 async function getRanks() {
   try {
-    const ranks = await db.select().from(donationRanks).orderBy(donationRanks.minAmount);
+    // Ordering by priceMonth or weight if available. Using priceMonth for now.
+    const ranks = await db.select().from(donationRanks).orderBy(donationRanks.priceMonth);
     return ranks.map(r => ({
       id: r.id,
       name: r.name,
-      minAmount: r.minAmount,
+      minAmount: r.priceMonth ? r.priceMonth / 100 : 0, // Converting cents to dollars for minAmount equivalent
       color: r.color || '#00D9FF',
-      icon: r.icon || '⭐',
-      perks: typeof r.perks === 'string' ? JSON.parse(r.perks) : (r.perks || []),
+      icon: '⭐', // Default icon as it's missing from schema
+      perks: typeof r.features === 'string' ? JSON.parse(r.features) : (r.features || []), // Mapping features to perks
     }));
   } catch {
     return [];
@@ -25,16 +26,26 @@ async function getRanks() {
 async function getRecentDonations() {
   try {
     const result = await db
-      .select()
+      .select({
+        id: donations.id,
+        amount: donations.amount,
+        createdAt: donations.createdAt,
+        type: donations.type,
+        itemId: donations.itemId,
+        username: users.username,
+        minecraftUsername: users.minecraftUsername,
+      })
       .from(donations)
-      .where(sql`${donations.displayed} = 1`)
+      .leftJoin(users, eq(donations.userId, users.id))
+      .where(eq(donations.status, 'succeeded')) // Assuming 'succeeded' is the correct status
       .orderBy(desc(donations.createdAt))
       .limit(10);
+
     return result.map(d => ({
       id: d.id,
-      minecraftUsername: d.minecraftUsername,
+      minecraftUsername: d.minecraftUsername || d.username || 'Anonymous',
       amount: d.amount,
-      message: d.message,
+      message: d.type === 'rank' ? `Rank Upgrade: ${d.itemId}` : 'Donation',
       createdAt: d.createdAt?.toISOString() || new Date().toISOString(),
     }));
   } catch {
@@ -50,7 +61,7 @@ async function getDonationStats() {
         count: sql<number>`COUNT(*)`,
       })
       .from(donations)
-      .where(sql`${donations.status} = 'completed'`);
+      .where(eq(donations.status, 'succeeded'));
     return result[0] || { total: 0, count: 0 };
   } catch {
     return { total: 0, count: 0 };
@@ -89,7 +100,7 @@ async function getUserSubscription() {
         id: foundRank.id,
         name: foundRank.name,
         color: foundRank.color,
-        icon: foundRank.icon,
+        icon: '⭐', // Default icon
       } : null;
     }
 
@@ -124,4 +135,3 @@ export default async function DonatePage() {
     />
   );
 }
-

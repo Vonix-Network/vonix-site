@@ -1,9 +1,9 @@
 import { db } from '@/db';
-import { users, donations, forumPosts, socialPosts, servers } from '@/db/schema';
-import { sql, desc } from 'drizzle-orm';
+import { users, donations, forumPosts, servers } from '@/db/schema';
+import { sql, desc, eq } from 'drizzle-orm';
 import {
   Users, DollarSign, MessageSquare, Server,
-  TrendingUp, Activity, AlertTriangle, CheckCircle
+  Activity, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,8 +61,17 @@ async function getRecentUsers() {
 async function getRecentDonations() {
   try {
     return await db
-      .select()
+      .select({
+        id: donations.id,
+        amount: donations.amount,
+        createdAt: donations.createdAt,
+        type: donations.type,
+        itemId: donations.itemId,
+        username: users.username,
+        minecraftUsername: users.minecraftUsername,
+      })
       .from(donations)
+      .leftJoin(users, eq(donations.userId, users.id))
       .orderBy(desc(donations.createdAt))
       .limit(5);
   } catch {
@@ -195,7 +204,7 @@ export default async function AdminDashboard() {
                   >
                     <div>
                       <p className="font-medium">
-                        {donation.minecraftUsername || 'Anonymous'}
+                        {donation.minecraftUsername || donation.username || 'Anonymous'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {formatRelativeTime(donation.createdAt)}

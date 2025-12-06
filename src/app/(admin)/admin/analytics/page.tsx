@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { users, donations, forumPosts, servers } from '@/db/schema';
-import { desc, sql, gte } from 'drizzle-orm';
+import { desc, sql, gte, eq } from 'drizzle-orm';
 import {
   BarChart3, TrendingUp, Users, DollarSign,
   MessageSquare, Server, Calendar, ArrowUp, ArrowDown
@@ -35,7 +35,7 @@ async function getAnalytics() {
       db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(donations).where(gte(donations.createdAt, thirtyDaysAgo)),
       db.select({ count: sql<number>`count(*)` }).from(forumPosts),
       db.select({ count: sql<number>`count(*)` }).from(forumPosts).where(gte(forumPosts.createdAt, thirtyDaysAgo)),
-      db.select({ count: sql<number>`count(*)` }).from(servers).where(sql`${servers.status} = 'online'`),
+      db.select({ count: sql<number>`count(*)` }).from(servers).where(eq(servers.online, true)),
     ]);
 
     return {
@@ -142,8 +142,17 @@ async function getUserGrowthData(days: number = 90) {
 async function getRecentDonations() {
   try {
     return await db
-      .select()
+      .select({
+        id: donations.id,
+        amount: donations.amount,
+        createdAt: donations.createdAt,
+        type: donations.type,
+        itemId: donations.itemId,
+        username: users.username,
+        minecraftUsername: users.minecraftUsername,
+      })
       .from(donations)
+      .leftJoin(users, eq(donations.userId, users.id))
       .orderBy(desc(donations.createdAt))
       .limit(5);
   } catch {
@@ -262,10 +271,10 @@ export default async function AdminAnalyticsPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {donation.minecraftUsername || 'Anonymous'}
+                      {donation.minecraftUsername || donation.username || 'Anonymous'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {donation.message || donation.rankId || 'Donation'}
+                      {donation.type === 'rank' ? `Rank Upgrade: ${donation.itemId}` : 'Donation'}
                     </p>
                   </div>
                   <div className="text-right">

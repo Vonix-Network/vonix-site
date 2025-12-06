@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
         title: forumPosts.title,
         content: forumPosts.content,
         views: forumPosts.views,
-        pinned: forumPosts.pinned,
-        locked: forumPosts.locked,
+        pinned: forumPosts.isPinned,
+        locked: forumPosts.isLocked,
         createdAt: forumPosts.createdAt,
         updatedAt: forumPosts.updatedAt,
         authorId: forumPosts.authorId,
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       .from(forumPosts)
       .leftJoin(users, eq(forumPosts.authorId, users.id))
       .leftJoin(forumCategories, eq(forumPosts.categoryId, forumCategories.id))
-      .orderBy(desc(forumPosts.pinned), desc(forumPosts.createdAt))
+      .orderBy(desc(forumPosts.isPinned), desc(forumPosts.createdAt))
       .limit(limit)
       .offset(offset);
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -100,15 +100,18 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = parseInt(session.user.id as string);
+    // Simple slug ref
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
     const [newPost] = await db.insert(forumPosts).values({
       title: title.trim(),
+      slug: slug,
       content: content.trim(),
       categoryId,
       authorId: userId,
       views: 0,
-      pinned: false,
-      locked: false,
+      isPinned: false,
+      isLocked: false,
     }).returning();
 
     return NextResponse.json(newPost, { status: 201 });

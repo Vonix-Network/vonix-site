@@ -75,14 +75,27 @@ export default function AdminUsersPage() {
     minecraftUsername: '',
   });
 
+  // Debounce search
   useEffect(() => {
-    fetchUsers();
+    const timer = setTimeout(() => {
+      fetchUsers(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Initial fetch on mount is handled by the debounce effect because searchQuery starts empty
+
+  useEffect(() => {
     fetchStats();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (search = '') => {
+    setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -229,11 +242,7 @@ export default function AdminUsersPage() {
     setActionMenuOpen(null);
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.minecraftUsername?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users;
 
   return (
     <div className="space-y-6">

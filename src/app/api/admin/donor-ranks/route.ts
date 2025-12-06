@@ -8,11 +8,11 @@ import { eq, asc } from 'drizzle-orm';
 async function requireAdmin() {
   const session = await auth();
   const user = session?.user as any;
-  
+
   if (!session || !['admin', 'superadmin'].includes(user?.role)) {
     throw new Error('Unauthorized');
   }
-  
+
   return user;
 }
 
@@ -23,8 +23,8 @@ export async function GET() {
     const ranks = await db
       .select()
       .from(donationRanks)
-      .orderBy(asc(donationRanks.minAmount));
-      
+      .orderBy(asc(donationRanks.priceMonth)); // Ordered by price
+
     return NextResponse.json(ranks, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -47,14 +47,14 @@ export async function POST(request: NextRequest) {
     await requireAdmin();
 
     const body = await request.json();
-    const { 
-      id, name, minAmount, color, textColor, 
-      icon, badge, glow, duration, subtitle, perks 
+    const {
+      id, name, description, priceMonth, color,
+      features, weight, stripePriceId, showInStore
     } = body;
 
-    if (!id || !name || minAmount === undefined || !color || !textColor) {
+    if (!id || !name || priceMonth === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields: id, name, minAmount, color, textColor' },
+        { error: 'Missing required fields: id, name, priceMonth' },
         { status: 400 }
       );
     }
@@ -64,15 +64,13 @@ export async function POST(request: NextRequest) {
       .values({
         id,
         name,
-        minAmount,
-        color,
-        textColor,
-        icon: icon || null,
-        badge: badge || null,
-        glow: glow || false,
-        duration: duration || 30,
-        subtitle: subtitle || null,
-        perks: perks || null,
+        description: description || null,
+        priceMonth: priceMonth || 0,
+        color: color || '#00D9FF',
+        features: features ? JSON.stringify(features) : null,
+        weight: weight || 0,
+        stripePriceId: stripePriceId || null,
+        showInStore: showInStore ?? true,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -96,9 +94,9 @@ export async function PUT(request: NextRequest) {
     await requireAdmin();
 
     const body = await request.json();
-    const { 
-      id, name, minAmount, color, textColor, 
-      icon, badge, glow, duration, subtitle, perks 
+    const {
+      id, name, description, priceMonth, color,
+      features, weight, stripePriceId, showInStore
     } = body;
 
     if (!id) {
@@ -112,15 +110,13 @@ export async function PUT(request: NextRequest) {
       .update(donationRanks)
       .set({
         name,
-        minAmount,
+        description,
+        priceMonth,
         color,
-        textColor,
-        icon,
-        badge,
-        glow,
-        duration,
-        subtitle,
-        perks,
+        features: features ? JSON.stringify(features) : undefined,
+        weight,
+        stripePriceId,
+        showInStore,
         updatedAt: new Date(),
       })
       .where(eq(donationRanks.id, id))

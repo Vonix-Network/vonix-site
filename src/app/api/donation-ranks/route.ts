@@ -12,15 +12,15 @@ export async function GET() {
     const ranks = await db
       .select()
       .from(donationRanks)
-      .orderBy(asc(donationRanks.minAmount));
+      .orderBy(asc(donationRanks.priceMonth));
 
-    // Parse perks JSON for each rank
-    const ranksWithPerks = ranks.map(rank => ({
+    // Parse features JSON for each rank
+    const ranksWithFeatures = ranks.map(rank => ({
       ...rank,
-      perks: rank.perks ? JSON.parse(rank.perks) : [],
+      features: rank.features ? JSON.parse(rank.features) : [],
     }));
 
-    return NextResponse.json(ranksWithPerks, {
+    return NextResponse.json(ranksWithFeatures, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },

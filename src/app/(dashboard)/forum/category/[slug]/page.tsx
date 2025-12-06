@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { db } from '@/db';
 import { forumCategories, forumPosts, forumReplies, users, donationRanks } from '@/db/schema';
 import { desc, eq, sql, and } from 'drizzle-orm';
-import { 
-  MessageSquare, Plus, Eye, MessageCircle, 
+import {
+  MessageSquare, Plus, Eye, MessageCircle,
   Pin, Lock, ChevronLeft, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,8 +39,8 @@ async function getCategoryPosts(categoryId: number) {
         content: forumPosts.content,
         createdAt: forumPosts.createdAt,
         views: forumPosts.views,
-        pinned: forumPosts.pinned,
-        locked: forumPosts.locked,
+        pinned: forumPosts.isPinned,
+        locked: forumPosts.isLocked,
         authorId: forumPosts.authorId,
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
@@ -49,16 +49,12 @@ async function getCategoryPosts(categoryId: number) {
         authorRankExpiresAt: users.rankExpiresAt,
         rankName: donationRanks.name,
         rankColor: donationRanks.color,
-        rankTextColor: donationRanks.textColor,
-        rankIcon: donationRanks.icon,
-        rankBadge: donationRanks.badge,
-        rankGlow: donationRanks.glow,
       })
       .from(forumPosts)
       .leftJoin(users, eq(forumPosts.authorId, users.id))
       .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .where(eq(forumPosts.categoryId, categoryId))
-      .orderBy(desc(forumPosts.pinned), desc(forumPosts.createdAt));
+      .orderBy(desc(forumPosts.isPinned), desc(forumPosts.createdAt));
 
     // Get reply counts for each post
     const postsWithReplies = await Promise.all(
@@ -94,8 +90,8 @@ export default async function CategoryPage({ params }: PageProps) {
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link 
-          href="/forum" 
+        <Link
+          href="/forum"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -163,7 +159,7 @@ export default async function CategoryPage({ params }: PageProps) {
                           {post.title}
                         </h3>
                       </div>
-                      
+
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                         {post.content.substring(0, 200)}
                         {post.content.length > 200 ? '...' : ''}
@@ -177,14 +173,14 @@ export default async function CategoryPage({ params }: PageProps) {
                           donationRank={
                             post.authorRankId && post.authorRankExpiresAt && new Date(post.authorRankExpiresAt) > new Date()
                               ? {
-                                  id: post.authorRankId,
-                                  name: post.rankName || 'Supporter',
-                                  color: post.rankColor || '#00D9FF',
-                                  textColor: post.rankTextColor || '#00D9FF',
-                                  icon: post.rankIcon,
-                                  badge: post.rankBadge,
-                                  glow: post.rankGlow || false,
-                                }
+                                id: post.authorRankId,
+                                name: post.rankName || 'Supporter',
+                                color: post.rankColor || '#00D9FF',
+                                textColor: post.rankColor || '#00D9FF',
+                                icon: null,
+                                badge: null,
+                                glow: false,
+                              }
                               : null
                           }
                           showAvatar={false}
