@@ -30,7 +30,7 @@ export async function GET() {
                 .where(sql`${users.lockedUntil} > unixepoch()`),
             db.select({ count: sql<number>`count(*)` })
                 .from(forumPosts)
-                .where(eq(forumPosts.locked, true)),
+                .where(eq(forumPosts.isLocked, true)),
         ]);
 
         // Get pending reports

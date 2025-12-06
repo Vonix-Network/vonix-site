@@ -99,7 +99,7 @@ async function ServerDetailContent({ serverId }: { serverId: number }) {
     notFound();
   }
 
-  const address = server.hidePort || server.port === 25565 ? server.ipAddress : `${server.ipAddress}:${server.port}`;
+  const address = server.hidePort || server.port === 25565 ? server.address : `${server.address}:${server.port}`;
   const players = server.players ?? { online: 0, max: 0, list: [] };
 
   return (

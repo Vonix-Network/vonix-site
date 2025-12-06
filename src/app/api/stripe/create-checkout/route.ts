@@ -9,7 +9,6 @@ import {
   isStripeConfigured,
   ensureRankStripeSetup
 } from '@/lib/stripe';
-import { calculatePriceForDays } from '@/lib/rank-pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const user = session.user as any;
     const body = await request.json();
-    const { rankId, days = 30, amount: customAmount, paymentType = 'one_time', billingPeriod = 'monthly' } = body;
+    const { rankId, days = 30, amount: customAmount, paymentType = 'one_time' } = body;
 
     if (!['one_time', 'subscription'].includes(paymentType)) {
       return NextResponse.json(
@@ -81,52 +80,38 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Calculate subscription days based on billing period
-      const billingDays: Record<string, number> = {
-        monthly: 30,
-        quarterly: 90,
-        semiannual: 180,
-        yearly: 365,
-      };
-      const subscriptionDays = billingDays[billingPeriod] || 30;
-
       if (paymentType === 'subscription') {
         // Auto-create Stripe product and price if not configured
         // This will create the product/price in Stripe and update the database
-        const stripePriceId = await ensureRankStripeSetup(
-          {
-            id: rank.id,
-            name: rank.name,
-            color: rank.color,
-            minAmount: rank.minAmount,
-            stripeProductId: rank.stripeProductId,
-            stripePriceMonthly: rank.stripePriceMonthly,
-            stripePriceQuarterly: rank.stripePriceQuarterly,
-            stripePriceSemiannual: rank.stripePriceSemiannual,
-            stripePriceYearly: rank.stripePriceYearly,
-          },
-          billingPeriod as 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
-        );
+        const stripePriceId = await ensureRankStripeSetup({
+          id: rank.id,
+          name: rank.name,
+          priceMonth: rank.priceMonth,
+          stripePriceId: rank.stripePriceId,
+        });
 
         checkoutSession = await createSubscriptionCheckout({
           userId: parseInt(user.id),
           rankId,
           rankName: rank.name,
           priceId: stripePriceId,
-          days: subscriptionDays,
+          days: 30, // Monthly subscription
           customerEmail: user.email,
           successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${appUrl}/donate?canceled=true`,
         });
       } else {
-        // One-time payment
-        const amount = customAmount || calculatePriceForDays(rankId, days) || rank.minAmount;
+        // One-time payment - calculate price based on days
+        // priceMonth is in cents, convert to dollars for checkout
+        const monthlyPriceDollars = (rank.priceMonth || 500) / 100;
+        const pricePerDay = monthlyPriceDollars / 30;
+        const calculatedAmount = customAmount || Math.round(pricePerDay * days * 100) / 100;
 
         checkoutSession = await createCheckoutSession({
           userId: parseInt(user.id),
           rankId,
           rankName: rank.name,
-          amount,
+          amount: calculatedAmount,
           days,
           customerEmail: user.email,
           successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,

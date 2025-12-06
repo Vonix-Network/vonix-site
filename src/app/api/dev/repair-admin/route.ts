@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/db';
-import { users, setupStatus } from '@/db/schema';
+import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-// DEV-ONLY helper to recreate the admin user from setup_status if it was lost during migrations.
+// DEV-ONLY helper to create/repair the admin user.
 // Protected by NODE_ENV and API_SECRET_KEY. Remove this file once you have repaired your admin.
 
 export async function POST(req: NextRequest) {
@@ -25,7 +25,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { password, email } = body as { password?: string; email?: string };
+    const { username, password, email } = body as { username?: string; password?: string; email?: string };
+
+    if (!username) {
+      return NextResponse.json(
+        { error: 'Username is required in JSON body' },
+        { status: 400 },
+      );
+    }
 
     if (!password || password.length < 8) {
       return NextResponse.json(
@@ -34,25 +41,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [statusRow] = await db.select().from(setupStatus).limit(1);
-
-    if (!statusRow || !statusRow.adminUsername) {
-      return NextResponse.json(
-        { error: 'No setup_status row with adminUsername found' },
-        { status: 400 },
-      );
-    }
-
-    const adminUsername = statusRow.adminUsername;
-
     const [existingUser] = await db
       .select()
       .from(users)
-      .where(eq(users.username, adminUsername))
+      .where(eq(users.username, username))
       .limit(1);
 
     if (existingUser) {
-      return NextResponse.json({ ok: true, message: 'Admin user already exists in users table', userId: existingUser.id });
+      // Update the existing user to be superadmin with new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          role: 'superadmin',
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, existingUser.id));
+
+      return NextResponse.json({ ok: true, message: 'Admin user updated', userId: existingUser.id });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -60,22 +67,20 @@ export async function POST(req: NextRequest) {
     const [newAdmin] = await db
       .insert(users)
       .values({
-        username: adminUsername,
+        username,
         email: email || null,
         password: hashedPassword,
         role: 'superadmin',
         emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       })
       .returning();
 
-    console.log('🔐 Dev repair: recreated admin user from setup_status', {
-      adminUsername,
+    console.log('🔐 Dev repair: created admin user', {
+      username,
       userId: newAdmin?.id,
     });
 
-    return NextResponse.json({ ok: true, userId: newAdmin.id, username: adminUsername });
+    return NextResponse.json({ ok: true, userId: newAdmin.id, username });
   } catch (error) {
     console.error('Dev repair-admin error:', error);
     return NextResponse.json({ error: 'Failed to repair admin user' }, { status: 500 });

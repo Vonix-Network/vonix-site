@@ -14,7 +14,7 @@ interface ServerData {
   id: number;
   name: string;
   description: string | null;
-  ipAddress: string;
+  address: string;
   port: number;
   hidePort: boolean;
   modpackName: string | null;
@@ -36,7 +36,7 @@ export default function AdminServersPage() {
   const [newServer, setNewServer] = useState({
     name: '',
     description: '',
-    ipAddress: '',
+    address: '',
     port: 25565,
     hidePort: false,
     modpackName: '',
@@ -46,7 +46,7 @@ export default function AdminServersPage() {
   const [editServerData, setEditServerData] = useState({
     name: '',
     description: '',
-    ipAddress: '',
+    address: '',
     port: 25565,
     hidePort: false,
     modpackName: '',
@@ -96,7 +96,7 @@ export default function AdminServersPage() {
           id: server.id,
           name: server.name,
           description: server.description,
-          ipAddress: server.ipAddress,
+          address: server.address,
           port: server.port,
           hidePort: server.hidePort || false,
           modpackName: server.modpackName,
@@ -133,7 +133,7 @@ export default function AdminServersPage() {
         setNewServer({
           name: '',
           description: '',
-          ipAddress: '',
+          address: '',
           port: 25565,
           hidePort: false,
           modpackName: '',
@@ -164,7 +164,7 @@ export default function AdminServersPage() {
     setEditServerData({
       name: server.name,
       description: server.description || '',
-      ipAddress: server.ipAddress,
+      address: server.address,
       port: server.port,
       hidePort: server.hidePort || false,
       modpackName: server.modpackName || '',
@@ -238,8 +238,8 @@ export default function AdminServersPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">IP Address *</label>
                 <Input
-                  value={newServer.ipAddress}
-                  onChange={(e) => setNewServer({ ...newServer, ipAddress: e.target.value })}
+                  value={newServer.address}
+                  onChange={(e) => setNewServer({ ...newServer, address: e.target.value })}
                   placeholder="e.g., play.example.com"
                 />
               </div>
@@ -310,7 +310,7 @@ export default function AdminServersPage() {
               <Button
                 variant="gradient"
                 onClick={handleAddServer}
-                disabled={!newServer.name || !newServer.ipAddress}
+                disabled={!newServer.name || !newServer.address}
               >
                 <Save className="w-4 h-4 mr-2" />
                 Add Server
@@ -343,8 +343,8 @@ export default function AdminServersPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">IP Address *</label>
                 <Input
-                  value={editServerData.ipAddress}
-                  onChange={(e) => setEditServerData({ ...editServerData, ipAddress: e.target.value })}
+                  value={editServerData.address}
+                  onChange={(e) => setEditServerData({ ...editServerData, address: e.target.value })}
                   placeholder="e.g., play.example.com"
                 />
               </div>
@@ -414,7 +414,7 @@ export default function AdminServersPage() {
               <Button
                 variant="gradient"
                 onClick={handleUpdateServer}
-                disabled={!editServerData.name || !editServerData.ipAddress}
+                disabled={!editServerData.name || !editServerData.address}
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Changes
@@ -437,7 +437,7 @@ export default function AdminServersPage() {
                     {server.name}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {server.hidePort ? server.ipAddress : `${server.ipAddress}:${server.port}`}
+                    {server.hidePort ? server.address : `${server.address}:${server.port}`}
                     {server.hidePort && <span className="text-xs ml-2 text-neon-purple">(SRV)</span>}
                   </p>
                 </div>

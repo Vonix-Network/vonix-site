@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../../auth';
 import { db } from '@/db';
-import { socialPosts, socialComments, socialLikes, users } from '@/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { socialPosts, users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -17,60 +17,31 @@ export async function GET(
     }
 
     // Get post with user info
+    // Schema: socialPosts has: id, content, authorId, likes, createdAt, updatedAt
     const [post] = await db
       .select({
         id: socialPosts.id,
         content: socialPosts.content,
-        imageUrl: socialPosts.imageUrl,
-        likesCount: socialPosts.likesCount,
-        commentsCount: socialPosts.commentsCount,
+        likes: socialPosts.likes,
         createdAt: socialPosts.createdAt,
-        userId: socialPosts.userId,
+        authorId: socialPosts.authorId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
         userRole: users.role,
       })
       .from(socialPosts)
-      .leftJoin(users, eq(socialPosts.userId, users.id))
+      .leftJoin(users, eq(socialPosts.authorId, users.id))
       .where(eq(socialPosts.id, postId));
 
     if (!post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    // Get comments
-    const comments = await db
-      .select({
-        id: socialComments.id,
-        content: socialComments.content,
-        createdAt: socialComments.createdAt,
-        userId: socialComments.userId,
-        username: users.username,
-        minecraftUsername: users.minecraftUsername,
-        userRole: users.role,
-      })
-      .from(socialComments)
-      .leftJoin(users, eq(socialComments.userId, users.id))
-      .where(eq(socialComments.postId, postId))
-      .orderBy(desc(socialComments.createdAt));
-
-    // Check if current user liked this post
-    const session = await auth();
-    let userLiked = false;
-    if (session?.user) {
-      const userId = parseInt(session.user.id as string);
-      const like = await db
-        .select()
-        .from(socialLikes)
-        .where(and(eq(socialLikes.postId, postId), eq(socialLikes.userId, userId)))
-        .limit(1);
-      userLiked = like.length > 0;
-    }
-
     return NextResponse.json({
       ...post,
-      comments,
-      userLiked,
+      // Comments feature not available - no socialComments table in schema
+      comments: [],
+      userLiked: false, // Can't track without socialLikes table
     });
   } catch (error) {
     console.error('Error fetching post:', error);
@@ -104,7 +75,7 @@ export async function DELETE(
     }
 
     // Check if user owns the post or is admin
-    if (post.userId !== userId && !['admin', 'superadmin', 'moderator'].includes(userRole)) {
+    if (post.authorId !== userId && !['admin', 'superadmin', 'moderator'].includes(userRole)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
         .from(privateMessages)
         .where(
           or(
-            and(eq(privateMessages.senderId, viewerId), eq(privateMessages.recipientId, otherId)),
-            and(eq(privateMessages.senderId, otherId), eq(privateMessages.recipientId, viewerId)),
+            and(eq(privateMessages.senderId, viewerId), eq(privateMessages.receiverId, otherId)),
+            and(eq(privateMessages.senderId, otherId), eq(privateMessages.receiverId, viewerId)),
           ),
         )
         .orderBy(desc(privateMessages.createdAt))
@@ -44,13 +44,13 @@ export async function GET(request: NextRequest) {
       .select({
         id: privateMessages.id,
         senderId: privateMessages.senderId,
-        recipientId: privateMessages.recipientId,
+        receiverId: privateMessages.receiverId,
         content: privateMessages.content,
         createdAt: privateMessages.createdAt,
       })
       .from(privateMessages)
       .where(
-        or(eq(privateMessages.senderId, viewerId), eq(privateMessages.recipientId, viewerId)),
+        or(eq(privateMessages.senderId, viewerId), eq(privateMessages.receiverId, viewerId)),
       )
       .orderBy(desc(privateMessages.createdAt))
       .limit(200);
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const latestByUser = new Map<number, (typeof messages)[number]>();
 
     for (const m of messages) {
-      const otherId = m.senderId === viewerId ? m.recipientId : m.senderId;
+      const otherId = m.senderId === viewerId ? m.receiverId : m.senderId;
       const existing = latestByUser.get(otherId);
       if (!existing || (existing.createdAt as any) < (m.createdAt as any)) {
         latestByUser.set(otherId, m);
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     const [inserted] = await db
       .insert(privateMessages)
-      .values({ senderId: viewerId, recipientId: targetId, content: String(content).trim() })
+      .values({ senderId: viewerId, receiverId: targetId, content: String(content).trim() })
       .returning();
 
     // Emit via socket for real-time delivery
@@ -138,4 +138,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }
-

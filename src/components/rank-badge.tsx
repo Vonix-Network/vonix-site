@@ -2,18 +2,10 @@ import { Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-interface DonationRank {
-  id: string;
-  name: string;
-  color: string;
-  textColor: string;
-  icon: string | null;
-  badge: string | null;
-  glow: boolean;
-}
+import { type DonationRank } from '@/db/schema';
 
 interface RankBadgeProps {
-  rank: DonationRank | null;
+  rank: Partial<DonationRank> & { name: string; color: string | null };
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   className?: string;
@@ -22,7 +14,7 @@ interface RankBadgeProps {
 /**
  * RankBadge Component
  * Displays donation rank badges similar to Hypixel's rank system
- * with custom colors, icons, and glow effects
+ * with custom colors
  */
 export function RankBadge({ rank, size = 'md', showIcon = true, className }: RankBadgeProps) {
   if (!rank) return null;
@@ -39,25 +31,25 @@ export function RankBadge({ rank, size = 'md', showIcon = true, className }: Ran
     lg: 'w-5 h-5',
   };
 
+  const color = rank.color || '#00D9FF'; // Default color
+
   return (
     <div
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md font-bold transition-all',
         sizeClasses[size],
-        rank.glow && 'animate-pulse-glow',
         className
       )}
       style={{
-        backgroundColor: `${rank.color}20`,
-        borderColor: `${rank.color}50`,
+        backgroundColor: `${color}20`,
+        borderColor: `${color}50`,
         borderWidth: '1px',
-        color: rank.textColor,
-        boxShadow: rank.glow ? `0 0 15px ${rank.color}40` : 'none',
+        color: color,
+        boxShadow: `0 0 10px ${color}20`,
       }}
     >
-      {showIcon && rank.icon && <span>{rank.icon}</span>}
-      {showIcon && !rank.icon && <Crown className={iconSizes[size]} />}
-      <span>{rank.badge || rank.name}</span>
+      {showIcon && <Crown className={iconSizes[size]} />}
+      <span>{rank.name}</span>
     </div>
   );
 }

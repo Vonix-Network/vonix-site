@@ -20,8 +20,8 @@ export async function GET() {
       .select({
         id: friendships.id,
         status: friendships.status,
-        userId: friendships.userId,
-        friendId: friendships.friendId,
+        requesterId: friendships.requesterId,
+        addresseeId: friendships.addresseeId,
         otherId: users.id,
         otherUsername: users.username,
         otherMinecraftUsername: users.minecraftUsername,
@@ -31,8 +31,8 @@ export async function GET() {
       .innerJoin(
         users,
         or(
-          and(eq(friendships.userId, viewerId), eq(users.id, friendships.friendId)),
-          and(eq(friendships.friendId, viewerId), eq(users.id, friendships.userId)),
+          and(eq(friendships.requesterId, viewerId), eq(users.id, friendships.addresseeId)),
+          and(eq(friendships.addresseeId, viewerId), eq(users.id, friendships.requesterId)),
         ),
       );
 
@@ -49,7 +49,7 @@ export async function GET() {
           lastSeen: row.otherLastSeenAt,
         });
       } else if (row.status === 'pending') {
-        const type: 'incoming' | 'outgoing' = row.userId === viewerId ? 'outgoing' : 'incoming';
+        const type: 'incoming' | 'outgoing' = row.requesterId === viewerId ? 'outgoing' : 'incoming';
         pending.push({
           id: row.otherId,
           username: row.otherUsername,
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
       .from(friendships)
       .where(
         or(
-          and(eq(friendships.userId, viewerId), eq(friendships.friendId, targetId)),
-          and(eq(friendships.userId, targetId), eq(friendships.friendId, viewerId)),
+          and(eq(friendships.requesterId, viewerId), eq(friendships.addresseeId, targetId)),
+          and(eq(friendships.requesterId, targetId), eq(friendships.addresseeId, viewerId)),
         ),
       )
       .limit(1);
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
       }
 
       await db.insert(friendships).values({
-        userId: viewerId,
-        friendId: targetId,
+        requesterId: viewerId,
+        addresseeId: targetId,
         status: 'pending',
       });
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'accept') {
       // Only allow accepting if the current user is the recipient of a pending request
-      if (existing.status === 'pending' && existing.friendId === viewerId) {
+      if (existing.status === 'pending' && existing.addresseeId === viewerId) {
         await db
           .update(friendships)
           .set({ status: 'accepted' })
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
         // Notify the original requester that their request was accepted
         const viewerName = session.user.name || session.user.username || 'Someone';
-        await notifyFriendAccepted(existing.userId, viewerName);
+        await notifyFriendAccepted(existing.requesterId, viewerName);
 
         return NextResponse.json({ status: 'friends' });
       }
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'decline') {
       // Declining an incoming pending request simply deletes it
-      if (existing.status === 'pending' && existing.friendId === viewerId) {
+      if (existing.status === 'pending' && existing.addresseeId === viewerId) {
         await db
           .delete(friendships)
           .where(eq(friendships.id, existing.id));

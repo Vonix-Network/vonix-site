@@ -8,7 +8,7 @@ import { formatUUID } from '@/lib/minecraft';
 // Verify API key from Minecraft server/mod
 async function verifyApiKey(apiKey: string): Promise<boolean> {
   if (!apiKey) return false;
-  
+
   try {
     const key = await db.query.apiKeys.findFirst({
       where: eq(apiKeys.key, apiKey),
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify API key
     const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: 'API key required' },
@@ -197,8 +197,8 @@ export async function POST(request: NextRequest) {
     // Reset failed attempts on successful login
     await db
       .update(users)
-      .set({ 
-        failedLoginAttempts: 0, 
+      .set({
+        failedLoginAttempts: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
       })
@@ -210,20 +210,16 @@ export async function POST(request: NextRequest) {
       const rank = await db.query.donationRanks.findFirst({
         where: eq(donationRanks.id, user.donationRankId),
       });
-      
+
       if (rank) {
         // Check if rank is expired
         const isExpired = user.rankExpiresAt && user.rankExpiresAt < new Date();
         const isPaused = user.rankPaused;
-        
+
         donationRank = {
           id: rank.id,
           name: rank.name,
           color: rank.color,
-          textColor: rank.textColor,
-          icon: rank.icon,
-          badge: rank.badge,
-          glow: rank.glow,
           expiresAt: user.rankExpiresAt?.toISOString() || null,
           isExpired,
           isPaused,

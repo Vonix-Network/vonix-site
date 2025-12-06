@@ -12,14 +12,14 @@ export async function POST(
   try {
     const session = await auth();
     const user = session?.user as any;
-    
+
     if (!session || !user) {
       return NextResponse.json({ error: 'You must be signed in to reply' }, { status: 401 });
     }
 
     const { id } = await params;
     const postId = parseInt(id);
-    
+
     if (isNaN(postId)) {
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
     }
@@ -35,7 +35,7 @@ export async function POST(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    if (post.locked) {
+    if (post.isLocked) {
       return NextResponse.json({ error: 'This post is locked' }, { status: 403 });
     }
 
@@ -98,7 +98,7 @@ export async function GET(
   try {
     const { id } = await params;
     const postId = parseInt(id);
-    
+
     if (isNaN(postId)) {
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
     }

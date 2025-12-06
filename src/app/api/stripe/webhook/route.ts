@@ -149,11 +149,11 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
     return;
   }
 
-  // Check idempotency
+  // Check idempotency via stripePaymentIntentId
   const [existingReceipt] = await db
     .select()
     .from(donations)
-    .where(eq(donations.paymentId, invoice.id))
+    .where(eq(donations.stripePaymentIntentId, (invoice as any).payment_intent as string))
     .limit(1);
 
   if (existingReceipt) {
@@ -165,23 +165,26 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const metadata = subscription.metadata;
 
-  if (!metadata?.userId || !metadata?.rankId || !metadata?.days) {
+  // If metadata isn't on subscription (sometimes it isn't propagated), try invoice line items or customer
+  const userId = metadata?.userId;
+  const rankId = metadata?.rankId;
+  const days = Number(metadata?.days || 30);
+
+  if (!userId || !rankId) {
     console.error('Missing metadata in subscription');
     return;
   }
 
-  const userId = Number(metadata.userId);
-  const rankId = metadata.rankId;
-  const days = Number(metadata.days);
+  const userIdNum = Number(userId);
 
   // Get user
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, userId));
+    .where(eq(users.id, userIdNum));
 
   if (!user) {
-    console.error('User not found:', userId);
+    console.error('User not found:', userIdNum);
     return;
   }
 
@@ -212,42 +215,43 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
   }
 
   // Update user's rank and subscription info
-  const amount = (invoice.amount_paid || 0) / 100;
-  const isFirstPayment = invoice.billing_reason === 'subscription_create';
+  // invoice.amount_paid is in cents.
+  const amountPaidCents = invoice.amount_paid || 0;
+  const amountPaidDollars = amountPaidCents / 100;
 
   await db
     .update(users)
     .set({
       donationRankId: rankId,
       rankExpiresAt: expiresAt,
-      totalDonated: (user.totalDonated || 0) + amount,
+      totalDonated: (user.totalDonated || 0) + amountPaidDollars,
       stripeSubscriptionId: subscriptionId,
       subscriptionStatus: 'active',
       updatedAt: new Date(),
     })
-    .where(eq(users.id, userId));
+    .where(eq(users.id, userIdNum));
 
   // Create donation record
-  const receiptNumber = `VN-${Date.now()}-${userId}`;
+  const isFirstPayment = invoice.billing_reason === 'subscription_create';
+
   await db.insert(donations).values({
-    userId,
-    minecraftUsername: user.minecraftUsername,
-    minecraftUuid: user.minecraftUuid,
-    amount,
+    userId: userIdNum,
+    amount: amountPaidCents,
     currency: invoice.currency?.toUpperCase() || 'USD',
-    method: 'stripe',
-    receiptNumber,
-    paymentId: invoice.id,
-    subscriptionId: subscriptionId,
-    rankId,
-    days,
-    paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal',
-    status: 'completed',
-    message: `${rank.name} Rank - ${days} days ${isFirstPayment ? '(Subscription)' : '(Renewal)'}`,
-    displayed: true,
+    status: 'succeeded',
+    stripePaymentIntentId: (invoice as any).payment_intent as string,
+    type: 'subscription',
+    itemId: rankId,
+    metadata: JSON.stringify({
+      subscriptionId,
+      days,
+      message: `${rank.name} Rank - ${days} days ${isFirstPayment ? '(Subscription)' : '(Renewal)'}`,
+      receiptNumber: `VN-${Date.now()}-${userId}`,
+      paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal'
+    }),
   });
 
-  console.log(`✅ Rank extended for user ${userId} until ${expiresAt}, receipt: ${receiptNumber}`);
+  console.log(`✅ Rank extended for user ${userIdNum} until ${expiresAt}`);
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Stripe) {
@@ -276,26 +280,11 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Strip
   if (attemptCount >= 3) {
     console.log(`❌ Max retry attempts reached for user ${userId}, canceling subscription`);
 
-    // Cancel the subscription immediately
     try {
       await stripe.subscriptions.cancel(subscriptionId);
     } catch (err) {
       console.error('Error canceling subscription:', err);
     }
-
-    // Remove user's rank
-    await db
-      .update(users)
-      .set({
-        donationRankId: null,
-        rankExpiresAt: null,
-        stripeSubscriptionId: null,
-        subscriptionStatus: 'canceled',
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, Number(userId)));
-
-    console.log(`✅ Rank removed from user ${userId} due to failed payments`);
   }
 }
 
@@ -312,7 +301,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const wasImmediateCancellation = canceledAt && endedAt && (canceledAt === endedAt);
 
   if (wasImmediateCancellation) {
-    // Immediate cancellation - remove rank now
     await db
       .update(users)
       .set({
@@ -326,7 +314,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
     console.log(`✅ Rank immediately removed for user ${userId}`);
   } else {
-    // Scheduled cancellation - clear subscription but rank expires naturally
     await db
       .update(users)
       .set({
@@ -365,14 +352,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       updatedAt: new Date(),
     })
     .where(eq(users.id, Number(userId)));
-
-  if (subscription.cancel_at_period_end) {
-    console.log(`⚠️ Subscription ${subscription.id} scheduled to cancel at period end for user ${userId}`);
-  }
-
-  if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
-    console.log(`❌ Subscription ${subscription.id} is ${subscription.status}`);
-  }
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
@@ -390,7 +369,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   const [existingReceipt] = await db
     .select()
     .from(donations)
-    .where(eq(donations.paymentId, paymentIntent.id))
+    .where(eq(donations.stripePaymentIntentId, paymentIntent.id))
     .limit(1);
 
   if (existingReceipt) {
@@ -399,10 +378,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   }
 
   // Get user
+  const userIdNum = Number(userId);
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, Number(userId)))
+    .where(eq(users.id, userIdNum))
     .limit(1);
 
   if (!user) {
@@ -410,7 +390,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return;
   }
 
-  const amount = paymentIntent.amount / 100;
+  const amountCents = paymentIntent.amount;
+  const amountDollars = amountCents / 100;
   const daysNum = Number(days);
   const isOneTimeTip = rankId === 'one-time' || !rankId || daysNum === 0;
 
@@ -423,11 +404,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       .where(eq(donationRanks.id, rankId))
       .limit(1);
     rank = foundRank;
-  }
-
-  // If it's a rank purchase but rank not found, log error but still record donation
-  if (!isOneTimeTip && !rank) {
-    console.error('Rank not found:', rankId);
   }
 
   // Update user's rank only if purchasing a rank
@@ -449,10 +425,10 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       .set({
         donationRankId: rankId,
         rankExpiresAt: expiresAt,
-        totalDonated: (user.totalDonated || 0) + amount,
+        totalDonated: (user.totalDonated || 0) + amountDollars,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, Number(userId)));
+      .where(eq(users.id, userIdNum));
 
     console.log(`✅ One-time payment processed for user ${userId}, rank ${rankId} until ${expiresAt.toISOString()}`);
   } else {
@@ -460,34 +436,32 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     await db
       .update(users)
       .set({
-        totalDonated: (user.totalDonated || 0) + amount,
+        totalDonated: (user.totalDonated || 0) + amountDollars,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, Number(userId)));
+      .where(eq(users.id, userIdNum));
 
-    console.log(`✅ One-time tip processed for user ${userId}, amount: $${amount}`);
+    console.log(`✅ One-time tip processed for user ${userId}, amount: $${amountDollars}`);
   }
 
   // Create donation record
-  const receiptNumber = `VN-${Date.now()}-${userId}`;
   const donationMessage = rank
     ? `${rank.name} Rank - ${days} days`
     : 'One-time donation - Thank you!';
 
   await db.insert(donations).values({
-    userId: Number(userId),
-    minecraftUsername: user.minecraftUsername,
-    minecraftUuid: user.minecraftUuid,
-    amount,
+    userId: userIdNum,
+    amount: amountCents,
     currency: paymentIntent.currency?.toUpperCase() || 'USD',
-    method: 'stripe',
-    receiptNumber,
-    paymentId: paymentIntent.id,
-    rankId: rank ? rankId : null,
-    days: daysNum || null,
-    paymentType: 'one_time',
-    status: 'completed',
-    message: donationMessage,
-    displayed: true,
+    status: 'succeeded',
+    stripePaymentIntentId: paymentIntent.id,
+    type: rank ? 'rank' : 'one_time',
+    itemId: rank ? rankId : null,
+    metadata: JSON.stringify({
+      days: daysNum,
+      message: donationMessage,
+      receiptNumber: `VN-${Date.now()}-${userId}`,
+      paymentType: 'one_time'
+    }),
   });
 }

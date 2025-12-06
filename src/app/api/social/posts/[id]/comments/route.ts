@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../../../auth';
 import { db } from '@/db';
-import { socialPosts, socialComments, users } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
-import { notifyPostComment } from '@/lib/notifications';
+import { socialPosts, users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+/**
+ * Comments API for social posts
+ * NOTE: The socialComments table does not exist in the current schema.
+ * This is a placeholder that returns empty data until the schema is extended.
+ */
 
 export async function GET(
   request: NextRequest,
@@ -17,22 +22,18 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
     }
 
-    const comments = await db
-      .select({
-        id: socialComments.id,
-        content: socialComments.content,
-        createdAt: socialComments.createdAt,
-        userId: socialComments.userId,
-        username: users.username,
-        minecraftUsername: users.minecraftUsername,
-        userRole: users.role,
-      })
-      .from(socialComments)
-      .leftJoin(users, eq(socialComments.userId, users.id))
-      .where(eq(socialComments.postId, postId))
-      .orderBy(desc(socialComments.createdAt));
+    // Check if post exists
+    const [post] = await db
+      .select()
+      .from(socialPosts)
+      .where(eq(socialPosts.id, postId));
 
-    return NextResponse.json(comments);
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    // Comments table doesn't exist in schema - return empty array
+    return NextResponse.json([]);
   } catch (error) {
     console.error('Error fetching comments:', error);
     return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
@@ -51,21 +52,9 @@ export async function POST(
 
     const { id } = await params;
     const postId = parseInt(id);
-    const userId = parseInt(session.user.id as string);
 
     if (isNaN(postId)) {
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
-    }
-
-    const body = await request.json();
-    const { content } = body;
-
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
-    }
-
-    if (content.length > 500) {
-      return NextResponse.json({ error: 'Comment too long (max 500 chars)' }, { status: 400 });
     }
 
     // Check if post exists
@@ -78,33 +67,11 @@ export async function POST(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    // Create comment
-    const [comment] = await db.insert(socialComments).values({
-      postId,
-      userId,
-      content: content.trim(),
-    }).returning();
-
-    // Increment comments count
-    await db
-      .update(socialPosts)
-      .set({ commentsCount: sql`${socialPosts.commentsCount} + 1` })
-      .where(eq(socialPosts.id, postId));
-
-    // Send notification to post owner (if not commenting on own post)
-    if (post.userId !== userId) {
-      const [commenter] = await db
-        .select({ username: users.username })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-
-      if (commenter) {
-        await notifyPostComment(post.userId, commenter.username, postId);
-      }
-    }
-
-    return NextResponse.json(comment, { status: 201 });
+    // Comments table doesn't exist in schema - feature not available
+    return NextResponse.json(
+      { error: 'Comments feature not available. Schema needs to be extended.' },
+      { status: 501 }
+    );
   } catch (error) {
     console.error('Error creating comment:', error);
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });

@@ -16,7 +16,7 @@ interface ServerData {
   id: number;
   name: string;
   description: string | null;
-  ipAddress: string;
+  address: string;
   port: number;
   hidePort?: boolean;
   modpackName: string | null;
@@ -162,7 +162,7 @@ export function ServerStatusList({
   const onlineServers = servers.filter((s) => s.online).length;
 
   const getServerAddress = (server: ServerData) =>
-    server.hidePort || server.port === 25565 ? server.ipAddress : `${server.ipAddress}:${server.port}`;
+    server.hidePort || server.port === 25565 ? server.address : `${server.address}:${server.port}`;
 
   // Show skeleton loaders during initial load
   if (isLoading) {

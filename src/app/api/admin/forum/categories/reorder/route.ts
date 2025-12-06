@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid category order' }, { status: 400 });
         }
 
-        // Update each category's orderIndex
+        // Update each category's order
         await Promise.all(
-            categoryOrder.map(({ id, orderIndex }: { id: number; orderIndex: number }) =>
+            categoryOrder.map(({ id, order }: { id: number; order: number }) =>
                 db
                     .update(forumCategories)
-                    .set({ orderIndex })
+                    .set({ order })
                     .where(eq(forumCategories.id, id))
             )
         );

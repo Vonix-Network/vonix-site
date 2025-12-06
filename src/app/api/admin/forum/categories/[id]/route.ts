@@ -8,11 +8,11 @@ import { eq } from 'drizzle-orm';
 async function requireAdmin() {
   const session = await auth();
   const user = session?.user as any;
-  
+
   if (!session || !['admin', 'superadmin', 'moderator'].includes(user?.role)) {
     throw new Error('Unauthorized');
   }
-  
+
   return user;
 }
 
@@ -22,16 +22,16 @@ export async function PUT(
 ) {
   try {
     await requireAdmin();
-    
+
     const { id } = await params;
     const categoryId = parseInt(id);
-    
+
     if (isNaN(categoryId)) {
       return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
     }
 
     const body = await request.json();
-    const { name, slug, description, icon, orderIndex, createPermission, replyPermission, viewPermission } = body;
+    const { name, slug, description, icon, color, order, minRole, isPrivate } = body;
 
     // Check if category exists
     const [existing] = await db
@@ -50,7 +50,7 @@ export async function PUT(
         .from(forumCategories)
         .where(eq(forumCategories.slug, slug))
         .limit(1);
-      
+
       if (duplicateSlug.length > 0) {
         return NextResponse.json(
           { error: 'A category with this slug already exists' },
@@ -66,10 +66,11 @@ export async function PUT(
         slug: slug || existing.slug,
         description: description !== undefined ? description : existing.description,
         icon: icon || existing.icon,
-        orderIndex: orderIndex !== undefined ? orderIndex : existing.orderIndex,
-        createPermission: createPermission || existing.createPermission,
-        replyPermission: replyPermission || existing.replyPermission,
-        viewPermission: viewPermission || existing.viewPermission,
+        color: color !== undefined ? color : existing.color,
+        order: order !== undefined ? order : existing.order,
+        minRole: minRole || existing.minRole,
+        isPrivate: isPrivate !== undefined ? isPrivate : existing.isPrivate,
+        updatedAt: new Date(),
       })
       .where(eq(forumCategories.id, categoryId))
       .returning();
@@ -93,10 +94,10 @@ export async function DELETE(
 ) {
   try {
     await requireAdmin();
-    
+
     const { id } = await params;
     const categoryId = parseInt(id);
-    
+
     if (isNaN(categoryId)) {
       return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
     }

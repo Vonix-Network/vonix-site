@@ -200,10 +200,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                         id: user.donationRankId,
                         name: user.rankName || 'Supporter',
                         color: user.rankColor || '#00D9FF',
-                        textColor: user.rankColor || '#00D9FF',
-                        icon: null,
-                        badge: null,
-                        glow: false,
                       }}
                       size="md"
                     />

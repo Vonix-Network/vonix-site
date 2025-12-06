@@ -48,27 +48,27 @@ export async function GET() {
             );
         }
 
-        // Get total playtime from all servers
+        // Get total XP from all servers (serverXp.amount is XP gained on each server)
         const serverXpData = await db.query.serverXp.findMany({
             where: eq(serverXp.userId, userId),
             columns: {
-                playtimeSeconds: true,
+                amount: true,
             },
         });
 
-        const totalPlaytimeSeconds = serverXpData.reduce(
-            (acc, s) => acc + (s.playtimeSeconds || 0),
+        const totalServerXp = serverXpData.reduce(
+            (acc, s) => acc + (s.amount || 0),
             0
         );
 
-        // Get friend count (accepted friendships where user is either sender or receiver)
+        // Get friend count (accepted friendships where user is either requester or addressee)
         const friendsData = await db.select({ count: count() })
             .from(friendships)
             .where(
                 and(
                     or(
-                        eq(friendships.userId, userId),
-                        eq(friendships.friendId, userId)
+                        eq(friendships.requesterId, userId),
+                        eq(friendships.addresseeId, userId)
                     ),
                     eq(friendships.status, 'accepted')
                 )
@@ -83,7 +83,7 @@ export async function GET() {
 
         return NextResponse.json({
             ...user,
-            playtimeSeconds: totalPlaytimeSeconds,
+            totalServerXp,
             friendCount,
             postCount,
         });

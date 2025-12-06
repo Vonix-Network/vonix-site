@@ -6,24 +6,24 @@ import { requirePermission } from '@/lib/auth-guard';
 
 export async function GET() {
   try {
-    // Only return static configuration fields
+    // Only return available schema fields
     // Status data should ALWAYS be fetched from /api/servers/status (live from mcsrvstat.us)
     const allServers = await db
       .select({
         id: servers.id,
         name: servers.name,
-        description: servers.description,
-        ipAddress: servers.ipAddress,
+        // description: null, // missing
+        address: servers.address,
         port: servers.port,
-        modpackName: servers.modpackName,
-        bluemapUrl: servers.bluemapUrl,
-        curseforgeUrl: servers.curseforgeUrl,
-        orderIndex: servers.orderIndex,
+        // modpackName: null, // missing
+        // bluemapUrl: null, // missing
+        // curseforgeUrl: null, // missing
+        // orderIndex: 0, // missing
         createdAt: servers.createdAt,
         updatedAt: servers.updatedAt,
       })
       .from(servers)
-      .orderBy(asc(servers.orderIndex));
+      .orderBy(asc(servers.id));
 
     return NextResponse.json(allServers);
   } catch (error) {
@@ -41,25 +41,40 @@ export async function POST(request: NextRequest) {
     if (error) return error;
 
     const body = await request.json();
-    const { name, description, ipAddress, port, hidePort, modpackName, bluemapUrl, curseforgeUrl } = body;
+    // Map legacy fields and ensure required fields
+    const {
+      name,
+      description,
+      ipAddress,
+      address,
+      port,
+      hidePort,
+      modpackName,
+      bluemapUrl,
+      curseforgeUrl,
+      type
+    } = body;
 
-    if (!name || !ipAddress) {
+    const serverAddress = address || ipAddress;
+
+    if (!name || !serverAddress) {
       return NextResponse.json(
-        { error: 'Name and IP address are required' },
+        { error: 'Name and address are required' },
         { status: 400 }
       );
     }
 
     const [newServer] = await db.insert(servers).values({
       name,
-      description,
-      ipAddress,
+      // description ignored
+      address: serverAddress,
       port: port || 25565,
-      hidePort: hidePort || false,
-      modpackName,
-      bluemapUrl,
-      curseforgeUrl,
-      status: 'offline',
+      // hidePort ignored
+      // modpackName ignored
+      // bluemapUrl ignored
+      // curseforgeUrl ignored
+      type: type || 'survival', // Default type
+      online: false,
       playersOnline: 0,
       playersMax: 0,
     }).returning();

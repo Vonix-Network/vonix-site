@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const body = await request.json();
         const { status } = body;
 
-        if (!status || !['pending', 'reviewed', 'dismissed', 'actioned'].includes(status)) {
+        if (!status || !['pending', 'resolved', 'dismissed'].includes(status)) {
             return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
 
@@ -39,8 +39,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .update(reportedContent)
             .set({
                 status,
-                reviewedBy: adminUser.id,
-                reviewedAt: new Date(),
+                resolvedBy: parseInt(adminUser.id),
+                resolvedAt: new Date(),
             })
             .where(eq(reportedContent.id, reportId))
             .returning();

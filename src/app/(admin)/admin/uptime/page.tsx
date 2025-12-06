@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 interface ServerInfo {
     id: number;
     name: string;
-    ipAddress: string;
+    address: string;
 }
 
 interface UptimeStat {
@@ -210,8 +210,8 @@ export default function AdminUptimePage() {
                             key={option.days}
                             onClick={() => setSelectedDays(option.days)}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${selectedDays === option.days
-                                    ? 'bg-neon-cyan text-white'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-neon-cyan text-white'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             {option.label}
@@ -298,8 +298,8 @@ export default function AdminUptimePage() {
                 </CardHeader>
                 <CardContent>
                     {chartData.length > 0 ? (
-                        <div className="h-64 flex items-end gap-1">
-                            {chartData.slice(-48).map((point, index) => {
+                        <div className="h-64 flex items-end gap-px overflow-x-auto">
+                            {chartData.map((point, index) => {
                                 const total = point.online + point.offline;
                                 const onlineHeight = total > 0 ? (point.online / maxChartValue) * 100 : 0;
                                 const offlineHeight = total > 0 ? (point.offline / maxChartValue) * 100 : 0;
@@ -308,7 +308,7 @@ export default function AdminUptimePage() {
                                     <div
                                         key={index}
                                         className="flex-1 flex flex-col justify-end gap-0.5 group relative"
-                                        style={{ minWidth: '8px' }}
+                                        style={{ minWidth: chartData.length > 100 ? '2px' : '4px' }}
                                     >
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
                                             <div className="bg-card border border-border rounded-lg p-2 text-xs whitespace-nowrap shadow-lg">
@@ -384,7 +384,7 @@ export default function AdminUptimePage() {
                                                     {stat.uptimePercentage.toFixed(1)}% uptime
                                                 </Badge>
                                             </div>
-                                            <p className="text-sm text-muted-foreground">{server.ipAddress}</p>
+                                            <p className="text-sm text-muted-foreground">{server.address}</p>
                                         </div>
 
                                         <div className="text-right">

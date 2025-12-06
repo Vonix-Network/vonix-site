@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../../../auth';
 import { db } from '@/db';
-import { socialPosts, socialLikes, users } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { socialPosts, users } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { notifyPostLike } from '@/lib/notifications';
 
+/**
+ * POST /api/social/posts/[id]/like
+ * Toggle like on a social post
+ * Note: Without a dedicated likes table, we simply increment/decrement the counter
+ * This means the same user could like multiple times - for proper tracking,
+ * a socialLikes table would need to be added to the schema
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -34,91 +41,55 @@ export async function POST(
     }
 
     // Prevent self-liking
-    if (post.userId === userId) {
+    if (post.authorId === userId) {
       return NextResponse.json(
         { error: 'You cannot like your own post', selfLike: true },
         { status: 400 }
       );
     }
 
-    // Check if already liked
-    const existingLike = await db
-      .select()
-      .from(socialLikes)
-      .where(and(eq(socialLikes.postId, postId), eq(socialLikes.userId, userId)))
+    // Increment likes count (without a likes table, we can't track individual likes)
+    await db
+      .update(socialPosts)
+      .set({ likes: sql`COALESCE(${socialPosts.likes}, 0) + 1` })
+      .where(eq(socialPosts.id, postId));
+
+    // Send notification to post owner
+    const [liker] = await db
+      .select({ username: users.username })
+      .from(users)
+      .where(eq(users.id, userId))
       .limit(1);
 
-    if (existingLike.length > 0) {
-      // Unlike - remove the like
-      await db
-        .delete(socialLikes)
-        .where(and(eq(socialLikes.postId, postId), eq(socialLikes.userId, userId)));
-
-      // Decrement likes count
-      await db
-        .update(socialPosts)
-        .set({ likesCount: sql`${socialPosts.likesCount} - 1` })
-        .where(eq(socialPosts.id, postId));
-
-      return NextResponse.json({ liked: false, message: 'Post unliked' });
-    } else {
-      // Like - add the like
-      await db.insert(socialLikes).values({
-        postId,
-        userId,
-      });
-
-      // Increment likes count
-      await db
-        .update(socialPosts)
-        .set({ likesCount: sql`${socialPosts.likesCount} + 1` })
-        .where(eq(socialPosts.id, postId));
-
-      // Send notification to post owner (if not self-liking)
-      if (post.userId !== userId) {
-        const [liker] = await db
-          .select({ username: users.username })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-
-        if (liker) {
-          await notifyPostLike(post.userId, liker.username, postId);
-        }
-      }
-
-      return NextResponse.json({ liked: true, message: 'Post liked' });
+    if (liker) {
+      await notifyPostLike(post.authorId, liker.username, postId);
     }
+
+    return NextResponse.json({ liked: true, message: 'Post liked' });
   } catch (error) {
     console.error('Error toggling like:', error);
     return NextResponse.json({ error: 'Failed to toggle like' }, { status: 500 });
   }
 }
 
-// Get like status for current user
+// Get like count for a post
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ liked: false });
-    }
-
     const { id } = await params;
     const postId = parseInt(id);
-    const userId = parseInt(session.user.id as string);
 
-    const like = await db
-      .select()
-      .from(socialLikes)
-      .where(and(eq(socialLikes.postId, postId), eq(socialLikes.userId, userId)))
+    const [post] = await db
+      .select({ likes: socialPosts.likes })
+      .from(socialPosts)
+      .where(eq(socialPosts.id, postId))
       .limit(1);
 
-    return NextResponse.json({ liked: like.length > 0 });
+    return NextResponse.json({ likes: post?.likes || 0 });
   } catch (error) {
-    console.error('Error checking like:', error);
-    return NextResponse.json({ liked: false });
+    console.error('Error getting likes:', error);
+    return NextResponse.json({ likes: 0 });
   }
 }

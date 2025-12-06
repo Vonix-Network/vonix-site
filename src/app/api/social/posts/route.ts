@@ -14,17 +14,15 @@ export async function GET(request: NextRequest) {
       .select({
         id: socialPosts.id,
         content: socialPosts.content,
-        imageUrl: socialPosts.imageUrl,
-        likesCount: socialPosts.likesCount,
-        commentsCount: socialPosts.commentsCount,
+        likes: socialPosts.likes,
         createdAt: socialPosts.createdAt,
-        userId: socialPosts.userId,
+        authorId: socialPosts.authorId,
         username: users.username,
         minecraftUsername: users.minecraftUsername,
         userRole: users.role,
       })
       .from(socialPosts)
-      .leftJoin(users, eq(socialPosts.userId, users.id))
+      .leftJoin(users, eq(socialPosts.authorId, users.id))
       .orderBy(desc(socialPosts.createdAt))
       .limit(limit)
       .offset(offset);
@@ -42,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -51,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, imageUrl } = body;
+    const { content } = body;
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
@@ -70,11 +68,9 @@ export async function POST(request: NextRequest) {
     const userId = parseInt(session.user.id as string);
 
     const [newPost] = await db.insert(socialPosts).values({
-      userId,
+      authorId: userId,
       content: content.trim(),
-      imageUrl,
-      likesCount: 0,
-      commentsCount: 0,
+      likes: 0,
     }).returning();
 
     return NextResponse.json(newPost, { status: 201 });

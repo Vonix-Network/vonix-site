@@ -43,24 +43,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const serverId = parseInt(id);
     const body = await request.json();
-    
+
+    // Map usage of legacy fields to current schema
     const {
-      name, description, ipAddress, port, hidePort,
-      modpackName, bluemapUrl, curseforgeUrl, orderIndex
+      name, ipAddress, address, port, type
     } = body;
+
+    const serverAddress = address || ipAddress;
 
     const [updated] = await db
       .update(servers)
       .set({
         name,
-        description,
-        ipAddress,
+        address: serverAddress,
         port,
-        hidePort,
-        modpackName,
-        bluemapUrl,
-        curseforgeUrl,
-        orderIndex,
+        type: type || 'survival', // Default type if not provided
         updatedAt: new Date(),
       })
       .where(eq(servers.id, serverId))

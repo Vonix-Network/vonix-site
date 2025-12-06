@@ -30,8 +30,8 @@ export async function GET() {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       }
     });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     console.error('Error fetching donor ranks:', error);
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json({ success: true, rank });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     console.error('Error creating donor rank:', error);
@@ -123,8 +123,8 @@ export async function PUT(request: NextRequest) {
       .returning();
 
     return NextResponse.json({ success: true, rank });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     console.error('Error updating donor rank:', error);
@@ -152,8 +152,8 @@ export async function DELETE(request: NextRequest) {
     await db.delete(donationRanks).where(eq(donationRanks.id, id));
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     console.error('Error deleting donor rank:', error);

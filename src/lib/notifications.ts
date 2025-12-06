@@ -6,9 +6,12 @@
 import { db } from '@/db';
 import { notifications } from '@/db/schema';
 
+// Schema-compliant types
+type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system' | 'message' | 'friend_request';
+
 export interface CreateNotificationParams {
   userId: number;
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   link?: string;
@@ -65,7 +68,7 @@ export async function notifyFriendRequest(userId: number, requesterName: string)
 export async function notifyFriendAccepted(userId: number, accepterName: string) {
   return createNotification({
     userId,
-    type: 'friend_accepted',
+    type: 'info', // 'friend_accepted' not in schema
     title: 'Friend Request Accepted',
     message: `${accepterName} accepted your friend request`,
     link: `/friends`,
@@ -75,7 +78,7 @@ export async function notifyFriendAccepted(userId: number, accepterName: string)
 export async function notifyPostLike(userId: number, likerName: string, postId: number) {
   return createNotification({
     userId,
-    type: 'post_like',
+    type: 'info', // 'post_like' not in schema
     title: 'New Like',
     message: `${likerName} liked your post`,
     link: `/social?post=${postId}`,
@@ -85,7 +88,7 @@ export async function notifyPostLike(userId: number, likerName: string, postId: 
 export async function notifyPostComment(userId: number, commenterName: string, postId: number) {
   return createNotification({
     userId,
-    type: 'post_comment',
+    type: 'info', // 'post_comment' not in schema
     title: 'New Comment',
     message: `${commenterName} commented on your post`,
     link: `/social?post=${postId}`,
@@ -95,7 +98,7 @@ export async function notifyPostComment(userId: number, commenterName: string, p
 export async function notifyForumReply(userId: number, replierName: string, postId: number) {
   return createNotification({
     userId,
-    type: 'forum_reply',
+    type: 'info', // 'forum_reply' not in schema
     title: 'New Reply',
     message: `${replierName} replied to your forum post`,
     link: `/forum/post/${postId}`,
@@ -105,7 +108,7 @@ export async function notifyForumReply(userId: number, replierName: string, post
 export async function notifyMention(userId: number, mentionerName: string, link: string) {
   return createNotification({
     userId,
-    type: 'mention',
+    type: 'info', // 'mention' not in schema
     title: 'You were mentioned',
     message: `${mentionerName} mentioned you`,
     link,
@@ -115,7 +118,7 @@ export async function notifyMention(userId: number, mentionerName: string, link:
 export async function notifyEventInvite(userId: number, inviterName: string, eventId: number, eventTitle: string) {
   return createNotification({
     userId,
-    type: 'event_invite',
+    type: 'info', // 'event_invite' not in schema
     title: 'Event Invitation',
     message: `${inviterName} invited you to "${eventTitle}"`,
     link: `/events/${eventId}`,
@@ -125,7 +128,7 @@ export async function notifyEventInvite(userId: number, inviterName: string, eve
 export async function notifyGroupInvite(userId: number, inviterName: string, groupId: number, groupName: string) {
   return createNotification({
     userId,
-    type: 'group_invite',
+    type: 'info', // 'group_invite' not in schema
     title: 'Group Invitation',
     message: `${inviterName} invited you to join "${groupName}"`,
     link: `/groups/${groupId}`,
@@ -135,7 +138,7 @@ export async function notifyGroupInvite(userId: number, inviterName: string, gro
 export async function notifyAchievement(userId: number, achievementName: string) {
   return createNotification({
     userId,
-    type: 'achievement',
+    type: 'success', // 'achievement' not in schema, use success
     title: 'Achievement Unlocked!',
     message: `You earned the "${achievementName}" achievement`,
     link: `/profile`,

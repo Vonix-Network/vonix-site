@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const allServers = await db
       .select()
       .from(servers)
-      .orderBy(asc(servers.orderIndex));
+      .orderBy(asc(servers.id));
 
     if (allServers.length === 0) {
       return NextResponse.json({
@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
     // Ping all servers in parallel using hybrid approach
     const statusPromises = allServers.map(async (server) => {
       // Try native ping first
-      let result = await pingServerNative(server.ipAddress, server.port);
+      let result = await pingServerNative(server.address, server.port);
 
       // If native ping failed, try mcstatus.io API
       if (!result.success || !result.data?.online) {
-        console.log(`[servers/status] Native ping failed for ${server.ipAddress}:${server.port}, trying API...`);
-        result = await getServerStatus(server.ipAddress, server.port, false);
+        console.log(`[servers/status] Native ping failed for ${server.address}:${server.port}, trying API...`);
+        result = await getServerStatus(server.address, server.port, false);
       }
 
       return { server, result };
@@ -110,15 +110,15 @@ export async function GET(request: NextRequest) {
       return {
         id: server.id,
         name: server.name,
-        description: server.description,
-        ipAddress: server.ipAddress,
+        description: null, // Schema missing description
+        address: server.address,
         port: server.port,
-        hidePort: server.hidePort, // For SRV records - hide port in display
-        modpackName: server.modpackName,
-        bluemapUrl: server.bluemapUrl,
-        curseforgeUrl: server.curseforgeUrl,
-        orderIndex: server.orderIndex,
-        apiKey: server.apiKey, // For admin XP sync configuration
+        hidePort: false, // Schema missing hidePort
+        modpackName: null, // Schema missing modpackName
+        bluemapUrl: null, // Schema missing bluemapUrl
+        curseforgeUrl: null, // Schema missing curseforgeUrl
+        orderIndex: 0, // Schema missing orderIndex
+        apiKey: null, // Schema missing apiKey
         // Live status data ONLY (no DB fallbacks for dynamic fields)
         online: data?.online ?? false,
         version,

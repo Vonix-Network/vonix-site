@@ -31,10 +31,12 @@ export async function GET(request: NextRequest) {
 
     let whereClause = undefined;
     if (search) {
+      // Sanitize search input to escape SQL LIKE special characters
+      const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&');
       whereClause = or(
-        like(users.username, `%${search}%`),
-        like(users.email, `%${search}%`),
-        like(users.minecraftUsername, `%${search}%`)
+        like(users.username, `%${sanitizedSearch}%`),
+        like(users.email, `%${sanitizedSearch}%`),
+        like(users.minecraftUsername, `%${sanitizedSearch}%`)
       );
     }
 
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle unique constraint violation
-    if (error?.message?.includes('UNIQUE constraint failed')) {
+    if (error instanceof Error && error.message?.includes('UNIQUE constraint failed')) {
       return NextResponse.json(
         { error: 'Username or email already exists' },
         { status: 400 }

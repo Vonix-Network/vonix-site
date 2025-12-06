@@ -4,21 +4,11 @@
  */
 
 import { db } from '@/db';
-import { users, donationRanks } from '@/db/schema';
+import { users, donationRanks, type DonationRank } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export interface DonationRank {
-  id: string;
-  name: string;
-  color: string;
-  textColor: string;
-  icon: string | null;
-  badge: string | null;
-  glow: boolean;
-  subtitle: string | null;
-  minAmount: number;
-  duration: number;
-}
+// Export type from schema to avoid duplication and mismatches
+export type { DonationRank };
 
 export interface UserWithRank {
   id: number;
@@ -101,7 +91,7 @@ export function isRankActive(rankExpiresAt: Date | null): boolean {
  * Get rank display name with formatting
  */
 export function getRankDisplayName(rank: DonationRank): string {
-  return rank.badge || rank.name;
+  return rank.name;
 }
 
 /**
@@ -169,21 +159,21 @@ export async function getUserRankStatus(userId: number): Promise<{
  */
 export function formatRankExpiration(expiresAt: Date | null): string {
   if (!expiresAt) return 'Never';
-  
+
   const now = new Date();
   const expiry = new Date(expiresAt);
-  
+
   if (expiry <= now) return 'Expired';
-  
+
   const days = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   if (days === 1) return '1 day remaining';
   if (days < 7) return `${days} days remaining`;
   if (days < 30) {
     const weeks = Math.floor(days / 7);
     return weeks === 1 ? '1 week remaining' : `${weeks} weeks remaining`;
   }
-  
+
   const months = Math.floor(days / 30);
   return months === 1 ? '1 month remaining' : `${months} months remaining`;
 }

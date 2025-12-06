@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, servers, serverXp } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { users, servers, serverXp, apiKeys } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { getLevelForXp } from '@/lib/xp-math';
 
 interface PlayerData {
@@ -10,7 +10,6 @@ interface PlayerData {
     level: number;
     totalExperience: number;
     currentHealth?: number;
-    playtimeSeconds?: number;
 }
 
 interface SyncRequest {
@@ -38,12 +37,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find server by API key
-        const server = await db.query.servers.findFirst({
-            where: eq(servers.apiKey, apiKey),
+        // Validate API key from apiKeys table
+        const validKey = await db.query.apiKeys.findFirst({
+            where: eq(apiKeys.key, apiKey),
         });
 
-        if (!server) {
+        if (!validKey) {
             return NextResponse.json(
                 { success: false, error: 'Invalid API key' },
                 { status: 403 }
@@ -54,10 +53,16 @@ export async function POST(request: NextRequest) {
         const body: SyncRequest = await request.json();
         const { serverName, players } = body;
 
-        // Validate server name matches (optional security check)
-        if (serverName && serverName !== server.name) {
-            console.warn(`Server name mismatch: expected "${server.name}", got "${serverName}"`);
-            // We still allow it since the API key is the source of truth
+        // Find server by name
+        const server = await db.query.servers.findFirst({
+            where: eq(servers.name, serverName),
+        });
+
+        if (!server) {
+            return NextResponse.json(
+                { success: false, error: `Server "${serverName}" not found` },
+                { status: 404 }
+            );
         }
 
         if (!players || !Array.isArray(players) || players.length === 0) {
@@ -91,18 +96,14 @@ export async function POST(request: NextRequest) {
                 });
 
                 const newXp = player.totalExperience || 0;
-                const newLevel = player.level || 0;
-                const playtime = player.playtimeSeconds || 0;
 
                 if (existingServerXp) {
                     // UPDATE existing record (replaces, not adds)
                     await db
                         .update(serverXp)
                         .set({
-                            xp: newXp,
-                            level: newLevel,
-                            playtimeSeconds: playtime,
-                            lastSyncedAt: new Date(),
+                            amount: newXp,
+                            updatedAt: new Date(),
                         })
                         .where(eq(serverXp.id, existingServerXp.id));
                 } else {
@@ -110,9 +111,7 @@ export async function POST(request: NextRequest) {
                     await db.insert(serverXp).values({
                         userId: user.id,
                         serverId: server.id,
-                        xp: newXp,
-                        level: newLevel,
-                        playtimeSeconds: playtime,
+                        amount: newXp,
                     });
                 }
 
@@ -121,7 +120,7 @@ export async function POST(request: NextRequest) {
                     where: eq(serverXp.userId, user.id),
                 });
 
-                const totalMinecraftXp = allServerXp.reduce((sum, s) => sum + (s.xp || 0), 0);
+                const totalMinecraftXp = allServerXp.reduce((sum, s) => sum + (s.amount || 0), 0);
 
                 // Calculate new total XP and level
                 const totalXp = totalMinecraftXp + (user.websiteXp || 0);
@@ -177,9 +176,9 @@ export async function GET() {
         endpoint: '/api/minecraft/sync/xp',
         method: 'POST',
         description: 'Sync player XP from Minecraft servers',
-        authentication: 'Bearer token (server API key)',
+        authentication: 'Bearer token (API key from admin dashboard)',
         payload: {
-            serverName: 'string',
+            serverName: 'string (must match a server name in the database)',
             players: [
                 {
                     uuid: 'string (Minecraft UUID)',
@@ -187,7 +186,6 @@ export async function GET() {
                     level: 'number (Minecraft level)',
                     totalExperience: 'number (total Minecraft XP)',
                     currentHealth: 'number (optional)',
-                    playtimeSeconds: 'number (optional)',
                 },
             ],
         },

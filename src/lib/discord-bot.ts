@@ -9,43 +9,47 @@
 import { Client, GatewayIntentBits, Message, TextChannel, Partials } from 'discord.js';
 import { db } from '@/db';
 import { discordMessages, siteSettings } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 let discordClient: Client | null = null;
 let isConnecting = false;
 let channelId: string | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 /**
  * Get Discord settings from database
  */
 async function getDiscordSettings() {
+    // Consolidated: fetch all needed settings in a single query
     const settings = await db
         .select()
         .from(siteSettings)
-        .where(eq(siteSettings.key, 'discord_chat_enabled'));
+        .where(
+            inArray(siteSettings.key, [
+                'discord_chat_enabled',
+                'discord_bot_token',
+                'discord_chat_channel_id'
+            ])
+        );
 
-    const [enabled] = settings;
-    if (enabled?.value !== 'true') {
+    // Build a map for easy lookup
+    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+
+    if (settingsMap.get('discord_chat_enabled') !== 'true') {
         return null;
     }
 
-    const [tokenSetting] = await db
-        .select()
-        .from(siteSettings)
-        .where(eq(siteSettings.key, 'discord_bot_token'));
+    const token = settingsMap.get('discord_bot_token');
+    const channelIdValue = settingsMap.get('discord_chat_channel_id');
 
-    const [channelIdSetting] = await db
-        .select()
-        .from(siteSettings)
-        .where(eq(siteSettings.key, 'discord_chat_channel_id'));
-
-    if (!tokenSetting?.value || !channelIdSetting?.value) {
+    if (!token || !channelIdValue) {
         return null;
     }
 
     return {
-        token: tokenSetting.value,
-        channelId: channelIdSetting.value,
+        token,
+        channelId: channelIdValue,
     };
 }
 
@@ -76,16 +80,6 @@ async function handleMessage(message: Message) {
     }
 
     try {
-        // Check if message already exists
-        const [existing] = await db
-            .select()
-            .from(discordMessages)
-            .where(eq(discordMessages.discordMessageId, message.id));
-
-        if (existing) {
-            return;
-        }
-
         // Get author avatar URL
         const avatarUrl = message.author.displayAvatarURL({ size: 64 });
 
@@ -106,7 +100,8 @@ async function handleMessage(message: Message) {
             contentType: att.contentType,
         }));
 
-        // Store in database
+        // Store in database with conflict handling to prevent race conditions
+        // If message already exists (duplicate event), it will be silently ignored
         await db.insert(discordMessages).values({
             discordMessageId: message.id,
             authorId: message.author.id,
@@ -117,7 +112,7 @@ async function handleMessage(message: Message) {
             embeds: embeds.length > 0 ? JSON.stringify(embeds) : null,
             attachments: attachments.length > 0 ? JSON.stringify(attachments) : null,
             createdAt: message.createdAt,
-        });
+        }).onConflictDoNothing();
 
         console.log(`📥 Discord message received from ${message.author.username}`);
     } catch (error) {
@@ -203,6 +198,7 @@ export async function initDiscordBot() {
         discordClient.on('ready', () => {
             console.log(`🤖 Discord bot connected as ${discordClient?.user?.tag}`);
             console.log(`📡 Listening to channel: ${channelId}`);
+            reconnectAttempts = 0; // Reset on successful connection
         });
 
         discordClient.on('messageCreate', handleMessage);
@@ -222,8 +218,20 @@ export async function initDiscordBot() {
             console.error('🤖 Discord bot error:', error);
         });
 
-        discordClient.on('disconnect', () => {
+        discordClient.on('disconnect', async () => {
             console.log('🤖 Discord bot disconnected');
+            // Auto-reconnect logic with exponential backoff
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Max 30s delay
+                console.log(`🔄 Attempting reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay / 1000}s...`);
+                setTimeout(async () => {
+                    discordClient = null;
+                    await initDiscordBot();
+                }, delay);
+            } else {
+                console.error('🤖 Max reconnection attempts reached. Discord bot will not auto-reconnect.');
+            }
         });
 
         // Connect to Discord

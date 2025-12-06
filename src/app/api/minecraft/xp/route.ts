@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, xpTransactions, apiKeys } from '@/db/schema';
+import { users, apiKeys } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Verify API key from Minecraft server/mod
 async function verifyApiKey(apiKey: string): Promise<boolean> {
   if (!apiKey) return false;
-  
+
   try {
     const key = await db.query.apiKeys.findFirst({
       where: eq(apiKeys.key, apiKey),
@@ -30,7 +30,7 @@ function calculateLevel(xp: number): number {
 export async function POST(request: NextRequest) {
   try {
     const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!apiKey) {
       return NextResponse.json(
         { error: 'API key required' },
@@ -82,28 +82,22 @@ export async function POST(request: NextRequest) {
     // Update user XP and level
     await db
       .update(users)
-      .set({ 
+      .set({
         xp: newXp,
         level: newLevel,
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id));
 
-    // Record XP transaction
-    await db.insert(xpTransactions).values({
-      userId: user.id,
-      amount,
-      source,
-      description: description || `XP from ${source}`,
-    });
+    // Note: XP transaction logging removed - table doesn't exist in schema
 
     return NextResponse.json({
       success: true,
       xp: newXp,
       level: newLevel,
       leveledUp,
-      message: leveledUp 
-        ? `Awarded ${amount} XP! Level up to ${newLevel}!` 
+      message: leveledUp
+        ? `Awarded ${amount} XP! Level up to ${newLevel}!`
         : `Awarded ${amount} XP`,
     });
 
@@ -123,7 +117,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!apiKey) {
       return NextResponse.json(
         { error: 'API key required' },

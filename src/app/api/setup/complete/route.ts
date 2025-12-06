@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, setupStatus, siteSettings } from '@/db/schema';
+import { users, siteSettings } from '@/db/schema';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
+/**
+ * POST /api/setup/complete
+ * Complete the initial setup wizard
+ * Creates admin user and stores site settings
+ */
 export async function POST(request: NextRequest) {
   try {
     // Check if setup already completed
-    const [status] = await db.select().from(setupStatus).limit(1);
-    
-    if (status?.isCompleted) {
+    const [setupSetting] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'setup_completed'))
+      .limit(1);
+
+    if (setupSetting?.value === 'true') {
       return NextResponse.json(
         { error: 'Setup already completed' },
         { status: 400 }
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert settings
+    // Insert settings (use upsert pattern)
     for (const setting of settingsToStore) {
       await db
         .insert(siteSettings)
@@ -136,14 +145,43 @@ export async function POST(request: NextRequest) {
         .onConflictDoNothing();
     }
 
-    // Mark setup as completed
+    // Mark setup as completed using siteSettings
     await db
-      .insert(setupStatus)
+      .insert(siteSettings)
       .values({
-        isCompleted: true,
-        completedAt: new Date(),
-        adminUsername: admin.username,
-        version: '4.0.0',
+        key: 'setup_completed',
+        value: 'true',
+        category: 'system',
+        description: 'Whether initial setup has been completed',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(siteSettings)
+      .values({
+        key: 'setup_version',
+        value: '4.0.0',
+        category: 'system',
+        description: 'Version when setup was completed',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(siteSettings)
+      .values({
+        key: 'setup_admin_username',
+        value: admin.username,
+        category: 'system',
+        description: 'Username of the admin created during setup',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .onConflictDoNothing();
 

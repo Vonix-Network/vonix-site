@@ -41,22 +41,22 @@ export async function GET(request: NextRequest) {
 
     const friendshipRows = await db
       .select({
-        userId: friendships.userId,
-        friendId: friendships.friendId,
+        requesterId: friendships.requesterId,
+        addresseeId: friendships.addresseeId,
         status: friendships.status,
       })
       .from(friendships)
       .where(
         or(
-          and(eq(friendships.userId, viewerId), inArray(friendships.friendId, targetIds)),
-          and(eq(friendships.friendId, viewerId), inArray(friendships.userId, targetIds)),
+          and(eq(friendships.requesterId, viewerId), inArray(friendships.addresseeId, targetIds)),
+          and(eq(friendships.addresseeId, viewerId), inArray(friendships.requesterId, targetIds)),
         ),
       );
 
     const results = matchedUsers.map((u) => {
       let status: 'none' | 'pending' | 'friends' = 'none';
       const rel = friendshipRows.find(
-        (f) => (f.userId === viewerId && f.friendId === u.id) || (f.friendId === viewerId && f.userId === u.id),
+        (f) => (f.requesterId === viewerId && f.addresseeId === u.id) || (f.addresseeId === viewerId && f.requesterId === u.id),
       );
       if (rel) {
         if (rel.status === 'accepted') status = 'friends';

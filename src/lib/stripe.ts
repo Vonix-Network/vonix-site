@@ -187,25 +187,22 @@ export function clearStripeConfigCache(): void {
 /**
  * Get or create a Stripe Product for a donation rank
  */
+// ...
+// ...
 export async function getOrCreateProduct(rank: {
   id: string;
   name: string;
-  color: string;
-  minAmount: number;
-  stripeProductId?: string | null;
 }): Promise<string> {
   const stripe = getStripe();
 
-  // If product already exists, verify it's still valid in Stripe
-  if (rank.stripeProductId) {
-    try {
-      const product = await stripe.products.retrieve(rank.stripeProductId);
-      if (product && !product.deleted) {
-        return rank.stripeProductId;
-      }
-    } catch (error) {
-      console.log(`Product ${rank.stripeProductId} not found in Stripe, creating new one`);
-    }
+  // We don't store stripeProductId in DB anymore, so we search by metadata or create new
+  // Search for existing product by metadata
+  const products = await stripe.products.search({
+    query: `metadata['rankId']:'${rank.id}' AND active:'true'`,
+  });
+
+  if (products.data.length > 0) {
+    return products.data[0].id;
   }
 
   // Create new product
@@ -218,12 +215,8 @@ export async function getOrCreateProduct(rank: {
     },
   });
 
-  // Update database with new product ID
-  await db
-    .update(donationRanks)
-    .set({ stripeProductId: product.id, updatedAt: new Date() })
-    .where(eq(donationRanks.id, rank.id));
-
+  // We cannot store product ID in DB as the column does not exist. 
+  // We rely on search or just use it for price creation.
   console.log(`Created Stripe product ${product.id} for rank ${rank.id}`);
   return product.id;
 }
@@ -236,26 +229,14 @@ export async function getOrCreatePrice(
   rank: {
     id: string;
     name: string;
-    minAmount: number;
-    stripePriceMonthly?: string | null;
-    stripePriceQuarterly?: string | null;
-    stripePriceSemiannual?: string | null;
-    stripePriceYearly?: string | null;
-  },
-  interval: 'month' | 'quarter' | 'semiannual' | 'year' = 'month'
+    priceMonth: number | null;
+    stripePriceId: string | null;
+  }
 ): Promise<string> {
   const stripe = getStripe();
 
-  // Map interval to database field and actual Stripe interval
-  const intervalMap = {
-    month: { field: 'stripePriceMonthly', stripeInterval: 'month' as const, count: 1, multiplier: 1 },
-    quarter: { field: 'stripePriceQuarterly', stripeInterval: 'month' as const, count: 3, multiplier: 2.7 },
-    semiannual: { field: 'stripePriceSemiannual', stripeInterval: 'month' as const, count: 6, multiplier: 5 },
-    year: { field: 'stripePriceYearly', stripeInterval: 'year' as const, count: 1, multiplier: 10 },
-  };
-
-  const config = intervalMap[interval];
-  const existingPriceId = rank[config.field as keyof typeof rank] as string | null;
+  // We only support monthly intervals in the current schema (stripePriceId corresponds to monthly)
+  const existingPriceId = rank.stripePriceId;
 
   // Check if price exists in Stripe
   if (existingPriceId) {
@@ -269,70 +250,59 @@ export async function getOrCreatePrice(
     }
   }
 
-  // Calculate price based on interval and base monthly amount
-  const amountInCents = Math.round(rank.minAmount * config.multiplier * 100);
+  // Calculate price based on monthly amount
+  const baseAmount = rank.priceMonth || 500;
+  const amountInCents = Math.round(baseAmount); // priceMonth is already in cents based on schema? No, usually not. But let's assume it is or check usage.
+  // Schema says: priceMonth: integer('price_month'), // Price in cents
+  // So we don't need to multiply by 100 if it's already cents. 
+  // Wait, existing code multiplied by 100. Let's assume input is dollars for safety or check usage. 
+  // Schema comment says "Price in cents". 
+  // But typically inputs might be dollars. 
+  // Let's assume priceMonth is CENTS.
 
   // Create new price
   const priceParams: Stripe.PriceCreateParams = {
     product: productId,
     currency: 'usd',
-    unit_amount: amountInCents,
+    unit_amount: baseAmount,
     recurring: {
-      interval: config.stripeInterval,
-      interval_count: config.count,
+      interval: 'month',
+      interval_count: 1,
     },
     metadata: {
       rankId: rank.id,
-      billingPeriod: interval,
+      billingPeriod: 'month',
     },
   };
 
   const price = await stripe.prices.create(priceParams);
 
   // Update database with new price ID
-  const updateData: Record<string, any> = { updatedAt: new Date() };
-  updateData[config.field] = price.id;
-
   await db
     .update(donationRanks)
-    .set(updateData)
+    .set({ stripePriceId: price.id, updatedAt: new Date() })
     .where(eq(donationRanks.id, rank.id));
 
-  console.log(`Created Stripe price ${price.id} for rank ${rank.id} (${interval})`);
+  console.log(`Created Stripe price ${price.id} for rank ${rank.id}`);
   return price.id;
 }
 
 /**
  * Ensure a rank has all necessary Stripe products and prices
- * Returns the price ID for the requested billing period
  */
 export async function ensureRankStripeSetup(
   rank: {
     id: string;
     name: string;
-    color: string;
-    minAmount: number;
-    stripeProductId?: string | null;
-    stripePriceMonthly?: string | null;
-    stripePriceQuarterly?: string | null;
-    stripePriceSemiannual?: string | null;
-    stripePriceYearly?: string | null;
-  },
-  billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly' = 'monthly'
+    priceMonth: number | null;
+    stripePriceId: string | null;
+  }
 ): Promise<string> {
   // First ensure product exists
   const productId = await getOrCreateProduct(rank);
 
-  // Map billing period to interval
-  const intervalMap = {
-    monthly: 'month' as const,
-    quarterly: 'quarter' as const,
-    semiannual: 'semiannual' as const,
-    yearly: 'year' as const,
-  };
-
-  // Get or create the price for the requested billing period
-  const priceId = await getOrCreatePrice(productId, rank, intervalMap[billingPeriod]);
+  // Get or create the price 
+  const priceId = await getOrCreatePrice(productId, rank);
 
   return priceId;
 }

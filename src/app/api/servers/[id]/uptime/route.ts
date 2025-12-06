@@ -74,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             server: {
                 id: server.id,
                 name: server.name,
-                ipAddress: server.ipAddress,
+                address: server.address,
             },
             stats: {
                 uptimePercentage,
