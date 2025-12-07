@@ -18,11 +18,10 @@ const protectedRoutes = [
 const authRoutes = ['/login', '/register'];
 
 // Routes that should be accessible even during maintenance mode
-// Keep this minimal - only login and essential API routes
+// API routes are allowed so Minecraft mods and external integrations continue to work
 const maintenanceBypassRoutes = [
     '/login',
-    '/api/auth',
-    '/api/admin',
+    '/api',      // All API endpoints (Minecraft mods, webhooks, etc.)
     '/admin',
     '/maintenance',
     '/_next',
