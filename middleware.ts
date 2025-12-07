@@ -1,5 +1,8 @@
 import { auth } from './auth';
 import { NextResponse } from 'next/server';
+import { db } from '@/db';
+import { siteSettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -14,32 +17,47 @@ const protectedRoutes = [
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register'];
 
-// Routes that are publicly accessible (no auth check needed)
-const publicRoutes = [
-    '/',
-    '/servers',
-    '/forum',
-    '/leaderboard',
-    '/donate',
-    '/events',
-    '/profile',
-    '/api',
-    '/maintenance',
-];
-
 // Routes that should be accessible even during maintenance mode
+// Keep this minimal - only login and essential API routes
 const maintenanceBypassRoutes = [
     '/login',
     '/api/auth',
     '/api/admin',
-    '/api/settings',
     '/admin',
     '/maintenance',
     '/_next',
+    '/favicon.ico',
 ];
 
 // Staff roles that can bypass maintenance mode
 const staffRoles = ['admin', 'superadmin', 'moderator'];
+
+// Cache for maintenance mode check to avoid too many DB queries
+let maintenanceCache: { enabled: boolean; timestamp: number } | null = null;
+const CACHE_TTL = 10000; // 10 seconds cache
+
+async function isMaintenanceModeEnabled(): Promise<boolean> {
+    const now = Date.now();
+
+    // Use cache if valid
+    if (maintenanceCache && (now - maintenanceCache.timestamp) < CACHE_TTL) {
+        return maintenanceCache.enabled;
+    }
+
+    try {
+        const [setting] = await db
+            .select()
+            .from(siteSettings)
+            .where(eq(siteSettings.key, 'maintenance_mode'));
+
+        const enabled = setting?.value === 'true';
+        maintenanceCache = { enabled, timestamp: now };
+        return enabled;
+    } catch (error) {
+        console.error('Failed to check maintenance mode:', error);
+        return false; // Default to not in maintenance mode if DB error
+    }
+}
 
 export default auth(async (req) => {
     const { nextUrl } = req;
@@ -52,28 +70,16 @@ export default auth(async (req) => {
 
     // Check maintenance mode (only for routes that don't bypass)
     if (!bypassMaintenance) {
-        try {
-            // Check if maintenance mode is enabled via API
-            const maintenanceResponse = await fetch(`${nextUrl.origin}/api/settings/maintenance`, {
-                cache: 'no-store',
-            });
+        const maintenanceEnabled = await isMaintenanceModeEnabled();
 
-            if (maintenanceResponse.ok) {
-                const data = await maintenanceResponse.json();
+        if (maintenanceEnabled) {
+            // Check if user is staff
+            const isStaff = isLoggedIn && user?.role && staffRoles.includes(user.role);
 
-                if (data.maintenanceMode) {
-                    // Check if user is staff
-                    const isStaff = isLoggedIn && user?.role && staffRoles.includes(user.role);
-
-                    if (!isStaff) {
-                        // Redirect to maintenance page
-                        return NextResponse.redirect(new URL('/maintenance', nextUrl));
-                    }
-                }
+            if (!isStaff) {
+                // Redirect to maintenance page
+                return NextResponse.redirect(new URL('/maintenance', nextUrl));
             }
-        } catch (error) {
-            // If we can't check maintenance mode, allow the request
-            console.error('Failed to check maintenance mode:', error);
         }
     }
 
@@ -106,7 +112,6 @@ export const config = {
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          * - public files (images, etc.)
-         * - API routes that don't need auth protection handled by middleware
          */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
     ],
