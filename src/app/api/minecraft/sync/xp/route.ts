@@ -26,9 +26,12 @@ interface SyncRequest {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Get API key from Authorization header
-        const authHeader = request.headers.get('authorization');
-        const apiKey = authHeader?.replace('Bearer ', '');
+        // Get API key from either x-api-key header or Authorization header
+        // Support both for consistency with other minecraft API routes
+        const apiKey = request.headers.get('x-api-key') ||
+            request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
+
+        console.log('[XP Sync] API key present:', !!apiKey);
 
         if (!apiKey) {
             return NextResponse.json(
@@ -43,6 +46,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!validKey) {
+            console.log('[XP Sync] API key not found in database');
             return NextResponse.json(
                 { success: false, error: 'Invalid API key' },
                 { status: 403 }
@@ -176,7 +180,7 @@ export async function GET() {
         endpoint: '/api/minecraft/sync/xp',
         method: 'POST',
         description: 'Sync player XP from Minecraft servers',
-        authentication: 'Bearer token (API key from admin dashboard)',
+        authentication: 'Bearer token or x-api-key header (API key from admin dashboard)',
         payload: {
             serverName: 'string (must match a server name in the database)',
             players: [
@@ -191,4 +195,3 @@ export async function GET() {
         },
     });
 }
-
