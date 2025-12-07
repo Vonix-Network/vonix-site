@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, Minus, Send, Loader2, MessageCircle, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Minus, Send, Loader2, MessageCircle, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,8 @@ export function DiscordChatWindow() {
     const { data: session, status } = useSession();
     const {
         isOpen,
-        setIsOpen,
+        isMinimized,
+        setIsMinimized,
         messages,
         isLoading,
         isSending,
@@ -25,24 +26,23 @@ export function DiscordChatWindow() {
         settings,
     } = useDiscordChat();
 
-    const [minimized, setMinimized] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Scroll to bottom on new messages
     useEffect(() => {
-        if (!minimized && isOpen) {
+        if (!isMinimized && isOpen) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, minimized, isOpen]);
+    }, [messages, isMinimized, isOpen]);
 
-    // Focus input when opened
+    // Focus input when expanded
     useEffect(() => {
-        if (isOpen && !minimized) {
+        if (isOpen && !isMinimized) {
             inputRef.current?.focus();
         }
-    }, [isOpen, minimized]);
+    }, [isOpen, isMinimized]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || isSending) return;
@@ -60,7 +60,8 @@ export function DiscordChatWindow() {
         }
     };
 
-    if (!isOpen) return null;
+    // Don't show if Discord chat is not enabled
+    if (!settings.enabled || !isOpen) return null;
 
     // Use null when session is still loading to avoid false comparisons
     // This prevents all messages appearing on the wrong side during hydration
@@ -72,7 +73,7 @@ export function DiscordChatWindow() {
         <div
             className={cn(
                 'fixed bottom-0 left-4 z-50 w-80 transition-all duration-300 ease-out',
-                minimized ? 'h-12' : 'h-[28rem]'
+                isMinimized ? 'h-12' : 'h-[28rem]'
             )}
         >
             <div className="h-full flex flex-col bg-card rounded-t-xl border border-white/10 shadow-lg overflow-hidden"
@@ -82,7 +83,7 @@ export function DiscordChatWindow() {
                 <div
                     className="flex items-center justify-between px-3 py-2 cursor-pointer"
                     style={{ background: `linear-gradient(135deg, ${DISCORD_COLOR}33, ${DISCORD_COLOR}11)` }}
-                    onClick={() => setMinimized(!minimized)}
+                    onClick={() => setIsMinimized(!isMinimized)}
                 >
                     <div className="flex items-center gap-2 min-w-0">
                         <div
@@ -105,23 +106,15 @@ export function DiscordChatWindow() {
                             variant="ghost"
                             size="icon"
                             className="w-6 h-6"
-                            onClick={(e) => { e.stopPropagation(); setMinimized(!minimized); }}
+                            onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
                         >
                             <Minus className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-6 h-6 hover:text-error"
-                            onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-                        >
-                            <X className="w-3.5 h-3.5" />
                         </Button>
                     </div>
                 </div>
 
                 {/* Messages Area */}
-                {!minimized && (
+                {!isMinimized && (
                     <>
                         <div className="flex-1 overflow-y-auto p-3 space-y-3">
                             {isLoading || status === 'loading' ? (
@@ -365,4 +358,3 @@ export function DiscordChatWindow() {
         </div>
     );
 }
-

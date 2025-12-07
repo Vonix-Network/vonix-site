@@ -32,6 +32,7 @@ const maintenanceBypassRoutes = [
     '/login',
     '/api/auth',
     '/api/admin',
+    '/api/settings',
     '/admin',
     '/maintenance',
     '/_next',

@@ -26,6 +26,8 @@ interface DiscordSettings {
 interface DiscordChatContextType {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
+    isMinimized: boolean;
+    setIsMinimized: (minimized: boolean) => void;
     messages: DiscordMessage[];
     isLoading: boolean;
     isSending: boolean;
@@ -50,7 +52,9 @@ const POLL_INTERVAL = 5000; // 5 seconds fallback polling
 export function DiscordChatProvider({ children }: { children: ReactNode }) {
     const { data: session } = useSession();
     const { socket, isConnected } = useSocket();
-    const [isOpen, setIsOpen] = useState(false);
+    // Start with isOpen=true so the window is always visible, but minimized by default
+    const [isOpen, setIsOpen] = useState(true);
+    const [isMinimized, setIsMinimized] = useState(true);
     const [messages, setMessages] = useState<DiscordMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -114,18 +118,18 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Initial load when chat opens
+    // Initial load when chat is not minimized
     useEffect(() => {
-        if (isOpen && messages.length === 0) {
+        if (isOpen && !isMinimized && messages.length === 0) {
             refreshMessages();
         }
-    }, [isOpen, messages.length, refreshMessages]);
+    }, [isOpen, isMinimized, messages.length, refreshMessages]);
 
     // Join/leave Discord chat room when socket is connected and chat is open
     useEffect(() => {
         if (!socket || !isConnected) return;
 
-        if (isOpen) {
+        if (isOpen && !isMinimized) {
             socket.emit('join:discord-chat');
         }
 
@@ -134,7 +138,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                 socket.emit('leave:discord-chat');
             }
         };
-    }, [socket, isConnected, isOpen]);
+    }, [socket, isConnected, isOpen, isMinimized]);
 
     // Listen for real-time Discord messages via socket
     useEffect(() => {
@@ -171,7 +175,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
     // Fallback polling for new messages when socket is not connected
     useEffect(() => {
         // Only poll if socket is not connected
-        if (!isOpen || isConnected) return;
+        if (!isOpen || isConnected || isMinimized) return;
 
         const poll = () => {
             if (lastMessageId !== null) {
@@ -181,7 +185,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
 
         const interval = setInterval(poll, POLL_INTERVAL);
         return () => clearInterval(interval);
-    }, [isOpen, isConnected, lastMessageId, refreshMessages]);
+    }, [isOpen, isConnected, isMinimized, lastMessageId, refreshMessages]);
 
     // Send message
     const sendMessage = useCallback(async (content: string): Promise<boolean> => {
@@ -233,6 +237,8 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
             value={{
                 isOpen,
                 setIsOpen,
+                isMinimized,
+                setIsMinimized,
                 messages,
                 isLoading,
                 isSending,

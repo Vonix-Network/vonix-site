@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { usePresenceHeartbeat } from '@/hooks/use-presence';
 import { Messenger } from '@/components/messenger';
 import { DiscordChat } from '@/components/discord-chat';
@@ -13,6 +14,26 @@ import { SocketProvider } from '@/lib/socket-context';
 function PresenceProvider({ children }: { children: React.ReactNode }) {
   usePresenceHeartbeat();
   return <>{children}</>;
+}
+
+// Separate component to access pathname inside providers
+function FloatingChats() {
+  const pathname = usePathname();
+
+  // Don't show floating chats on admin pages
+  const isAdminPage = pathname?.startsWith('/admin');
+
+  if (isAdminPage) {
+    return null;
+  }
+
+  return (
+    <>
+      {/* Messenger on right side, Discord Chat on left side */}
+      <Messenger />
+      <DiscordChat />
+    </>
+  );
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -43,9 +64,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <SocketProvider>
             <PresenceProvider>
               {children}
-              {/* Messenger on right side, Discord Chat on left side */}
-              <Messenger />
-              <DiscordChat />
+              <FloatingChats />
             </PresenceProvider>
           </SocketProvider>
           <Toaster
@@ -65,5 +84,3 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </SessionProvider>
   );
 }
-
-

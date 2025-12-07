@@ -73,7 +73,7 @@ const defaultSettings: SiteSettings = {
   siteName: 'Vonix Network',
   siteDescription: 'The Ultimate Minecraft Community',
   maintenanceMode: false,
-  maintenanceMessage: 'Under Maintenance, Expect possible downtimes.',
+  maintenanceMessage: 'We are working on adding newer and better things!',
   registrationEnabled: true,
   requireRegistrationCode: true,
   defaultUserRole: 'user',
