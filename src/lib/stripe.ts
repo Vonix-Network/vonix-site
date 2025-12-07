@@ -356,6 +356,16 @@ export async function createCheckoutSession({
       days: days.toString(),
       type: 'one_time',
     },
+    // CRITICAL: Pass metadata to payment intent so webhook can access it
+    payment_intent_data: {
+      metadata: {
+        userId: userId.toString(),
+        rankId,
+        rankName,
+        days: days.toString(),
+        type: 'one_time',
+      },
+    },
     success_url: successUrl,
     cancel_url: cancelUrl,
   });

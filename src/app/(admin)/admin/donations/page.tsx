@@ -122,7 +122,14 @@ export default function AdminDonationsPage() {
   }, []);
 
   const handleAddDonation = async () => {
-    if (!newDonation.amount || parseFloat(newDonation.amount) <= 0) return;
+    if (!newDonation.amount || parseFloat(newDonation.amount) <= 0) {
+      alert('Amount is required and must be positive');
+      return;
+    }
+    if (!newDonation.minecraftUsername) {
+      alert('Minecraft Username is required');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -148,17 +155,23 @@ export default function AdminDonationsPage() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setShowAddForm(false);
         setNewDonation(defaultNewDonation);
         fetchDonations();
+      } else {
+        alert(data.error || 'Failed to add donation');
       }
     } catch (err) {
       console.error('Failed to add donation:', err);
+      alert('Failed to add donation. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const toggleVisibility = async (id: number, displayed: boolean) => {
     try {
@@ -242,7 +255,7 @@ export default function AdminDonationsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Minecraft Username</label>
+                <label className="text-sm font-medium">Minecraft Username *</label>
                 <Input
                   value={newDonation.minecraftUsername}
                   onChange={(e) => setNewDonation({ ...newDonation, minecraftUsername: e.target.value })}
