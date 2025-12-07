@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { db } from '@/db';
 import { users, donationRanks, donations, siteSettings } from '@/db/schema';
 import { eq, like } from 'drizzle-orm';
+import { sendAdminDonationAlert } from '@/lib/email';
 
 /**
  * Load Stripe config from database, with env vars as fallback
@@ -249,6 +250,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
   });
 
   console.log(`✅ Rank extended for user ${userIdNum} until ${expiresAt}`);
+
+  // Send admin notification (async, don't wait)
+  sendAdminDonationAlert(user.username, amountPaidDollars, rank.name)
+    .catch(err => console.error('Failed to send admin donation alert:', err));
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Stripe) {
@@ -458,5 +463,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     message: donationMessage,
     receiptNumber: `VN-${Date.now()}-${userId}`,
   });
+
+  // Send admin notification (async, don't wait)
+  sendAdminDonationAlert(user.username, amountDollars, rank?.name)
+    .catch(err => console.error('Failed to send admin donation alert:', err));
 }
 

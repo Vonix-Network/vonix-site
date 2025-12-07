@@ -49,6 +49,11 @@ interface SiteSettings {
   smtpFromEmail: string;
   smtpFromName: string;
   smtpSecure: boolean;
+  // Admin email notification settings
+  smtpAdminNotifyEmail: string;
+  smtpAdminNotifyErrors: boolean;
+  smtpAdminNotifyDonations: boolean;
+  smtpAdminNotifyRegistrations: boolean;
   // Notification settings
   notifications: NotificationSettings;
 }
@@ -89,6 +94,11 @@ const defaultSettings: SiteSettings = {
   smtpFromEmail: '',
   smtpFromName: 'Vonix Network',
   smtpSecure: true,
+  // Admin notification defaults
+  smtpAdminNotifyEmail: '',
+  smtpAdminNotifyErrors: false,
+  smtpAdminNotifyDonations: false,
+  smtpAdminNotifyRegistrations: false,
   // Notification defaults
   notifications: defaultNotifications,
 };
@@ -876,6 +886,114 @@ export default function AdminSettingsPage() {
                       </p>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-neon-orange" />
+                    Admin Email Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Receive email alerts for important site events
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!settings.smtpHost && (
+                    <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-warning" />
+                        <p className="text-sm text-warning font-medium">
+                          SMTP not configured
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Configure SMTP settings above to enable admin email notifications.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Admin Notification Email</label>
+                    <Input
+                      type="email"
+                      value={settings.smtpAdminNotifyEmail}
+                      onChange={(e) => setSettings({ ...settings, smtpAdminNotifyEmail: e.target.value })}
+                      placeholder="admin@vonix.network"
+                      disabled={!settings.smtpHost}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Email address to receive admin notifications. Defaults to From Email if not set.
+                    </p>
+                  </div>
+
+                  <div className="border-t border-border pt-4 space-y-3">
+                    <h4 className="text-sm font-medium">Notification Types</h4>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-error/20">
+                        <AlertTriangle className="w-4 h-4 text-error" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Error Alerts</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.smtpAdminNotifyErrors}
+                            onChange={(e) => setSettings({ ...settings, smtpAdminNotifyErrors: e.target.checked })}
+                            className="w-4 h-4 accent-neon-cyan"
+                            disabled={!settings.smtpHost}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Receive emails when server errors occur (dev & production)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-success/20">
+                        <Heart className="w-4 h-4 text-success" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Donation Alerts</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.smtpAdminNotifyDonations}
+                            onChange={(e) => setSettings({ ...settings, smtpAdminNotifyDonations: e.target.checked })}
+                            className="w-4 h-4 accent-neon-cyan"
+                            disabled={!settings.smtpHost}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Receive emails when new donations are received
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="p-2 rounded-lg bg-neon-purple/20">
+                        <UserPlus className="w-4 h-4 text-neon-purple" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Registration Alerts</span>
+                          <input
+                            type="checkbox"
+                            checked={settings.smtpAdminNotifyRegistrations}
+                            onChange={(e) => setSettings({ ...settings, smtpAdminNotifyRegistrations: e.target.checked })}
+                            className="w-4 h-4 accent-neon-cyan"
+                            disabled={!settings.smtpHost}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Receive emails when new users register
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

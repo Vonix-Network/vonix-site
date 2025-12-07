@@ -69,6 +69,11 @@ export async function GET(request: NextRequest) {
       smtpFromEmail: settingsObject['smtp_from_email'] || '',
       smtpFromName: settingsObject['smtp_from_name'] || 'Vonix Network',
       smtpSecure: settingsObject['smtp_secure'] !== false,
+      // Admin notification email settings
+      smtpAdminNotifyEmail: settingsObject['smtp_admin_notify_email'] || '',
+      smtpAdminNotifyErrors: settingsObject['smtp_admin_notify_errors'] === true,
+      smtpAdminNotifyDonations: settingsObject['smtp_admin_notify_donations'] === true,
+      smtpAdminNotifyRegistrations: settingsObject['smtp_admin_notify_registrations'] === true,
       // Notification settings
       notifications: settingsObject['notifications'] || {
         emailNotifications: true,
@@ -126,6 +131,11 @@ export async function PUT(request: NextRequest) {
       smtpFromEmail: { dbKey: 'smtp_from_email', category: 'email', isPublic: false },
       smtpFromName: { dbKey: 'smtp_from_name', category: 'email', isPublic: false },
       smtpSecure: { dbKey: 'smtp_secure', category: 'email', isPublic: false },
+      // Admin notification settings
+      smtpAdminNotifyEmail: { dbKey: 'smtp_admin_notify_email', category: 'email', isPublic: false },
+      smtpAdminNotifyErrors: { dbKey: 'smtp_admin_notify_errors', category: 'email', isPublic: false },
+      smtpAdminNotifyDonations: { dbKey: 'smtp_admin_notify_donations', category: 'email', isPublic: false },
+      smtpAdminNotifyRegistrations: { dbKey: 'smtp_admin_notify_registrations', category: 'email', isPublic: false },
       // Notification settings (stored as JSON)
       notifications: { dbKey: 'notifications', category: 'notifications', isPublic: false, isJson: true },
     };

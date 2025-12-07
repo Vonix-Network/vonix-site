@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/db';
 import { users, registrationCodes } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { sendAdminNewUserAlert } from '@/lib/email';
 
 // Rate limiting
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -196,6 +197,10 @@ export async function POST(request: NextRequest) {
         usedAt: new Date(),
       })
       .where(eq(registrationCodes.id, code.id));
+
+    // Send admin notification for new registration (async, don't wait)
+    sendAdminNewUserAlert(finalUser.username, email || undefined)
+      .catch(err => console.error('Failed to send admin new user alert:', err));
 
     // Return success (don't include sensitive data)
     return NextResponse.json({

@@ -5,6 +5,7 @@ import { privateMessages, users } from '@/db/schema';
 import { and, or, eq, desc, inArray } from 'drizzle-orm';
 import { notifyNewMessage } from '@/lib/notifications';
 import { emitNewMessage } from '@/lib/socket-emit';
+import { sendUserNotificationEmail, getNewMessageEmailTemplate } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
   try {
@@ -131,6 +132,14 @@ export async function POST(request: NextRequest) {
     // Send notification to the recipient
     const senderName = session.user.name || session.user.username || 'Someone';
     await notifyNewMessage(targetId, senderName);
+
+    // Send email notification (async, don't wait)
+    const messagePreview = String(content).trim().substring(0, 200);
+    sendUserNotificationEmail(
+      targetId,
+      'message',
+      getNewMessageEmailTemplate(senderName, messagePreview)
+    ).catch(err => console.error('Failed to send message email:', err));
 
     return NextResponse.json(inserted, { status: 201 });
   } catch (error) {

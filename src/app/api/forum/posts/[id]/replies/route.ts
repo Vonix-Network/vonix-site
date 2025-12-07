@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { forumPosts, forumReplies, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { notifyForumReply } from '@/lib/notifications';
+import { sendUserNotificationEmail, getForumReplyEmailTemplate } from '@/lib/email';
 
 export async function POST(
   request: NextRequest,
@@ -71,6 +72,13 @@ export async function POST(
     if (post.authorId !== user.id) {
       const replierName = authorInfo?.username || user.username;
       await notifyForumReply(post.authorId, replierName, postId);
+
+      // Send email notification (async, don't wait)
+      sendUserNotificationEmail(
+        post.authorId,
+        'forum_reply',
+        getForumReplyEmailTemplate(replierName, post.title, postId, content.trim().substring(0, 300))
+      ).catch(err => console.error('Failed to send forum reply email:', err));
     }
 
     return NextResponse.json({
