@@ -46,7 +46,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Map usage of legacy fields to current schema
     const {
-      name, ipAddress, address, port, type, bluemapUrl
+      name,
+      ipAddress,
+      address,
+      port,
+      hidePort,
+      description,
+      modpackName,
+      type,
+      bluemapUrl,
+      curseforgeUrl,
+      pterodactylServerId,
+      pterodactylPanelUrl,
     } = body;
 
     const serverAddress = address || ipAddress;
@@ -55,9 +66,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .update(servers)
       .set({
         name,
+        description: description || null,
         ipAddress: serverAddress,
         port,
+        hidePort: hidePort ?? false,
+        modpackName: modpackName || null,
         bluemapUrl: bluemapUrl || null,
+        curseforgeUrl: curseforgeUrl || null,
+        pterodactylServerId: pterodactylServerId || null,
+        pterodactylPanelUrl: pterodactylPanelUrl || null,
         updatedAt: new Date(),
       })
       .where(eq(servers.id, serverId))

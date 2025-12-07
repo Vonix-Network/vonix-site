@@ -117,6 +117,9 @@ export const servers = sqliteTable('servers', {
   orderIndex: integer('order_index').default(0).notNull(),
   // XP Sync API Key - used by the Minecraft mod to authenticate
   apiKey: text('api_key').unique(),
+  // Pterodactyl Panel Integration (optional)
+  pterodactylServerId: text('pterodactyl_server_id'), // Server identifier in Pterodactyl panel
+  pterodactylPanelUrl: text('pterodactyl_panel_url'), // Panel URL (e.g., https://panel.example.com)
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });

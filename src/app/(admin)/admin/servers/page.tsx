@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Server, Plus, Edit, Trash2, RefreshCw,
-  Wifi, WifiOff, Users, Save, X, Key, Copy, Eye, EyeOff
+  Wifi, WifiOff, Users, Save, X, Key, Copy, Eye, EyeOff, Gamepad2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ interface ServerData {
   version: string | null;
   orderIndex: number;
   apiKey: string | null;
+  pterodactylServerId: string | null;
+  pterodactylPanelUrl: string | null;
 }
 
 export default function AdminServersPage() {
@@ -42,6 +44,8 @@ export default function AdminServersPage() {
     modpackName: '',
     bluemapUrl: '',
     curseforgeUrl: '',
+    pterodactylServerId: '',
+    pterodactylPanelUrl: '',
   });
   const [editServerData, setEditServerData] = useState({
     name: '',
@@ -52,6 +56,8 @@ export default function AdminServersPage() {
     modpackName: '',
     bluemapUrl: '',
     curseforgeUrl: '',
+    pterodactylServerId: '',
+    pterodactylPanelUrl: '',
   });
   const [showApiKey, setShowApiKey] = useState<number | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState<number | null>(null);
@@ -139,6 +145,8 @@ export default function AdminServersPage() {
           modpackName: '',
           bluemapUrl: '',
           curseforgeUrl: '',
+          pterodactylServerId: '',
+          pterodactylPanelUrl: '',
         });
       }
     } catch (err) {
@@ -170,6 +178,8 @@ export default function AdminServersPage() {
       modpackName: server.modpackName || '',
       bluemapUrl: server.bluemapUrl || '',
       curseforgeUrl: server.curseforgeUrl || '',
+      pterodactylServerId: server.pterodactylServerId || '',
+      pterodactylPanelUrl: server.pterodactylPanelUrl || '',
     });
   };
 
@@ -303,6 +313,34 @@ export default function AdminServersPage() {
                 />
               </div>
             </div>
+
+            {/* Pterodactyl Panel Integration */}
+            <div className="border-t border-border pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Gamepad2 className="w-4 h-4 text-neon-purple" />
+                Pterodactyl Panel (Optional)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Panel Server ID</label>
+                  <Input
+                    value={newServer.pterodactylServerId}
+                    onChange={(e) => setNewServer({ ...newServer, pterodactylServerId: e.target.value })}
+                    placeholder="e.g., a1b2c3d4"
+                  />
+                  <p className="text-xs text-muted-foreground">The server identifier from your Pterodactyl panel</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Custom Panel URL</label>
+                  <Input
+                    value={newServer.pterodactylPanelUrl}
+                    onChange={(e) => setNewServer({ ...newServer, pterodactylPanelUrl: e.target.value })}
+                    placeholder="https://panel.example.com (optional)"
+                  />
+                  <p className="text-xs text-muted-foreground">Leave empty to use the global panel URL</p>
+                </div>
+              </div>
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setShowAddForm(false)}>
                 Cancel
@@ -405,6 +443,34 @@ export default function AdminServersPage() {
                   onChange={(e) => setEditServerData({ ...editServerData, curseforgeUrl: e.target.value })}
                   placeholder="https://curseforge.com/..."
                 />
+              </div>
+            </div>
+
+            {/* Pterodactyl Panel Integration */}
+            <div className="border-t border-border pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Gamepad2 className="w-4 h-4 text-neon-purple" />
+                Pterodactyl Panel (Optional)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Panel Server ID</label>
+                  <Input
+                    value={editServerData.pterodactylServerId}
+                    onChange={(e) => setEditServerData({ ...editServerData, pterodactylServerId: e.target.value })}
+                    placeholder="e.g., a1b2c3d4"
+                  />
+                  <p className="text-xs text-muted-foreground">The server identifier from your Pterodactyl panel</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Custom Panel URL</label>
+                  <Input
+                    value={editServerData.pterodactylPanelUrl}
+                    onChange={(e) => setEditServerData({ ...editServerData, pterodactylPanelUrl: e.target.value })}
+                    placeholder="https://panel.example.com (optional)"
+                  />
+                  <p className="text-xs text-muted-foreground">Leave empty to use the global panel URL</p>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2">

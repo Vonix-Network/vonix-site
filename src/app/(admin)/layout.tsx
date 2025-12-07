@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { auth } from '../../../auth';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, Users, Server, 
-  Heart, Settings, Shield, BarChart3, Bell, Key, Calendar, Crown, MessageSquare, Activity
+import {
+  LayoutDashboard, Users, Server,
+  Heart, Settings, Shield, BarChart3, Bell, Key, Calendar, Crown, MessageSquare, Activity, Gamepad2
 } from 'lucide-react';
 import { canAccessAdmin } from '@/lib/auth-guard';
 
@@ -22,6 +22,12 @@ const adminNav = [
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
+// Superadmin-only items for Pterodactyl Panel integration
+const superadminNav = [
+  { href: '/admin/panel', icon: Gamepad2, label: 'Server Panel' },
+  { href: '/admin/pterodactyl', icon: Settings, label: 'Pterodactyl Settings' },
+];
+
 export default async function AdminLayout({
   children,
 }: {
@@ -29,13 +35,14 @@ export default async function AdminLayout({
 }) {
   // Use centralized auth guard
   const hasAccess = await canAccessAdmin();
-  
+
   if (!hasAccess) {
     redirect('/login?callbackUrl=/admin&error=AccessDenied');
   }
 
   const session = await auth();
   const user = session?.user as any;
+  const isSuperadmin = user?.role === 'superadmin';
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -64,10 +71,32 @@ export default async function AdminLayout({
               {item.label}
             </Link>
           ))}
+
+          {/* Superadmin-only Pterodactyl section */}
+          {isSuperadmin && (
+            <>
+              <div className="pt-4 pb-2 px-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
+                  <Gamepad2 className="w-3 h-3" />
+                  Pterodactyl
+                </p>
+              </div>
+              {superadminNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-          <Link 
+          <Link
             href="/dashboard"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -102,4 +131,3 @@ export default async function AdminLayout({
     </div>
   );
 }
-

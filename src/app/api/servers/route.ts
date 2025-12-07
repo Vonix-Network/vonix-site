@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
       modpackName,
       bluemapUrl,
       curseforgeUrl,
-      type
+      type,
+      pterodactylServerId,
+      pterodactylPanelUrl,
     } = body;
 
     const serverAddress = address || ipAddress;
@@ -73,6 +75,8 @@ export async function POST(request: NextRequest) {
       modpackName: modpackName || null,
       bluemapUrl: bluemapUrl || null,
       curseforgeUrl: curseforgeUrl || null,
+      pterodactylServerId: pterodactylServerId || null,
+      pterodactylPanelUrl: pterodactylPanelUrl || null,
       status: 'offline',
       playersOnline: 0,
       playersMax: 0,

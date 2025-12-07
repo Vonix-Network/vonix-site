@@ -119,6 +119,8 @@ export async function GET(request: NextRequest) {
         curseforgeUrl: server.curseforgeUrl,
         orderIndex: server.orderIndex,
         apiKey: server.apiKey,
+        pterodactylServerId: server.pterodactylServerId,
+        pterodactylPanelUrl: server.pterodactylPanelUrl,
         // Live status data ONLY (no DB fallbacks for dynamic fields)
         online: data?.online ?? false,
         version,
