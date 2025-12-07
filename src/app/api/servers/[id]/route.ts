@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Map usage of legacy fields to current schema
     const {
-      name, ipAddress, address, port, type
+      name, ipAddress, address, port, type, bluemapUrl
     } = body;
 
     const serverAddress = address || ipAddress;
@@ -57,6 +57,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         name,
         ipAddress: serverAddress,
         port,
+        bluemapUrl: bluemapUrl || null,
         updatedAt: new Date(),
       })
       .where(eq(servers.id, serverId))
