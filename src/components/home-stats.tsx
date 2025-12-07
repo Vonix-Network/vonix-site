@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, Server, Heart, Star } from 'lucide-react';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -18,11 +18,14 @@ interface HomeStatsProps {
 export function HomeStats({ initialData }: HomeStatsProps) {
     const [stats, setStats] = useState<StatsData | null>(initialData || null);
     const [isLoading, setIsLoading] = useState(!initialData);
+    const hasFetched = useRef(false);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('/api/stats/public');
+                const response = await fetch('/api/stats/public', {
+                    cache: 'no-store',
+                });
                 if (response.ok) {
                     const data = await response.json();
                     setStats(data);
@@ -33,8 +36,10 @@ export function HomeStats({ initialData }: HomeStatsProps) {
             }
         };
 
-        // Fetch immediately if no initial data
-        if (!initialData) {
+        // Always fetch fresh data on mount (even if we have initialData)
+        // This ensures the stats are live and not from a cached page render
+        if (!hasFetched.current) {
+            hasFetched.current = true;
             fetchStats();
         }
 
@@ -42,7 +47,7 @@ export function HomeStats({ initialData }: HomeStatsProps) {
         const intervalId = setInterval(fetchStats, 10000);
 
         return () => clearInterval(intervalId);
-    }, [initialData]);
+    }, []);
 
     const statCards = [
         {
@@ -94,4 +99,3 @@ export function HomeStats({ initialData }: HomeStatsProps) {
         </div>
     );
 }
-

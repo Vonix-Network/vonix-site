@@ -24,6 +24,9 @@ import { sql } from 'drizzle-orm';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { HomeStats } from '@/components/home-stats';
 
+// Prevent Next.js from caching this page - stats should always be fresh
+export const dynamic = 'force-dynamic';
+
 async function getHomeStats() {
   try {
     const [userCount, donationStats, serverCount] = await Promise.all([
