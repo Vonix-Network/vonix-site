@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { RankBadge, RoleBadge } from '@/components/rank-badge';
 import { getMinecraftAvatarUrl, getInitials, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -28,6 +29,10 @@ interface ForumPost {
   authorUsername: string;
   authorMinecraft: string | null;
   authorRole: string;
+  authorRankId: string | null;
+  authorRankExpiresAt: string | null;
+  rankName: string | null;
+  rankColor: string | null;
   categoryId: number;
   categoryName: string;
   categorySlug: string;
@@ -41,6 +46,10 @@ interface ForumReply {
   authorUsername: string;
   authorMinecraft: string | null;
   authorRole: string;
+  authorRankId: string | null;
+  authorRankExpiresAt: string | null;
+  rankName: string | null;
+  rankColor: string | null;
 }
 
 export default function ForumPostPage() {
@@ -224,14 +233,20 @@ export default function ForumPostPage() {
               <AvatarFallback>{getInitials(post.authorUsername)}</AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium">{post.authorUsername}</span>
-                <Badge variant={
-                  post.authorRole === 'admin' ? 'neon-pink' :
-                    post.authorRole === 'moderator' ? 'neon-purple' : 'secondary'
-                }>
-                  {post.authorRole}
-                </Badge>
+                {post.authorRole && post.authorRole !== 'user' && (
+                  <RoleBadge role={post.authorRole} size="sm" />
+                )}
+                {post.authorRankId && post.authorRankExpiresAt && new Date(post.authorRankExpiresAt) > new Date() && (
+                  <RankBadge
+                    rank={{
+                      name: post.rankName || 'Supporter',
+                      color: post.rankColor || '#00D9FF',
+                    }}
+                    size="sm"
+                  />
+                )}
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -272,11 +287,20 @@ export default function ForumPostPage() {
                   <AvatarFallback>{getInitials(reply.authorUsername)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="font-medium">{reply.authorUsername}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {reply.authorRole}
-                    </Badge>
+                    {reply.authorRole && reply.authorRole !== 'user' && (
+                      <RoleBadge role={reply.authorRole} size="sm" />
+                    )}
+                    {reply.authorRankId && reply.authorRankExpiresAt && new Date(reply.authorRankExpiresAt) > new Date() && (
+                      <RankBadge
+                        rank={{
+                          name: reply.rankName || 'Supporter',
+                          color: reply.rankColor || '#00D9FF',
+                        }}
+                        size="sm"
+                      />
+                    )}
                     <span className="text-sm text-muted-foreground">
                       {formatRelativeTime(new Date(reply.createdAt))}
                     </span>

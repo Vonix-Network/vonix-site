@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../../auth';
 import { db } from '@/db';
-import { forumPosts, forumReplies, forumCategories, users } from '@/db/schema';
+import { forumPosts, forumReplies, forumCategories, users, donationRanks } from '@/db/schema';
 import { eq, sql, and } from 'drizzle-orm';
 
 export async function GET(
@@ -22,7 +22,7 @@ export async function GET(
       .set({ views: sql`${forumPosts.views} + 1` })
       .where(eq(forumPosts.id, postId));
 
-    // Get post with author and category info
+    // Get post with author and category info (including donation rank)
     const [post] = await db
       .select({
         id: forumPosts.id,
@@ -36,12 +36,17 @@ export async function GET(
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
         authorRole: users.role,
+        authorRankId: users.donationRankId,
+        authorRankExpiresAt: users.rankExpiresAt,
+        rankName: donationRanks.name,
+        rankColor: donationRanks.color,
         categoryId: forumPosts.categoryId,
         categoryName: forumCategories.name,
         categorySlug: forumCategories.slug,
       })
       .from(forumPosts)
       .leftJoin(users, eq(forumPosts.authorId, users.id))
+      .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .leftJoin(forumCategories, eq(forumPosts.categoryId, forumCategories.id))
       .where(eq(forumPosts.id, postId))
       .limit(1);
@@ -50,8 +55,9 @@ export async function GET(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    // Get replies
-    const replies = await db
+    // Create alias for reply author's rank join
+    // We need to get replies with their author's rank info
+    const repliesWithRanks = await db
       .select({
         id: forumReplies.id,
         content: forumReplies.content,
@@ -60,18 +66,24 @@ export async function GET(
         authorUsername: users.username,
         authorMinecraft: users.minecraftUsername,
         authorRole: users.role,
+        authorRankId: users.donationRankId,
+        authorRankExpiresAt: users.rankExpiresAt,
+        rankName: donationRanks.name,
+        rankColor: donationRanks.color,
       })
       .from(forumReplies)
       .leftJoin(users, eq(forumReplies.authorId, users.id))
+      .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id))
       .where(eq(forumReplies.postId, postId))
       .orderBy(forumReplies.createdAt);
 
-    return NextResponse.json({ post, replies });
+    return NextResponse.json({ post, replies: repliesWithRanks });
   } catch (error) {
     console.error('Error fetching forum post:', error);
     return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 });
   }
 }
+
 
 export async function DELETE(
   request: NextRequest,
