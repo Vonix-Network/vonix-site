@@ -201,12 +201,21 @@ async function ServerDetailContent({ serverId }: { serverId: number }) {
                       </a>
                     </Button>
                   </CardHeader>
-                  <CardContent className="h-[480px] p-0 border-t border-border/40">
+                  <CardContent className="h-[480px] p-0 border-t border-border/40 relative">
                     <iframe
                       src={server.bluemapUrl}
                       className="w-full h-full rounded-b-lg border-0"
                       loading="lazy"
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                      allow="fullscreen"
+                      title={`${server.name} World Map`}
                     />
+                    {/* Fallback notice - shown if iframe fails to load */}
+                    <div className="absolute bottom-2 left-2 right-2 text-center">
+                      <p className="text-xs text-muted-foreground/50">
+                        If the map doesn&apos;t load, <a href={server.bluemapUrl} target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">open it in a new tab</a>
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               ) : (

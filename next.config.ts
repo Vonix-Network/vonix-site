@@ -44,8 +44,9 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.stripe.com wss:",
-              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+              "connect-src 'self' https://api.stripe.com wss: https:",
+              // Allow iframes from self, Stripe, and any https source (for BlueMap, Dynmap, etc)
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
