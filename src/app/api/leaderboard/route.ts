@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, serverXp } from '@/db/schema';
+import { users, serverXp, donationRanks } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const type = searchParams.get('type') || 'xp'; // 'xp' or 'playtime'
 
-    // First get all users with their base data
+    // Get all users with their base data and donation rank info
     const usersData = await db
       .select({
         id: users.id,
@@ -23,8 +23,13 @@ export async function GET(request: NextRequest) {
         role: users.role,
         title: users.title,
         avatar: users.avatar,
+        donationRankId: users.donationRankId,
+        rankExpiresAt: users.rankExpiresAt,
+        rankName: donationRanks.name,
+        rankColor: donationRanks.color,
       })
-      .from(users);
+      .from(users)
+      .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id));
 
     // Get playtime per user from serverXp
     const playtimeData = await db
@@ -41,10 +46,20 @@ export async function GET(request: NextRequest) {
       playtimeMap.set(p.userId, p.totalPlaytime || 0);
     });
 
-    // Combine users with their playtime
+    const now = new Date();
+
+    // Combine users with their playtime and filter rank expiration
     const usersWithPlaytime = usersData.map(user => ({
       ...user,
       playtimeSeconds: playtimeMap.get(user.id) || 0,
+      // Only include rank if not expired
+      donationRank: user.donationRankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now
+        ? {
+          id: user.donationRankId,
+          name: user.rankName,
+          color: user.rankColor,
+        }
+        : null,
     }));
 
     // Sort based on type
@@ -66,3 +81,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

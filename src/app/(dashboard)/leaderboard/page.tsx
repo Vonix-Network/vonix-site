@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { RankBadge, RoleBadge } from '@/components/rank-badge';
 import { getMinecraftAvatarUrl, getInitials, formatNumber, formatPlaytime } from '@/lib/utils';
 
 interface LeaderboardPlayer {
@@ -20,6 +21,11 @@ interface LeaderboardPlayer {
   level: number;
   role: string;
   title: string | null;
+  donationRank: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
 }
 
 const getRankIcon = (rank: number) => {
@@ -185,13 +191,19 @@ export default function LeaderboardPage() {
 
                   {/* Player Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">{player.username}</span>
-                      {player.role === 'admin' && (
-                        <Badge variant="neon-pink">Admin</Badge>
+                      {player.role && player.role !== 'user' && (
+                        <RoleBadge role={player.role} size="sm" />
                       )}
-                      {player.role === 'moderator' && (
-                        <Badge variant="neon-purple">Mod</Badge>
+                      {player.donationRank && (
+                        <RankBadge
+                          rank={{
+                            name: player.donationRank.name,
+                            color: player.donationRank.color,
+                          }}
+                          size="sm"
+                        />
                       )}
                     </div>
                     {player.title && (
