@@ -775,9 +775,9 @@ export function PanelClient() {
             setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
             fetchServerResources(); connectConsole(selectedServer);
             fetchPlayers(); // Initial fetch
-            // Start resource polling - will be stopped when SSE connects
-            resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
-            const playerInterval = setInterval(fetchPlayers, 10000); // Every 10 seconds
+            // Start resource polling - every 1s for real-time feel, slows to 3s when SSE connected
+            resourceIntervalRef.current = setInterval(fetchServerResources, 1000);
+            const playerInterval = setInterval(fetchPlayers, 5000); // Every 5 seconds
             return () => {
                 if (resourceIntervalRef.current) clearInterval(resourceIntervalRef.current);
                 clearInterval(playerInterval);
@@ -792,13 +792,13 @@ export function PanelClient() {
     // Keep a slow fallback in case SSE events are buffered by reverse proxies
     useEffect(() => {
         if (wsConnected && resourceIntervalRef.current) {
-            // SSE connected - slow down HTTP polling to 10s as fallback
-            clearInterval(resourceIntervalRef.current);
-            resourceIntervalRef.current = setInterval(fetchServerResources, 10000);
-        } else if (!wsConnected && resourceIntervalRef.current && selectedServer) {
-            // SSE disconnected - resume faster HTTP polling  
+            // SSE connected - slow down HTTP polling to 3s as fallback
             clearInterval(resourceIntervalRef.current);
             resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
+        } else if (!wsConnected && resourceIntervalRef.current && selectedServer) {
+            // SSE disconnected - resume fast HTTP polling (1s)
+            clearInterval(resourceIntervalRef.current);
+            resourceIntervalRef.current = setInterval(fetchServerResources, 1000);
         }
     }, [wsConnected, selectedServer, fetchServerResources]);
 
