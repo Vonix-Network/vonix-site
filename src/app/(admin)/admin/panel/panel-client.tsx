@@ -642,7 +642,7 @@ export default function ServerPanelPage() {
             setWsConnected(false); setWsConnecting(false); setWsError(null);
             setConsoleLines([]); setStatsHistory([]); setResources(null);
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
-            setPlayerData(null);
+            setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
             fetchServerResources(); connectConsole(selectedServer);
             fetchPlayers(); // Initial fetch
             const resourceInterval = setInterval(fetchServerResources, 3000);
@@ -749,87 +749,163 @@ export default function ServerPanelPage() {
                     )}
                 </div>
 
-                {/* Server Status */}
+                {/* Server Stats - Individual Cards like screenshot */}
                 {selectedServer && resources && (
-                    <Card variant="glass" className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <Badge variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}>
-                                {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
-                                {resources.currentState}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{formatUptime(resources.resources.uptime / 1000)}</span>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-muted-foreground">CPU</span><span className="text-yellow-500">{resources.resources.cpuAbsolute.toFixed(1)}%</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">RAM</span><span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Disk</span><span className="text-blue-500">{formatBytes(resources.resources.diskBytes)}</span></div>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1 mt-4">
-                            <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('start')} disabled={actionInProgress !== null || resources.currentState === 'running'}>
-                                {actionInProgress === 'start' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                            </Button>
-                            <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('restart')} disabled={actionInProgress !== null}>
-                                {actionInProgress === 'restart' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                            </Button>
-                            <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('stop')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
-                                {actionInProgress === 'stop' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />}
-                            </Button>
-                            <Button variant="ghost" size="sm" className="px-2 text-error" onClick={() => sendPowerAction('kill')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
-                                <Skull className="w-3 h-3" />
-                            </Button>
-                        </div>
-                    </Card>
-                )}
-
-                {/* Player List - matches stats card styling */}
-                {selectedServer && (
-                    <Card variant="glass" className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-neon-purple" />
-                                <span className="font-semibold text-sm">Players</span>
-                            </div>
-                            {playerData?.players && !playerError && (
-                                <Badge variant={playerData.online ? 'success' : 'secondary'}>
-                                    {playerData.players.online || 0}/{playerData.players.max || 0}
-                                </Badge>
-                            )}
-                            {playerLoading && !playerData && (
-                                <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
-                            )}
-                        </div>
-
-                        {playerError ? (
-                            <p className="text-xs text-error text-center py-2">Unable to load player data</p>
-                        ) : playerLoading && !playerData ? (
-                            <div className="text-xs text-muted-foreground text-center py-2">Loading...</div>
-                        ) : playerData?.players ? (
-                            <>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Online</span>
-                                        <span className="text-neon-purple">{playerData.players.online || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Max</span>
-                                        <span className="text-muted-foreground">{playerData.players.max || 0}</span>
-                                    </div>
+                    <div className="space-y-2 flex-1 overflow-auto">
+                        {/* Address Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-neon-cyan/20 flex items-center justify-center">
+                                    <Globe className="w-5 h-5 text-neon-cyan" />
                                 </div>
-                                {(playerData.players.list?.length || 0) > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-border space-y-1 max-h-24 overflow-auto">
-                                        {playerData.players.list.map((player, i) => (
-                                            <div key={i} className="flex items-center gap-2 text-sm py-0.5">
-                                                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
-                                                <span className="truncate text-xs">{player}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <p className="text-xs text-muted-foreground text-center py-2">No data</p>
-                        )}
-                    </Card>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Address</p>
+                                    <p className="text-sm font-medium text-neon-cyan font-mono">
+                                        {selectedServer.allocation ? `${selectedServer.allocation.ip}:${selectedServer.allocation.port}` : 'N/A'}
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Uptime Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <Clock className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Uptime</p>
+                                    <p className="text-sm font-medium text-blue-400">{formatUptime(resources.resources.uptime / 1000)}</p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* CPU Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                    <Cpu className="w-5 h-5 text-yellow-500" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">CPU Load</p>
+                                    <p className="text-sm font-medium text-yellow-500">{resources.resources.cpuAbsolute.toFixed(2)}%</p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Memory Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                    <Activity className="w-5 h-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Memory</p>
+                                    <p className="text-sm font-medium">
+                                        <span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span>
+                                        {selectedServer.limits?.memory && (
+                                            <span className="text-muted-foreground"> / {selectedServer.limits.memory} MiB</span>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Disk Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <HardDrive className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Disk</p>
+                                    <p className="text-sm font-medium">
+                                        <span className="text-blue-400">{formatBytes(resources.resources.diskBytes)}</span>
+                                        {selectedServer.limits?.disk && (
+                                            <span className="text-muted-foreground"> / {(selectedServer.limits.disk / 1024).toFixed(0)} GiB</span>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Network Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                    <ArrowDown className="w-3 h-3 text-purple-400" />
+                                    <ArrowUp className="w-3 h-3 text-purple-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Network</p>
+                                    <p className="text-sm font-medium">
+                                        <span className="text-purple-400">↓ {formatBytes(resources.resources.networkRxBytes)}</span>
+                                        <span className="text-muted-foreground"> / </span>
+                                        <span className="text-purple-400">↑ {formatBytes(resources.resources.networkTxBytes)}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Players Card */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-pink-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Players Online</p>
+                                    {playerError ? (
+                                        <p className="text-xs text-error">Unable to load</p>
+                                    ) : playerLoading && !playerData ? (
+                                        <p className="text-xs text-muted-foreground">Loading...</p>
+                                    ) : playerData?.players ? (
+                                        <p className="text-sm font-medium text-pink-400">
+                                            {playerData.players.online || 0}
+                                            <span className="text-muted-foreground"> / {playerData.players.max || 0}</span>
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">N/A</p>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Player List */}
+                            {playerData?.players?.list && playerData.players.list.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-border space-y-1 max-h-20 overflow-auto">
+                                    {playerData.players.list.map((player, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-xs">
+                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                                            <span className="truncate">{player}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </Card>
+
+                        {/* Power Controls */}
+                        <Card variant="glass" className="p-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <Badge variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}>
+                                    {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
+                                    {resources.currentState}
+                                </Badge>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1">
+                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('start')} disabled={actionInProgress !== null || resources.currentState === 'running'}>
+                                    {actionInProgress === 'start' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                                </Button>
+                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('restart')} disabled={actionInProgress !== null}>
+                                    {actionInProgress === 'restart' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                                </Button>
+                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('stop')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
+                                    {actionInProgress === 'stop' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="px-2 text-error" onClick={() => sendPowerAction('kill')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
+                                    <Skull className="w-3 h-3" />
+                                </Button>
+                            </div>
+                        </Card>
+                    </div>
                 )}
 
                 {/* Navigation */}
