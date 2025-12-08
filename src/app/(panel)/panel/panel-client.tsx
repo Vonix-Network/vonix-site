@@ -7,7 +7,7 @@ import {
     FolderOpen, Database, Archive, Settings2, ChevronRight, Clock,
     Globe, ArrowDown, ArrowUp, Maximize2, Minimize2, ChevronDown,
     File, Folder, ArrowLeft, Plus, Trash2, Edit, Save, X, Download,
-    Copy, Lock, Unlock, Calendar, Users
+    Copy, Lock, Unlock, Calendar, Users, Menu
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -304,6 +304,7 @@ export function PanelClient() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showServerDropdown, setShowServerDropdown] = useState(false);
     const [statsHistory, setStatsHistory] = useState<StatsHistory[]>([]);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     // Player list state
     const [playerData, setPlayerData] = useState<{ online: boolean; players: { online: number; max: number; list: string[] } } | null>(null);
@@ -760,8 +761,9 @@ export function PanelClient() {
         eventSource.addEventListener('token_expired', () => { eventSource.close(); setTimeout(() => connectConsole(server), 1000); });
     }, [wsConnecting]);
 
-    // Ref to track if polling should continue
+    // Refs to track if polling should continue
     const pollingActiveRef = useRef(false);
+    const graphPollingActiveRef = useRef(false);
     const playerPollingActiveRef = useRef(false);
 
     useEffect(() => {
@@ -769,10 +771,12 @@ export function PanelClient() {
             const currentRef = wsRef.current as any;
             if (currentRef?.close) currentRef.close();
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-            pollingActiveRef.current = false; // Stop any existing polling
+            pollingActiveRef.current = false;
+            graphPollingActiveRef.current = false;
             playerPollingActiveRef.current = false;
             setWsConnected(false); setWsConnecting(false); setWsError(null);
-            setConsoleLines([]); setStatsHistory([]); setResources(null);
+            setConsoleLines([]); setStatsHistory([]);
+            // Don't reset resources to null - keep previous values to prevent flicker
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
             setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
 
@@ -781,7 +785,32 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Resource polling - 3s interval (smooth graphs, rate-limit friendly)
+            // Graph polling - 1s interval (smooth sparkline charts)
+            graphPollingActiveRef.current = true;
+            const pollGraph = async () => {
+                if (!graphPollingActiveRef.current) return;
+                try {
+                    const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.resources) {
+                            setStatsHistory(prev => [...prev, {
+                                timestamp: Date.now(),
+                                cpu: data.resources.resources.cpuAbsolute,
+                                memory: data.resources.resources.memoryBytes,
+                                networkRx: data.resources.resources.networkRxBytes,
+                                networkTx: data.resources.resources.networkTxBytes,
+                            }].slice(-60));
+                        }
+                    }
+                } catch (err) { }
+                if (graphPollingActiveRef.current) {
+                    setTimeout(pollGraph, 1000);
+                }
+            };
+            setTimeout(pollGraph, 1000);
+
+            // Stats polling - 3s interval (sidebar stat cards)
             pollingActiveRef.current = true;
             const pollResources = async () => {
                 if (!pollingActiveRef.current) return;
@@ -792,7 +821,7 @@ export function PanelClient() {
             };
             setTimeout(pollResources, 3000);
 
-            // Player polling - 10s interval (players change infrequently, external API calls)
+            // Player polling - 10s interval (players change infrequently)
             playerPollingActiveRef.current = true;
             const pollPlayers = async () => {
                 if (!playerPollingActiveRef.current) return;
@@ -805,6 +834,7 @@ export function PanelClient() {
 
             return () => {
                 pollingActiveRef.current = false;
+                graphPollingActiveRef.current = false;
                 playerPollingActiveRef.current = false;
                 const ref = wsRef.current as any;
                 if (ref?.close) ref.close();
@@ -874,9 +904,22 @@ export function PanelClient() {
     }
 
     return (
-        <div className="flex h-screen">
-            {/* Stats Sidebar */}
-            <div className="w-72 flex-shrink-0 flex flex-col bg-card/30 border-r border-border p-4 overflow-hidden">
+        <div className="flex h-screen relative">
+            {/* Mobile Sidebar Backdrop */}
+            {mobileSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    onClick={() => setMobileSidebarOpen(false)}
+                />
+            )}
+
+            {/* Stats Sidebar - Hidden on mobile, slide-in overlay when open */}
+            <div className={`
+                fixed md:relative z-50 md:z-auto
+                w-72 flex-shrink-0 flex flex-col bg-card/95 md:bg-card/30 border-r border-border p-4 overflow-hidden
+                h-full transition-transform duration-300 ease-in-out
+                ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
                 {/* Server Selector */}
                 <div className="relative mb-4" ref={dropdownRef}>
                     <button onClick={() => setShowServerDropdown(!showServerDropdown)}
@@ -1147,22 +1190,33 @@ export function PanelClient() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-0">
                 {/* Top Navigation Bar */}
                 <div className="flex items-center gap-1 px-4 py-2 bg-card/30 border-b border-border">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${activeTab === item.id
-                                ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                                }`}
-                        >
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
+                    {/* Mobile Hamburger */}
+                    <button
+                        className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors mr-2"
+                        onClick={() => setMobileSidebarOpen(true)}
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
+
+                    {/* Nav Items - horizontal scroll on mobile */}
+                    <div className="flex items-center gap-1 overflow-x-auto flex-1">
+                        {navItems.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === item.id
+                                    ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-card'
+                                    }`}
+                            >
+                                <item.icon className="w-4 h-4" />
+                                <span className="hidden sm:inline">{item.label}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Content */}
