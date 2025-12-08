@@ -952,8 +952,7 @@ export function PanelClient() {
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
             setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
 
-            // Initial fetches
-            fetchServerResources();
+            // Initial fetches - unified poll will handle resources and graphs together
             connectConsole(selectedServer);
             fetchPlayers();
 
@@ -988,7 +987,7 @@ export function PanelClient() {
                     setTimeout(pollUnified, 1000);
                 }
             };
-            setTimeout(pollUnified, 1000);
+            pollUnified(); // Start immediately for faster initial load
 
             // Player polling - 10s interval (players change infrequently)
             playerPollingActiveRef.current = true;
