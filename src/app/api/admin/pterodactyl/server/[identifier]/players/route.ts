@@ -5,14 +5,12 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ identifier: string }> }
 ) {
-    const permissionResult = await requirePermission('servers:read');
-    if ('error' in permissionResult) {
-        return NextResponse.json({ error: permissionResult.error }, { status: permissionResult.status });
-    }
-
-    const { identifier } = await params;
-
     try {
+        const { error } = await requirePermission('servers:read');
+        if (error) return error;
+
+        const { identifier } = await params;
+
         // Get server details from Pterodactyl to find the IP/port
         const { db } = await import('@/db');
         const { siteSettings } = await import('@/db/schema');
