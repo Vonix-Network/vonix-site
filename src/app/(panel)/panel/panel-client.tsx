@@ -898,13 +898,19 @@ export function PanelClient() {
                     // Handle both nested .resources (custom) and flat (standard Pterodactyl) structures
                     const resources = data.resources || data;
 
+                    // Helper to get value with fallbacks (snake_case, camelCase, nested)
+                    // Pterodactyl stats can be irregular, especially for network
+                    const get = (key: string, alt?: string) => resources[key] || resources[alt || ''] || 0;
+                    const netRx = resources.network_rx_bytes || resources.networkRxBytes || resources.network?.rx_bytes || 0;
+                    const netTx = resources.network_tx_bytes || resources.networkTxBytes || resources.network?.tx_bytes || 0;
+
                     // Always update graph history
                     setStatsHistory(prev => [...prev, {
                         timestamp: Date.now(),
-                        cpu: resources.cpu_absolute,
-                        memory: resources.memory_bytes,
-                        networkRx: resources.network_rx_bytes,
-                        networkTx: resources.network_tx_bytes,
+                        cpu: get('cpu_absolute', 'cpuAbsolute'),
+                        memory: get('memory_bytes', 'memoryBytes'),
+                        networkRx: netRx,
+                        networkTx: netTx,
                     }].slice(-60));
 
                     // Update resources for sidebar (Map snake_case to camelCase and ensure correct structure)
@@ -912,24 +918,24 @@ export function PanelClient() {
                     setResources({
                         object: 'stats',
                         attributes: {
-                            current_state: data.state || resources.state,
+                            current_state: data.state || resources.state || 'running',
                             is_suspended: false,
                             resources: {
-                                memory_bytes: resources.memory_bytes,
-                                cpu_absolute: resources.cpu_absolute,
-                                disk_bytes: resources.disk_bytes,
-                                network_rx_bytes: resources.network_rx_bytes,
-                                network_tx_bytes: resources.network_tx_bytes,
+                                memory_bytes: get('memory_bytes', 'memoryBytes'),
+                                cpu_absolute: get('cpu_absolute', 'cpuAbsolute'),
+                                disk_bytes: get('disk_bytes', 'diskBytes'),
+                                network_rx_bytes: netRx,
+                                network_tx_bytes: netTx,
                                 uptime: resources.uptime || 0
                             }
                         },
                         // The UI accesses resources.resources.* directly, so we provide it here
                         resources: {
-                            memoryBytes: resources.memory_bytes,
-                            cpuAbsolute: resources.cpu_absolute,
-                            diskBytes: resources.disk_bytes,
-                            networkRxBytes: resources.network_rx_bytes,
-                            networkTxBytes: resources.network_tx_bytes,
+                            memoryBytes: get('memory_bytes', 'memoryBytes'),
+                            cpuAbsolute: get('cpu_absolute', 'cpuAbsolute'),
+                            diskBytes: get('disk_bytes', 'diskBytes'),
+                            networkRxBytes: netRx,
+                            networkTxBytes: netTx,
                             uptime: resources.uptime || 0
                         }
                     } as any);
