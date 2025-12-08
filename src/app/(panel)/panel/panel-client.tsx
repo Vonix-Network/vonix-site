@@ -940,7 +940,7 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Unified polling - 1s for both graphs and sidebar stats (in sync)
+            // Unified polling - 2s for both graphs and sidebar stats (in sync)
             graphPollingActiveRef.current = true;
             const pollUnified = async () => {
                 if (!graphPollingActiveRef.current || signal.aborted) return;
@@ -949,7 +949,7 @@ export function PanelClient() {
                     if (res.ok) {
                         const data = await res.json();
                         if (data.resources) {
-                            // Always update graph history (1s)
+                            // Always update graph history (2s)
                             setStatsHistory(prev => [...prev, {
                                 timestamp: Date.now(),
                                 cpu: data.resources.resources.cpuAbsolute,
@@ -968,7 +968,7 @@ export function PanelClient() {
                     }
                 }
                 if (graphPollingActiveRef.current && !signal.aborted) {
-                    setTimeout(pollUnified, 1000);
+                    setTimeout(pollUnified, 2000);
                 }
             };
             pollUnified(); // Start immediately for faster initial load
