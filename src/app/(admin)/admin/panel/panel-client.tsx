@@ -786,37 +786,45 @@ export default function ServerPanelPage() {
                                     <Button variant="ghost" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</Button>
                                 </div>
                             </CardHeader>
-                            <div ref={consoleContainerRef} onScroll={handleConsoleScroll} className="flex-1 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3 max-h-[500px] relative">
-                                {consoleLines.length === 0 ? (
-                                    <div className="text-muted-foreground text-center py-8 space-y-2">
-                                        {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
-                                    </div>
-                                ) : consoleLines.map((line, i) => (
-                                    <div key={i} className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
-                                        dangerouslySetInnerHTML={{
-                                            __html: line.replace(/\x1b\[[0-9;]*m/g, '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\[(INFO|WARN|ERROR|DEBUG)\]/gi, (match) => {
-                                                const level = match.slice(1, -1).toUpperCase();
-                                                const colors: Record<string, string> = { INFO: '#3b82f6', WARN: '#eab308', ERROR: '#ef4444', DEBUG: '#6b7280' };
-                                                return `<span style="color: ${colors[level] || '#9ca3af'}">[${level}]</span>`;
-                                            })
-                                        }} />
-                                ))}
-                                <div ref={consoleEndRef} />
 
-                                {/* Scroll to Bottom Button */}
+                            {/* Console Output - with sticky scroll button */}
+                            <div className="flex-1 relative min-h-[400px]">
+                                <div ref={consoleContainerRef} onScroll={handleConsoleScroll} className="absolute inset-0 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3">
+                                    {consoleLines.length === 0 ? (
+                                        <div className="text-muted-foreground text-center py-8 space-y-2">
+                                            {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
+                                        </div>
+                                    ) : consoleLines.map((line, i) => (
+                                        <div key={i} className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
+                                            dangerouslySetInnerHTML={{
+                                                __html: line.replace(/\x1b\[[0-9;]*m/g, '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\[(INFO|WARN|ERROR|DEBUG)\]/gi, (match) => {
+                                                    const level = match.slice(1, -1).toUpperCase();
+                                                    const colors: Record<string, string> = { INFO: '#3b82f6', WARN: '#eab308', ERROR: '#ef4444', DEBUG: '#6b7280' };
+                                                    return `<span style="color: ${colors[level] || '#9ca3af'}">[${level}]</span>`;
+                                                })
+                                            }} />
+                                    ))}
+                                    <div ref={consoleEndRef} />
+                                </div>
+
+                                {/* Scroll to Bottom Button - positioned outside scroll area */}
                                 {!isAtBottom && (
                                     <button
                                         onClick={scrollToBottom}
-                                        className="absolute bottom-4 right-4 p-2 bg-card/90 hover:bg-card border border-border rounded-full shadow-lg transition-all hover:scale-105"
+                                        className="absolute bottom-4 right-6 z-10 p-3 bg-card hover:bg-neon-cyan/20 border border-border rounded-full shadow-xl transition-all hover:scale-110 hover:border-neon-cyan"
                                         title="Scroll to bottom"
                                     >
-                                        <ArrowDown className="w-4 h-4" />
+                                        <ArrowDown className="w-5 h-5 text-neon-cyan" />
                                         {hasNewLogs && (
-                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-neon-cyan rounded-full animate-pulse" />
+                                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-neon-cyan rounded-full animate-pulse flex items-center justify-center">
+                                                <span className="text-[10px] font-bold text-background">!</span>
+                                            </span>
                                         )}
                                     </button>
                                 )}
                             </div>
+
+                            {/* Command Input */}
                             <div className="p-2 border-t border-border bg-background/50">
                                 <div className="flex gap-2">
                                     <div className="flex-1 relative">
