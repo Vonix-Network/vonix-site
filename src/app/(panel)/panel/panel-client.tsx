@@ -873,6 +873,7 @@ export function PanelClient() {
         if (wsConnecting) return;
         setWsConnecting(true);
         setWsError(null);
+        setConsoleLines([]); // Clear previous logs to prevent duplicates on reconnect
 
         const eventSource = new EventSource(`/api/admin/pterodactyl/server/${server.identifier}/console`);
         wsRef.current = eventSource;
@@ -1559,10 +1560,10 @@ export function PanelClient() {
                                         <div className="flex-1 relative">
                                             <ChevronRight className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neon-cyan" />
                                             <Input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Type a command..."
-                                                onKeyDown={(e) => e.key === 'Enter' && sendConsoleCommand()} disabled={resources?.currentState !== 'running'}
+                                                onKeyDown={(e) => e.key === 'Enter' && sendConsoleCommand()}
                                                 className="pl-8 font-mono text-sm bg-[#0a0a0a] border-border" />
                                         </div>
-                                        <Button variant="gradient" onClick={sendConsoleCommand} disabled={resources?.currentState !== 'running' || !command.trim()}><Send className="w-4 h-4" /></Button>
+                                        <Button variant="gradient" onClick={sendConsoleCommand} disabled={!command.trim()}><Send className="w-4 h-4" /></Button>
                                     </div>
                                 </div>
                             </Card>
