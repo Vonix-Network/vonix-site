@@ -20,10 +20,11 @@ function PresenceProvider({ children }: { children: React.ReactNode }) {
 function FloatingChats() {
   const pathname = usePathname();
 
-  // Don't show floating chats on admin pages
+  // Don't show floating chats on admin or panel pages
   const isAdminPage = pathname?.startsWith('/admin');
+  const isPanelPage = pathname?.startsWith('/panel');
 
-  if (isAdminPage) {
+  if (isAdminPage || isPanelPage) {
     return null;
   }
 
