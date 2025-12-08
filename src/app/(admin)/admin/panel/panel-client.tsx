@@ -789,28 +789,50 @@ export default function ServerPanelPage() {
                                 </div>
                             </div>
                         </Card>
-                        {statsHistory.length > 1 && (
+                        {statsHistory.length > 1 && selectedServer && (
                             <div className="grid grid-cols-3 gap-4 mt-4">
                                 <Card variant="glass" className="p-3">
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-1">
                                         <p className="text-xs text-muted-foreground">CPU Load</p>
-                                        <span className="text-sm font-semibold text-yellow-500">{statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%</span>
+                                        <span className="text-sm font-semibold text-yellow-500">
+                                            {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
+                                            {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal"> / {selectedServer.limits.cpu}%</span> : null}
+                                        </span>
                                     </div>
-                                    <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={50} />
+                                    {selectedServer.limits?.cpu && (
+                                        <div className="h-1 bg-muted rounded-full mb-2 overflow-hidden">
+                                            <div className="h-full bg-yellow-500 transition-all" style={{ width: `${Math.min(100, (statsHistory[statsHistory.length - 1]?.cpu || 0) / selectedServer.limits.cpu * 100)}%` }} />
+                                        </div>
+                                    )}
+                                    <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={40} />
                                 </Card>
                                 <Card variant="glass" className="p-3">
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-1">
                                         <p className="text-xs text-muted-foreground">Memory</p>
-                                        <span className="text-sm font-semibold text-green-500">{formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}</span>
+                                        <span className="text-sm font-semibold text-green-500">
+                                            {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
+                                            {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
+                                        </span>
                                     </div>
-                                    <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={50} />
+                                    {selectedServer.limits?.memory && (
+                                        <div className="h-1 bg-muted rounded-full mb-2 overflow-hidden">
+                                            <div className="h-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (statsHistory[statsHistory.length - 1]?.memory || 0) / (selectedServer.limits.memory * 1024 * 1024) * 100)}%` }} />
+                                        </div>
+                                    )}
+                                    <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={40} />
                                 </Card>
                                 <Card variant="glass" className="p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <p className="text-xs text-muted-foreground">Network</p>
-                                        <span className="text-sm font-semibold text-blue-500">{formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}</span>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="text-xs text-muted-foreground">Network I/O</p>
+                                        <span className="text-sm font-semibold text-blue-500">
+                                            {formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}
+                                        </span>
                                     </div>
-                                    <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" height={50} />
+                                    <div className="flex gap-2 text-xs text-muted-foreground mb-2">
+                                        <span>↓ {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}</span>
+                                        <span>↑ {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}</span>
+                                    </div>
+                                    <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" height={40} />
                                 </Card>
                             </div>
                         )}
