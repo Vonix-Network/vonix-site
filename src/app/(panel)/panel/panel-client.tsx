@@ -890,23 +890,7 @@ export function PanelClient() {
                 }
             } catch (e) { }
         });
-        eventSource.addEventListener('stats', (event) => {
-            try {
-                const stats = JSON.parse(event.data);
-                setResources(prev => prev ? {
-                    ...prev, currentState: stats.state,
-                    resources: {
-                        memoryBytes: stats.memory_bytes || 0, cpuAbsolute: stats.cpu_absolute || 0,
-                        diskBytes: stats.disk_bytes || 0, networkRxBytes: stats.network?.rx_bytes || 0,
-                        networkTxBytes: stats.network?.tx_bytes || 0, uptime: stats.uptime || 0,
-                    },
-                } : null);
-                setStatsHistory(prev => [...prev, {
-                    timestamp: Date.now(), cpu: stats.cpu_absolute || 0, memory: stats.memory_bytes || 0,
-                    networkRx: stats.network?.rx_bytes || 0, networkTx: stats.network?.tx_bytes || 0,
-                }].slice(-60));
-            } catch (e) { }
-        });
+
         eventSource.addEventListener('disconnected', () => {
             setWsConnected(false); setWsConnecting(false); setWsReconnecting(true);
             // Auto-reconnect after 2 seconds
