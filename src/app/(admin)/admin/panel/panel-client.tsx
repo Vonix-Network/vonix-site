@@ -791,9 +791,27 @@ export default function ServerPanelPage() {
                         </Card>
                         {statsHistory.length > 1 && (
                             <div className="grid grid-cols-3 gap-4 mt-4">
-                                <Card variant="glass" className="p-3"><p className="text-xs text-muted-foreground mb-2">CPU Load</p><SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={50} /></Card>
-                                <Card variant="glass" className="p-3"><p className="text-xs text-muted-foreground mb-2">Memory</p><SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={50} /></Card>
-                                <Card variant="glass" className="p-3"><p className="text-xs text-muted-foreground mb-2">Network</p><SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" height={50} /></Card>
+                                <Card variant="glass" className="p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs text-muted-foreground">CPU Load</p>
+                                        <span className="text-sm font-semibold text-yellow-500">{statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%</span>
+                                    </div>
+                                    <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={50} />
+                                </Card>
+                                <Card variant="glass" className="p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs text-muted-foreground">Memory</p>
+                                        <span className="text-sm font-semibold text-green-500">{formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}</span>
+                                    </div>
+                                    <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={50} />
+                                </Card>
+                                <Card variant="glass" className="p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs text-muted-foreground">Network</p>
+                                        <span className="text-sm font-semibold text-blue-500">{formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}</span>
+                                    </div>
+                                    <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" height={50} />
+                                </Card>
                             </div>
                         )}
                     </>
