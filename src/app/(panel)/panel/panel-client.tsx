@@ -201,9 +201,9 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
         );
     }
 
-    const min = Math.min(...data);
+    const min = 0; // Always start at 0
     const max = Math.max(...data);
-    const mid = (min + max) / 2;
+    const mid = max / 2;
     const range = max - min || 1;
 
     const paddingTop = 5;
@@ -320,11 +320,11 @@ function DualSparklineChart({
         );
     }
 
-    // Calculate combined min/max for both datasets
+    // Always start at 0
     const allData = [...data1, ...data2];
-    const min = Math.min(...allData);
+    const min = 0;
     const max = Math.max(...allData);
-    const mid = (min + max) / 2;
+    const mid = max / 2;
     const range = max - min || 1;
 
     const paddingTop = 5;
