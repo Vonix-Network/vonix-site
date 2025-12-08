@@ -1455,16 +1455,20 @@ export function PanelClient() {
                                     </div>
                                 </div>
                             </Card>
-                            {statsHistory.length > 1 && selectedServer && (
+                            {selectedServer && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                     {/* CPU Graph Card */}
                                     <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
                                         <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
                                             <span className="font-medium text-sm">CPU</span>
-                                            <span className="text-yellow-500 font-semibold">
-                                                {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
-                                                {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal text-xs"> / {selectedServer.limits.cpu}%</span> : null}
-                                            </span>
+                                            {statsHistory.length > 0 ? (
+                                                <span className="text-yellow-500 font-semibold">
+                                                    {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
+                                                    {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal text-xs"> / {selectedServer.limits.cpu}%</span> : null}
+                                                </span>
+                                            ) : (
+                                                <span className="h-4 w-16 bg-muted-foreground/20 rounded animate-pulse" />
+                                            )}
                                         </div>
                                         <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} maxLimit={selectedServer.limits?.cpu || 100} />
                                     </div>
@@ -1473,10 +1477,14 @@ export function PanelClient() {
                                     <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
                                         <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
                                             <span className="font-medium text-sm">Memory</span>
-                                            <span className="text-green-500 font-semibold">
-                                                {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
-                                                {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal text-xs"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
-                                            </span>
+                                            {statsHistory.length > 0 ? (
+                                                <span className="text-green-500 font-semibold">
+                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
+                                                    {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal text-xs"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
+                                                </span>
+                                            ) : (
+                                                <span className="h-4 w-20 bg-muted-foreground/20 rounded animate-pulse" />
+                                            )}
                                         </div>
                                         <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} maxLimit={selectedServer.limits?.memory ? selectedServer.limits.memory * 1024 * 1024 : undefined} />
                                     </div>
@@ -1485,16 +1493,20 @@ export function PanelClient() {
                                     <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
                                         <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
                                             <span className="font-medium text-sm">Network</span>
-                                            <div className="flex items-center gap-3">
-                                                <span className="flex items-center gap-1 text-cyan-400 text-sm">
-                                                    <ArrowDown className="w-3.5 h-3.5" />
-                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-yellow-500 text-sm">
-                                                    <ArrowUp className="w-3.5 h-3.5" />
-                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}
-                                                </span>
-                                            </div>
+                                            {statsHistory.length > 0 ? (
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex items-center gap-1 text-cyan-400 text-sm">
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                        {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-yellow-500 text-sm">
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                        {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="h-4 w-24 bg-muted-foreground/20 rounded animate-pulse" />
+                                            )}
                                         </div>
                                         <DualSparklineChart
                                             data1={statsHistory.map(s => s.networkRx)}
