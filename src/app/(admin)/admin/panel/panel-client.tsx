@@ -240,6 +240,11 @@ export default function ServerPanelPage() {
     const consoleContainerRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Console scroll tracking
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    const [hasNewLogs, setHasNewLogs] = useState(false);
+    const isAtBottomRef = useRef(true); // Ref for use in callbacks
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -250,14 +255,29 @@ export default function ServerPanelPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Console scroll handling
+    const handleConsoleScroll = useCallback(() => {
+        if (!consoleContainerRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = consoleContainerRef.current;
+        const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+        setIsAtBottom(atBottom);
+        isAtBottomRef.current = atBottom;
+        if (atBottom) setHasNewLogs(false);
+    }, []);
+
+    const scrollToBottom = useCallback(() => {
+        consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setHasNewLogs(false);
+        setIsAtBottom(true);
+        isAtBottomRef.current = true;
+    }, []);
+
+    // Auto-scroll when new logs arrive (only if user is at bottom)
     useEffect(() => {
-        if (consoleContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = consoleContainerRef.current;
-            if (scrollHeight - scrollTop - clientHeight < 100) {
-                consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }
+        if (isAtBottom && consoleContainerRef.current) {
+            consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [consoleLines]);
+    }, [consoleLines, isAtBottom]);
 
     useEffect(() => {
         fetchServers();
@@ -555,7 +575,13 @@ export default function ServerPanelPage() {
         eventSource.addEventListener('output', (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.line) setConsoleLines(prev => [...prev, data.line].slice(-500));
+                if (data.line) {
+                    setConsoleLines(prev => [...prev, data.line].slice(-500));
+                    // If user is not at bottom, show new logs indicator
+                    if (!isAtBottomRef.current) {
+                        setHasNewLogs(true);
+                    }
+                }
             } catch (e) { }
         });
         eventSource.addEventListener('stats', (event) => {
@@ -760,7 +786,7 @@ export default function ServerPanelPage() {
                                     <Button variant="ghost" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</Button>
                                 </div>
                             </CardHeader>
-                            <div ref={consoleContainerRef} className="flex-1 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3 max-h-[500px]">
+                            <div ref={consoleContainerRef} onScroll={handleConsoleScroll} className="flex-1 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3 max-h-[500px] relative">
                                 {consoleLines.length === 0 ? (
                                     <div className="text-muted-foreground text-center py-8 space-y-2">
                                         {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
@@ -776,6 +802,20 @@ export default function ServerPanelPage() {
                                         }} />
                                 ))}
                                 <div ref={consoleEndRef} />
+
+                                {/* Scroll to Bottom Button */}
+                                {!isAtBottom && (
+                                    <button
+                                        onClick={scrollToBottom}
+                                        className="absolute bottom-4 right-4 p-2 bg-card/90 hover:bg-card border border-border rounded-full shadow-lg transition-all hover:scale-105"
+                                        title="Scroll to bottom"
+                                    >
+                                        <ArrowDown className="w-4 h-4" />
+                                        {hasNewLogs && (
+                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-neon-cyan rounded-full animate-pulse" />
+                                        )}
+                                    </button>
+                                )}
                             </div>
                             <div className="p-2 border-t border-border bg-background/50">
                                 <div className="flex gap-2">
