@@ -128,14 +128,24 @@ function SparklineChart({ data, color, height = 60 }: { data: number[]; color: s
             </svg>
         );
     }
-    const max = Math.max(...data, 1);
+
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1; // Avoid division by zero if all values are the same
+    const padding = height * 0.1; // 10% padding top and bottom
+    const chartHeight = height - (padding * 2);
     const width = 100;
+
     const points = data.map((value, i) => {
         const x = (i / (data.length - 1)) * width;
-        const y = height - (value / max) * height;
+        // Normalize value to 0-1 range, then scale to chart height with padding
+        const normalized = (value - min) / range;
+        const y = padding + chartHeight - (normalized * chartHeight);
         return `${x},${y}`;
     }).join(' ');
+
     const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+
     return (
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ height }}>
             <defs>
@@ -145,7 +155,7 @@ function SparklineChart({ data, color, height = 60 }: { data: number[]; color: s
                 </linearGradient>
             </defs>
             <polygon points={`0,${height} ${points} ${width},${height}`} fill={`url(#${gradientId})`} />
-            <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
