@@ -1287,7 +1287,7 @@ export function PanelClient() {
                                 </div>
                             </Card>
                             {statsHistory.length > 1 && selectedServer && (
-                                <div className="grid grid-cols-3 gap-4 mt-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                     <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
                                         <div className="p-3 pb-0 h-[50px]">
                                             <div className="flex items-center justify-between mb-1">
