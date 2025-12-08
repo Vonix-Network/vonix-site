@@ -957,8 +957,7 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Unified polling - 1s for graphs, also updates resources every 3rd call (3s)
-            let pollCount = 0;
+            // Unified polling - 1s for both graphs and sidebar stats (in sync)
             graphPollingActiveRef.current = true;
             const pollUnified = async () => {
                 if (!graphPollingActiveRef.current || signal.aborted) return;
@@ -976,12 +975,8 @@ export function PanelClient() {
                                 networkTx: data.resources.resources.networkTxBytes,
                             }].slice(-60));
 
-                            // Update resources via HTTP only when SSE isn't connected (SSE provides real-time stats)
-                            // This serves as a fallback when SSE is disconnected
-                            if (pollCount % 2 === 0 && !wsRef.current) {
-                                setResources(data.resources);
-                            }
-                            pollCount++;
+                            // Always update resources to keep sidebar in sync with graphs
+                            setResources(data.resources);
                         }
                     }
                 } catch (err) {
