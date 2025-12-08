@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, useId, memo } from 'react';
 import {
     Server, RefreshCw, Play, Square, RotateCcw, Skull,
     Cpu, HardDrive, Activity, Wifi, WifiOff, Terminal, Send,
@@ -120,8 +120,65 @@ function getTimeAgo(dateStr: string): string {
     return `${Math.floor(seconds / 2592000)} months ago`;
 }
 
+// Pre-compiled regex patterns for console log coloring (performance optimization)
+const CONSOLE_REGEXES = {
+    ansiCodes: /\x1b\[[0-9;]*m/g,
+    timestamp: /\[(\d{2}:\d{2}:\d{2})\]/g,
+    thread: /\[(Server thread|Async[^\]]+|User Authenticator|Netty[^\]]+|Worker[^\]]+)[^\]]*\]/gi,
+    info: /\[INFO\]/gi,
+    warn: /\[WARN(?:ING)?\]/gi,
+    error: /\[ERROR\]/gi,
+    debug: /\[DEBUG\]/gi,
+    plugin: /\[([A-Z][a-zA-Z0-9_-]+)\]:/g,
+    success: /\b(Done|Success(?:fully)?|Loaded|Enabled|Started|Complete(?:d)?|joined|authenticated)\b/gi,
+    warning: /\b(Warning|Deprecated|Slow|Lag(?:ging)?|overloaded?|Can't keep up)\b/gi,
+    errorKeyword: /\b(Error|Failed|Exception|Crash(?:ed)?|Lost connection|Disconnected|kicked|banned)\b/gi,
+    player: /\b([A-Z][a-z]+(?:[A-Z][a-z]+)*)\s+(joined|left|authenticated|logged in)/gi,
+    uuid: /\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/gi,
+    ip: /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g,
+    units: /\b(\d+(?:\.\d+)?)\s*(MiB|GiB|KiB|MB|GB|KB|ms|ticks?)\b/gi,
+    path: /([a-zA-Z]:[\\\/][^\s]+|\/[^\s]+\.[a-zA-Z0-9]+)/g,
+};
+
+// Format console line with syntax highlighting (called once per line, memoized via React.memo)
+function formatConsoleLine(line: string): string {
+    let coloredLine = line
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(CONSOLE_REGEXES.ansiCodes, '');
+
+    coloredLine = coloredLine
+        .replace(CONSOLE_REGEXES.timestamp, '<span style="color: #64748b">[$1]</span>')
+        .replace(CONSOLE_REGEXES.thread, '<span style="color: #475569">$&</span>')
+        .replace(CONSOLE_REGEXES.info, '<span style="color: #06b6d4; font-weight: 500">[INFO]</span>')
+        .replace(CONSOLE_REGEXES.warn, '<span style="color: #eab308; font-weight: 500">[WARN]</span>')
+        .replace(CONSOLE_REGEXES.error, '<span style="color: #ef4444; font-weight: 500">[ERROR]</span>')
+        .replace(CONSOLE_REGEXES.debug, '<span style="color: #6b7280; font-weight: 500">[DEBUG]</span>')
+        .replace(CONSOLE_REGEXES.plugin, '<span style="color: #a855f7">[$1]</span>:')
+        .replace(CONSOLE_REGEXES.success, '<span style="color: #22c55e">$1</span>')
+        .replace(CONSOLE_REGEXES.warning, '<span style="color: #f59e0b">$1</span>')
+        .replace(CONSOLE_REGEXES.errorKeyword, '<span style="color: #f87171">$1</span>')
+        .replace(CONSOLE_REGEXES.player, '<span style="color: #8b5cf6">$1</span> $2')
+        .replace(CONSOLE_REGEXES.uuid, '<span style="color: #475569">$1</span>')
+        .replace(CONSOLE_REGEXES.ip, '<span style="color: #64748b">$1</span>')
+        .replace(CONSOLE_REGEXES.units, '<span style="color: #60a5fa">$1</span> <span style="color: #7dd3fc">$2</span>')
+        .replace(CONSOLE_REGEXES.path, '<span style="color: #94a3b8">$1</span>');
+
+    return coloredLine;
+}
+
+// Memoized console line component - only re-renders when line content changes
+const ConsoleLine = memo(({ line }: { line: string }) => (
+    <div
+        className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
+        dangerouslySetInnerHTML={{ __html: formatConsoleLine(line) }}
+    />
+));
+ConsoleLine.displayName = 'ConsoleLine';
+
 function SparklineChart({ data, color, height = 140, formatValue }: { data: number[]; color: string; height?: number; formatValue?: (v: number) => string }) {
     const formatter = formatValue || ((v: number) => v.toFixed(0));
+    // Use stable ID instead of random - prevents unnecessary SVG re-renders
+    const gradientId = useId();
 
     if (data.length < 2) {
         return (
@@ -160,8 +217,6 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
         const y = paddingTop + chartHeight - (normalized * chartHeight);
         return `${x},${y}`;
     }).join(' ');
-
-    const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
 
     // Grid lines at min (100), mid (50), max (0) Y positions
     const gridLines = [
@@ -277,25 +332,30 @@ export function PanelClient() {
     const [showNewBackup, setShowNewBackup] = useState(false);
     const [backupTab, setBackupTab] = useState<'user' | 'system'>('user');
 
-    // Computed backup categories
-    // User backups have human-readable names, system backups have hash-like or empty names
-    const userBackups = backups.filter(b => b.name && !/^[a-f0-9]{32,}$/i.test(b.name));
-    const systemBackups = backups.filter(b => !b.name || /^[a-f0-9]{32,}$/i.test(b.name));
+    // Memoized backup categorization - only recalculates when backups array changes
+    const { userBackups, systemBackups, hourlyBackups, weeklyBackups, dailyBackups } = useMemo(() => {
+        const now = Date.now();
+        // User backups have human-readable names, system backups have hash-like or empty names
+        const user = backups.filter(b => b.name && !/^[a-f0-9]{32,}$/i.test(b.name));
+        const system = backups.filter(b => !b.name || /^[a-f0-9]{32,}$/i.test(b.name));
 
-    // Categorize system backups by age
-    const now = Date.now();
-    const hourlyBackups = systemBackups.filter(b => {
-        const age = now - new Date(b.createdAt).getTime();
-        return age < 24 * 60 * 60 * 1000; // Last 24 hours
-    });
-    const weeklyBackups = systemBackups.filter(b => {
-        const age = now - new Date(b.createdAt).getTime();
-        return age >= 24 * 60 * 60 * 1000 && age < 7 * 24 * 60 * 60 * 1000; // 1-7 days
-    });
-    const dailyBackups = systemBackups.filter(b => {
-        const age = now - new Date(b.createdAt).getTime();
-        return age >= 7 * 24 * 60 * 60 * 1000; // Older than 7 days
-    });
+        return {
+            userBackups: user,
+            systemBackups: system,
+            hourlyBackups: system.filter(b => {
+                const age = now - new Date(b.createdAt).getTime();
+                return age < 24 * 60 * 60 * 1000; // Last 24 hours
+            }),
+            weeklyBackups: system.filter(b => {
+                const age = now - new Date(b.createdAt).getTime();
+                return age >= 24 * 60 * 60 * 1000 && age < 7 * 24 * 60 * 60 * 1000; // 1-7 days
+            }),
+            dailyBackups: system.filter(b => {
+                const age = now - new Date(b.createdAt).getTime();
+                return age >= 7 * 24 * 60 * 60 * 1000; // Older than 7 days
+            }),
+        };
+    }, [backups]);
 
     // Startup state
     const [startupVariables, setStartupVariables] = useState<StartupVariable[]>([]);
@@ -700,21 +760,26 @@ export function PanelClient() {
         eventSource.addEventListener('token_expired', () => { eventSource.close(); setTimeout(() => connectConsole(server), 1000); });
     }, [wsConnecting]);
 
+    // Ref to track resource polling interval for smart start/stop
+    const resourceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
         if (selectedServer) {
             const currentRef = wsRef.current as any;
             if (currentRef?.close) currentRef.close();
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (resourceIntervalRef.current) clearInterval(resourceIntervalRef.current);
             setWsConnected(false); setWsConnecting(false); setWsError(null);
             setConsoleLines([]); setStatsHistory([]); setResources(null);
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
             setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
             fetchServerResources(); connectConsole(selectedServer);
             fetchPlayers(); // Initial fetch
-            const resourceInterval = setInterval(fetchServerResources, 3000);
+            // Start resource polling - will be stopped when SSE connects
+            resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
             const playerInterval = setInterval(fetchPlayers, 10000); // Every 10 seconds
             return () => {
-                clearInterval(resourceInterval);
+                if (resourceIntervalRef.current) clearInterval(resourceIntervalRef.current);
                 clearInterval(playerInterval);
                 const ref = wsRef.current as any;
                 if (ref?.close) ref.close();
@@ -722,6 +787,19 @@ export function PanelClient() {
             };
         }
     }, [selectedServer]);
+
+    // Smart polling: Stop HTTP polling when SSE is connected (SSE provides stats events)
+    // Resume polling when SSE disconnects
+    useEffect(() => {
+        if (wsConnected && resourceIntervalRef.current) {
+            // SSE connected - stop redundant HTTP polling
+            clearInterval(resourceIntervalRef.current);
+            resourceIntervalRef.current = null;
+        } else if (!wsConnected && !resourceIntervalRef.current && selectedServer) {
+            // SSE disconnected - resume HTTP polling as fallback
+            resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
+        }
+    }, [wsConnected, selectedServer, fetchServerResources]);
 
     const sendPowerAction = async (action: 'start' | 'stop' | 'restart' | 'kill') => {
         if (!selectedServer) return;
@@ -1074,56 +1152,9 @@ export function PanelClient() {
                                             <div className="text-muted-foreground text-center py-8 space-y-2">
                                                 {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
                                             </div>
-                                        ) : consoleLines.map((line, i) => {
-                                            // Enhanced log coloring
-                                            let coloredLine = line
-                                                .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                                                .replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
-
-                                            // Timestamps [HH:MM:SS]
-                                            coloredLine = coloredLine.replace(/\[(\d{2}:\d{2}:\d{2})\]/g, '<span style="color: #64748b">[$1]</span>');
-
-                                            // Thread names [Server thread/INFO] or [Async Chat Thread]
-                                            coloredLine = coloredLine.replace(/\[(Server thread|Async[^\]]+|User Authenticator|Netty[^\]]+|Worker[^\]]+)[^\]]*\]/gi, '<span style="color: #475569">$&</span>');
-
-                                            // Log levels with neon theme colors
-                                            coloredLine = coloredLine.replace(/\[INFO\]/gi, '<span style="color: #06b6d4; font-weight: 500">[INFO]</span>');
-                                            coloredLine = coloredLine.replace(/\[WARN(?:ING)?\]/gi, '<span style="color: #eab308; font-weight: 500">[WARN]</span>');
-                                            coloredLine = coloredLine.replace(/\[ERROR\]/gi, '<span style="color: #ef4444; font-weight: 500">[ERROR]</span>');
-                                            coloredLine = coloredLine.replace(/\[DEBUG\]/gi, '<span style="color: #6b7280; font-weight: 500">[DEBUG]</span>');
-
-                                            // Plugin/Mod names in square brackets (after thread, before colon)
-                                            coloredLine = coloredLine.replace(/\[([A-Z][a-zA-Z0-9_-]+)\]:/g, '<span style="color: #a855f7">[$1]</span>:');
-
-                                            // Success keywords
-                                            coloredLine = coloredLine.replace(/\b(Done|Success(?:fully)?|Loaded|Enabled|Started|Complete(?:d)?|joined|authenticated)\b/gi, '<span style="color: #22c55e">$1</span>');
-
-                                            // Warning keywords
-                                            coloredLine = coloredLine.replace(/\b(Warning|Deprecated|Slow|Lag(?:ging)?|overloaded?|Can't keep up)\b/gi, '<span style="color: #f59e0b">$1</span>');
-
-                                            // Error keywords
-                                            coloredLine = coloredLine.replace(/\b(Error|Failed|Exception|Crash(?:ed)?|Lost connection|Disconnected|kicked|banned)\b/gi, '<span style="color: #f87171">$1</span>');
-
-                                            // Player names (capitalized words often player names)
-                                            coloredLine = coloredLine.replace(/\b([A-Z][a-z]+(?:[A-Z][a-z]+)*)\s+(joined|left|authenticated|logged in)/gi, '<span style="color: #8b5cf6">$1</span> $2');
-
-                                            // UUIDs
-                                            coloredLine = coloredLine.replace(/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/gi, '<span style="color: #475569">$1</span>');
-
-                                            // IP addresses
-                                            coloredLine = coloredLine.replace(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g, '<span style="color: #64748b">$1</span>');
-
-                                            // Numbers (file sizes, counts, etc.)
-                                            coloredLine = coloredLine.replace(/\b(\d+(?:\.\d+)?)\s*(MiB|GiB|KiB|MB|GB|KB|ms|ticks?)\b/gi, '<span style="color: #60a5fa">$1</span> <span style="color: #7dd3fc">$2</span>');
-
-                                            // File paths
-                                            coloredLine = coloredLine.replace(/([a-zA-Z]:[\\\/][^\s]+|\/[^\s]+\.[a-zA-Z0-9]+)/g, '<span style="color: #94a3b8">$1</span>');
-
-                                            return (
-                                                <div key={i} className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
-                                                    dangerouslySetInnerHTML={{ __html: coloredLine }} />
-                                            );
-                                        })}
+                                        ) : consoleLines.map((line, i) => (
+                                            <ConsoleLine key={i} line={line} />
+                                        ))}
                                         <div ref={consoleEndRef} />
                                     </div>
 

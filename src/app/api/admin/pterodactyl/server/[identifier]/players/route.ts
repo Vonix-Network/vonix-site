@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth-guard';
+import { getGlobalPterodactylConfig } from '@/lib/pterodactyl';
 
 export async function GET(
     request: NextRequest,
@@ -11,28 +12,18 @@ export async function GET(
 
         const { identifier } = await params;
 
-        // Get server details from Pterodactyl to find the IP/port
-        const { db } = await import('@/db');
-        const { siteSettings } = await import('@/db/schema');
-        const { eq } = await import('drizzle-orm');
-
-        const panelUrlSetting = await db.query.siteSettings.findFirst({
-            where: eq(siteSettings.key, 'pterodactyl_panel_url'),
-        });
-        const apiKeySetting = await db.query.siteSettings.findFirst({
-            where: eq(siteSettings.key, 'pterodactyl_api_key'),
-        });
-
-        if (!panelUrlSetting?.value || !apiKeySetting?.value) {
+        // Use cached config helper instead of inline DB queries
+        const config = await getGlobalPterodactylConfig();
+        if (!config) {
             return NextResponse.json({ error: 'Pterodactyl not configured' }, { status: 400 });
         }
 
-        const panelUrl = panelUrlSetting.value.replace(/\/$/, '');
+        const panelUrl = config.panelUrl.replace(/\/$/, '');
 
         // Fetch server details to get allocation
         const serverRes = await fetch(`${panelUrl}/api/client/servers/${identifier}`, {
             headers: {
-                'Authorization': `Bearer ${apiKeySetting.value}`,
+                'Authorization': `Bearer ${config.apiKey}`,
                 'Accept': 'application/json',
             },
         });

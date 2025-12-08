@@ -14,6 +14,19 @@ export interface PterodactylConfig {
     apiKey: string;
 }
 
+// Cache config for 5 minutes (it rarely changes during a session)
+let pterodactylConfigCache: PterodactylConfig | null = null;
+let configCacheTimestamp = 0;
+const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Clear the Pterodactyl config cache (call when config is updated)
+ */
+export function clearPterodactylConfigCache(): void {
+    pterodactylConfigCache = null;
+    configCacheTimestamp = 0;
+}
+
 export interface ServerResources {
     currentState: 'running' | 'starting' | 'stopping' | 'offline';
     isSuspended: boolean;
@@ -53,8 +66,16 @@ export type PowerAction = 'start' | 'stop' | 'restart' | 'kill';
 
 /**
  * Get the global Pterodactyl API configuration from site settings
+ * Uses in-memory caching to reduce database queries
  */
 export async function getGlobalPterodactylConfig(): Promise<PterodactylConfig | null> {
+    const now = Date.now();
+
+    // Return cached config if still valid
+    if (pterodactylConfigCache && (now - configCacheTimestamp) < CONFIG_CACHE_TTL) {
+        return pterodactylConfigCache;
+    }
+
     const [panelUrlSetting, apiKeySetting] = await Promise.all([
         db.query.siteSettings.findFirst({
             where: eq(siteSettings.key, 'pterodactyl_panel_url'),
@@ -65,13 +86,17 @@ export async function getGlobalPterodactylConfig(): Promise<PterodactylConfig | 
     ]);
 
     if (!panelUrlSetting?.value || !apiKeySetting?.value) {
+        pterodactylConfigCache = null;
         return null;
     }
 
-    return {
+    pterodactylConfigCache = {
         panelUrl: panelUrlSetting.value,
         apiKey: apiKeySetting.value,
     };
+    configCacheTimestamp = now;
+
+    return pterodactylConfigCache;
 }
 
 /**
@@ -120,6 +145,9 @@ export async function saveGlobalPterodactylConfig(
             isPublic: false,
         });
     }
+
+    // Clear cache so new config is used on next request
+    clearPterodactylConfigCache();
 }
 
 /**
