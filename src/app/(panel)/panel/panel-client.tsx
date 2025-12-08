@@ -781,27 +781,27 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Resource polling - recursive setTimeout for reliable 2s timing
+            // Resource polling - 3s interval (smooth graphs, rate-limit friendly)
             pollingActiveRef.current = true;
             const pollResources = async () => {
                 if (!pollingActiveRef.current) return;
                 await fetchServerResources();
                 if (pollingActiveRef.current) {
-                    setTimeout(pollResources, 2000);
+                    setTimeout(pollResources, 3000);
                 }
             };
-            setTimeout(pollResources, 2000);
+            setTimeout(pollResources, 3000);
 
-            // Player polling - every 5 seconds
+            // Player polling - 10s interval (players change infrequently, external API calls)
             playerPollingActiveRef.current = true;
             const pollPlayers = async () => {
                 if (!playerPollingActiveRef.current) return;
                 await fetchPlayers();
                 if (playerPollingActiveRef.current) {
-                    setTimeout(pollPlayers, 5000);
+                    setTimeout(pollPlayers, 10000);
                 }
             };
-            setTimeout(pollPlayers, 5000);
+            setTimeout(pollPlayers, 10000);
 
             return () => {
                 pollingActiveRef.current = false;
@@ -814,7 +814,7 @@ export function PanelClient() {
     }, [selectedServer]);
 
     // Note: SSE provides real-time stats updates when connected
-    // HTTP polling at 2s provides consistent fallback regardless of SSE state
+    // HTTP polling at 3s provides consistent fallback regardless of SSE state
 
     const sendPowerAction = async (action: 'start' | 'stop' | 'restart' | 'kill') => {
         if (!selectedServer) return;
