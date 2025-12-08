@@ -891,6 +891,38 @@ export function PanelClient() {
             } catch (e) { }
         });
 
+        eventSource.addEventListener('stats', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data) {
+                    // Always update graph history
+                    setStatsHistory(prev => [...prev, {
+                        timestamp: Date.now(),
+                        cpu: data.resources.cpu_absolute,
+                        memory: data.resources.memory_bytes,
+                        networkRx: data.resources.network_rx_bytes,
+                        networkTx: data.resources.network_tx_bytes,
+                    }].slice(-60));
+
+                    // Update resources for sidebar
+                    setResources({
+                        attributes: {
+                            current_state: data.state,
+                            is_suspended: false,
+                            resources: {
+                                memory_bytes: data.resources.memory_bytes,
+                                cpu_absolute: data.resources.cpu_absolute,
+                                disk_bytes: data.resources.disk_bytes,
+                                network_rx_bytes: data.resources.network_rx_bytes,
+                                network_tx_bytes: data.resources.network_tx_bytes,
+                                uptime: data.resources.uptime
+                            }
+                        }
+                    } as any);
+                }
+            } catch (e) { }
+        });
+
 
         eventSource.addEventListener('disconnected', () => {
             setWsConnected(false); setWsConnecting(false); setWsReconnecting(true);
@@ -913,10 +945,16 @@ export function PanelClient() {
         });
     }, [wsConnecting]);
 
-    // Refs to track if polling should continue
+    // Refs to track state for polling loops without dependencies
     const pollingActiveRef = useRef(false);
     const graphPollingActiveRef = useRef(false);
     const playerPollingActiveRef = useRef(false);
+    const wsConnectedRef = useRef(false);
+
+    // Sync wsConnected state to ref
+    useEffect(() => {
+        wsConnectedRef.current = wsConnected;
+    }, [wsConnected]);
 
     useEffect(() => {
         if (selectedServer) {
@@ -942,32 +980,36 @@ export function PanelClient() {
             fetchPlayers();
 
             // Unified polling - 3s interval (Start-to-Start timing)
+            // Start immediately, but will SKIP fetching if SSE is connected
             graphPollingActiveRef.current = true;
             const pollUnified = async () => {
                 if (!graphPollingActiveRef.current || signal.aborted) return;
                 const startTime = Date.now(); // Capture start time for latency compensation
 
-                try {
-                    const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`, { signal });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.resources) {
-                            // Always update graph history (3s)
-                            setStatsHistory(prev => [...prev, {
-                                timestamp: Date.now(),
-                                cpu: data.resources.resources.cpuAbsolute,
-                                memory: data.resources.resources.memoryBytes,
-                                networkRx: data.resources.resources.networkRxBytes,
-                                networkTx: data.resources.resources.networkTxBytes,
-                            }].slice(-60));
+                // Conditional Polling: Only fetch if SSE is NOT connected
+                if (!wsConnectedRef.current) {
+                    try {
+                        const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`, { signal });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.resources) {
+                                // Always update graph history (3s)
+                                setStatsHistory(prev => [...prev, {
+                                    timestamp: Date.now(),
+                                    cpu: data.resources.resources.cpuAbsolute,
+                                    memory: data.resources.resources.memoryBytes,
+                                    networkRx: data.resources.resources.networkRxBytes,
+                                    networkTx: data.resources.resources.networkTxBytes,
+                                }].slice(-60));
 
-                            // Always update resources to keep sidebar in sync with graphs
-                            setResources(data.resources);
+                                // Always update resources to keep sidebar in sync with graphs
+                                setResources(data.resources);
+                            }
                         }
-                    }
-                } catch (err) {
-                    if ((err as Error).name !== 'AbortError') {
-                        // Only log non-abort errors
+                    } catch (err) {
+                        if ((err as Error).name !== 'AbortError') {
+                            // Only log non-abort errors
+                        }
                     }
                 }
 
@@ -978,7 +1020,7 @@ export function PanelClient() {
                     setTimeout(pollUnified, delay);
                 }
             };
-            pollUnified(); // Start immediately for faster initial load
+            pollUnified(); // Start immediately
 
             // Player polling - 10s interval (players change infrequently)
             playerPollingActiveRef.current = true;
