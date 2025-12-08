@@ -909,7 +909,7 @@ export function PanelClient() {
                 </div>
 
                 {/* Server Stats Cards - Centered vertically */}
-                {selectedServer && resources && (
+                {selectedServer && (
                     <div className="flex-1 flex flex-col justify-center overflow-auto pr-1">
                         <div className="space-y-2">
                             {/* Address Card */}
@@ -935,7 +935,9 @@ export function PanelClient() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Uptime</p>
-                                        <p className="text-sm font-medium text-blue-400">{formatUptime(resources.resources.uptime / 1000)}</p>
+                                        <p className="text-sm font-medium text-blue-400">
+                                            {resources ? formatUptime(resources.resources.uptime / 1000) : <span className="animate-pulse">--:--:--</span>}
+                                        </p>
                                     </div>
                                 </div>
                             </Card>
@@ -948,7 +950,9 @@ export function PanelClient() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wide">CPU Load</p>
-                                        <p className="text-sm font-medium text-yellow-500">{resources.resources.cpuAbsolute.toFixed(2)}%</p>
+                                        <p className="text-sm font-medium text-yellow-500">
+                                            {resources ? `${resources.resources.cpuAbsolute.toFixed(2)}%` : <span className="animate-pulse">--.--</span>}
+                                        </p>
                                     </div>
                                 </div>
                             </Card>
@@ -962,9 +966,15 @@ export function PanelClient() {
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Memory</p>
                                         <p className="text-sm font-medium">
-                                            <span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span>
-                                            {selectedServer.limits?.memory && (
-                                                <span className="text-muted-foreground"> / {selectedServer.limits.memory} MiB</span>
+                                            {resources ? (
+                                                <>
+                                                    <span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span>
+                                                    {selectedServer.limits?.memory && (
+                                                        <span className="text-muted-foreground"> / {selectedServer.limits.memory} MiB</span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span className="text-green-500 animate-pulse">-- MiB</span>
                                             )}
                                         </p>
                                     </div>
@@ -980,9 +990,15 @@ export function PanelClient() {
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Disk</p>
                                         <p className="text-sm font-medium">
-                                            <span className="text-blue-400">{formatBytes(resources.resources.diskBytes)}</span>
-                                            {selectedServer.limits?.disk && (
-                                                <span className="text-muted-foreground"> / {(selectedServer.limits.disk / 1024).toFixed(0)} GiB</span>
+                                            {resources ? (
+                                                <>
+                                                    <span className="text-blue-400">{formatBytes(resources.resources.diskBytes)}</span>
+                                                    {selectedServer.limits?.disk && (
+                                                        <span className="text-muted-foreground"> / {(selectedServer.limits.disk / 1024).toFixed(0)} GiB</span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span className="text-blue-400 animate-pulse">-- GiB</span>
                                             )}
                                         </p>
                                     </div>
@@ -999,9 +1015,15 @@ export function PanelClient() {
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Network</p>
                                         <p className="text-sm font-medium">
-                                            <span className="text-purple-400">↓ {formatBytes(resources.resources.networkRxBytes)}</span>
-                                            <span className="text-muted-foreground"> / </span>
-                                            <span className="text-purple-400">↑ {formatBytes(resources.resources.networkTxBytes)}</span>
+                                            {resources ? (
+                                                <>
+                                                    <span className="text-purple-400">↓ {formatBytes(resources.resources.networkRxBytes)}</span>
+                                                    <span className="text-muted-foreground"> / </span>
+                                                    <span className="text-purple-400">↑ {formatBytes(resources.resources.networkTxBytes)}</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-purple-400 animate-pulse">↓ -- / ↑ --</span>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -1018,7 +1040,7 @@ export function PanelClient() {
                                         {playerError ? (
                                             <p className="text-xs text-error">Unable to load</p>
                                         ) : playerLoading && !playerData ? (
-                                            <p className="text-xs text-muted-foreground">Loading...</p>
+                                            <p className="text-sm font-medium text-pink-400 animate-pulse">-- / --</p>
                                         ) : playerData?.players ? (
                                             <p className="text-sm font-medium text-pink-400">
                                                 {playerData.players.online || 0}
@@ -1046,25 +1068,32 @@ export function PanelClient() {
                 )}
 
                 {/* Bottom Section - Power Controls & Back to Admin */}
-                {selectedServer && resources && (
+                {selectedServer && (
                     <div className="mt-auto pt-4 border-t border-border space-y-3">
                         {/* Redesigned Power Controls */}
                         <div className="bg-[#1a1e28] rounded-lg p-3">
                             <div className="flex items-center justify-between">
                                 {/* Status Badge */}
-                                <Badge
-                                    variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}
-                                    className="px-3 py-1"
-                                >
-                                    {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1.5" /> : <WifiOff className="w-3 h-3 mr-1.5" />}
-                                    {resources.currentState}
-                                </Badge>
+                                {resources ? (
+                                    <Badge
+                                        variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}
+                                        className="px-3 py-1"
+                                    >
+                                        {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1.5" /> : <WifiOff className="w-3 h-3 mr-1.5" />}
+                                        {resources.currentState}
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="secondary" className="px-3 py-1 animate-pulse">
+                                        <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" />
+                                        Loading...
+                                    </Badge>
+                                )}
 
                                 {/* Power Buttons */}
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => sendPowerAction('start')}
-                                        disabled={actionInProgress !== null || resources.currentState === 'running'}
+                                        disabled={!resources || actionInProgress !== null || resources.currentState === 'running'}
                                         className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         title="Start"
                                     >
@@ -1072,7 +1101,7 @@ export function PanelClient() {
                                     </button>
                                     <button
                                         onClick={() => sendPowerAction('restart')}
-                                        disabled={actionInProgress !== null}
+                                        disabled={!resources || actionInProgress !== null}
                                         className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         title="Restart"
                                     >
@@ -1080,7 +1109,7 @@ export function PanelClient() {
                                     </button>
                                     <button
                                         onClick={() => sendPowerAction('stop')}
-                                        disabled={actionInProgress !== null || resources.currentState === 'offline'}
+                                        disabled={!resources || actionInProgress !== null || resources?.currentState === 'offline'}
                                         className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         title="Stop"
                                     >
@@ -1088,7 +1117,7 @@ export function PanelClient() {
                                     </button>
                                     <button
                                         onClick={() => sendPowerAction('kill')}
-                                        disabled={actionInProgress !== null || resources.currentState === 'offline'}
+                                        disabled={!resources || actionInProgress !== null || resources?.currentState === 'offline'}
                                         className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         title="Kill"
                                     >
@@ -1107,7 +1136,7 @@ export function PanelClient() {
                 )}
 
                 {/* Back to Admin - shown when no server selected */}
-                {(!selectedServer || !resources) && (
+                {!selectedServer && (
                     <div className="mt-auto pt-4 border-t border-border">
                         <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = '/admin'}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
