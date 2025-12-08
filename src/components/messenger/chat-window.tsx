@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, Minus, Send, Loader2 } from 'lucide-react';
+import { X, Minus, Send, Loader2, ArrowDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,28 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Smart scroll tracking
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+
+  // Detect if user is scrolled to bottom
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setIsAtBottom(atBottom);
+    if (atBottom) setHasNewMessages(false);
+  }, []);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setHasNewMessages(false);
+    setIsAtBottom(true);
+  }, []);
 
   const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : 0;
   const rightOffset = 320 + index * 340;
@@ -93,9 +114,14 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
     return unsubscribe;
   }, [chat.conversationId, currentUserId, onNewMessage, refreshConversations]);
 
+  // Smart auto-scroll: only scroll on new messages if user is at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else if (messages.length > 0) {
+      setHasNewMessages(true);
+    }
+  }, [messages, isAtBottom]);
 
   useEffect(() => {
     if (!chat.minimized) {
@@ -176,7 +202,7 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
         {/* Messages Area */}
         {!chat.minimized && (
           <>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 relative" ref={messagesContainerRef} onScroll={handleScroll}>
               {loading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-5 h-5 animate-spin text-neon-cyan" />
@@ -205,6 +231,20 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
                 })
               )}
               <div ref={messagesEndRef} />
+
+              {/* Scroll to Bottom Button */}
+              {!isAtBottom && messages.length > 0 && (
+                <button
+                  onClick={scrollToBottom}
+                  className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 p-2 bg-card hover:bg-secondary border border-neon-cyan/50 rounded-full shadow-lg transition-all hover:scale-110"
+                  title="Scroll to bottom"
+                >
+                  <ArrowDown className="w-4 h-4 text-neon-cyan" />
+                  {hasNewMessages && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-neon-cyan rounded-full animate-pulse" />
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Input Area */}

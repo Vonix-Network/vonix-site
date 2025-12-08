@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MessageSquare, Send, Search, Plus,
-  MoreHorizontal, Phone, Video, Info
+  MoreHorizontal, Phone, Video, Info, ArrowDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,28 @@ export default function MessagesPage() {
   // Track if we need to auto-select first conversation
   const [needsAutoSelect, setNeedsAutoSelect] = useState(false);
   const [firstConversation, setFirstConversation] = useState<Conversation | null>(null);
+
+  // Smart scroll tracking
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+
+  // Detect if user is scrolled to bottom
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setIsAtBottom(atBottom);
+    if (atBottom) setHasNewMessages(false);
+  }, []);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setHasNewMessages(false);
+    setIsAtBottom(true);
+  }, []);
 
   const loadConversations = async () => {
     try {
@@ -240,6 +262,15 @@ export default function MessagesPage() {
     return unsubscribe;
   }, [selectedConversation?.user.id, myId, onNewMessage]);
 
+  // Smart auto-scroll: only scroll on new messages if user is at bottom
+  useEffect(() => {
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else if (messages.length > 0) {
+      setHasNewMessages(true);
+    }
+  }, [messages, isAtBottom]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
     try {
@@ -401,7 +432,7 @@ export default function MessagesPage() {
               </CardHeader>
 
               {/* Messages */}
-              <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+              <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -421,6 +452,23 @@ export default function MessagesPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
+
+                {/* Scroll to Bottom Button */}
+                {!isAtBottom && messages.length > 0 && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 p-3 bg-card hover:bg-secondary border border-neon-cyan/50 rounded-full shadow-lg transition-all hover:scale-110"
+                    title="Scroll to bottom"
+                  >
+                    <ArrowDown className="w-5 h-5 text-neon-cyan" />
+                    {hasNewMessages && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-neon-cyan rounded-full animate-pulse flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-background">!</span>
+                      </span>
+                    )}
+                  </button>
+                )}
               </CardContent>
 
               {/* Message Input */}

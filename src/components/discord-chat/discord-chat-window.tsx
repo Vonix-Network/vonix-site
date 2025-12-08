@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Minus, Send, Loader2, MessageCircle, ExternalLink } from 'lucide-react';
+import { Minus, Send, Loader2, MessageCircle, ExternalLink, ArrowDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,14 +28,40 @@ export function DiscordChatWindow() {
 
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Scroll to bottom on new messages
+    // Smart scroll tracking - only auto-scroll when user is at bottom
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    const [hasNewMessages, setHasNewMessages] = useState(false);
+
+    // Detect if user is scrolled to bottom
+    const handleScroll = useCallback(() => {
+        if (!messagesContainerRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+        setIsAtBottom(atBottom);
+        if (atBottom) setHasNewMessages(false);
+    }, []);
+
+    // Scroll to bottom function
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setHasNewMessages(false);
+        setIsAtBottom(true);
+    }, []);
+
+    // Smart auto-scroll: only scroll on new messages if user is already at bottom
     useEffect(() => {
         if (!isMinimized && isOpen) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            if (isAtBottom) {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            } else if (messages.length > 0) {
+                // User is scrolled up - show new message indicator
+                setHasNewMessages(true);
+            }
         }
-    }, [messages, isMinimized, isOpen]);
+    }, [messages, isMinimized, isOpen, isAtBottom]);
 
     // Focus input when expanded
     useEffect(() => {
@@ -116,7 +142,7 @@ export function DiscordChatWindow() {
                 {/* Messages Area */}
                 {!isMinimized && (
                     <>
-                        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 relative" ref={messagesContainerRef} onScroll={handleScroll}>
                             {isLoading || status === 'loading' ? (
                                 <div className="flex items-center justify-center h-full">
                                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: DISCORD_COLOR }} />
@@ -313,6 +339,21 @@ export function DiscordChatWindow() {
                                 })
                             )}
                             <div ref={messagesEndRef} />
+
+                            {/* Scroll to Bottom Button */}
+                            {!isAtBottom && messages.length > 0 && (
+                                <button
+                                    onClick={scrollToBottom}
+                                    className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 p-2 bg-card hover:bg-secondary border border-border rounded-full shadow-lg transition-all hover:scale-110"
+                                    style={{ borderColor: DISCORD_COLOR }}
+                                    title="Scroll to bottom"
+                                >
+                                    <ArrowDown className="w-4 h-4" style={{ color: DISCORD_COLOR }} />
+                                    {hasNewMessages && (
+                                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse" style={{ background: DISCORD_COLOR }} />
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                         {/* Input Area */}
