@@ -1280,10 +1280,11 @@ export function PanelClient() {
                 )}
 
                 {/* Bottom Section - Power Controls & Back to Admin */}
+                {/* Bottom Section - Power Controls (Mobile Only) & Back to Admin */}
                 {selectedServer && (
                     <div className="mt-auto pt-4 border-t border-border space-y-3">
-                        {/* Redesigned Power Controls */}
-                        <div className="bg-[#1a1e28] rounded-lg p-3">
+                        {/* Power Controls - Mobile Only */}
+                        <div className="bg-[#1a1e28] rounded-lg p-3 md:hidden">
                             <div className="flex items-center justify-between">
                                 {/* Status Badge */}
                                 {resources ? (
@@ -1386,6 +1387,63 @@ export function PanelClient() {
                             </button>
                         ))}
                     </div>
+
+                    {/* Power Controls - Moved to Header */}
+                    {selectedServer && (
+                        <div className="hidden md:flex items-center gap-3 ml-2 pl-4 border-l border-border/50">
+                            {/* Status Badge */}
+                            {resources ? (
+                                <Badge
+                                    variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}
+                                    className="px-2 py-1 h-8 flex items-center gap-1.5"
+                                >
+                                    {resources.currentState === 'running' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                                    <span className="uppercase text-[10px] font-bold tracking-wider">{resources.currentState}</span>
+                                </Badge>
+                            ) : (
+                                <Badge variant="secondary" className="px-2 py-1 h-8 animate-pulse flex items-center gap-1.5">
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                    <span className="text-[10px]">LOADING</span>
+                                </Badge>
+                            )}
+
+                            {/* Power Buttons */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => sendPowerAction('start')}
+                                    disabled={!resources || actionInProgress !== null || resources.currentState === 'running'}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Start"
+                                >
+                                    {actionInProgress === 'start' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <Play className="w-4 h-4 text-green-500" />}
+                                </button>
+                                <button
+                                    onClick={() => sendPowerAction('restart')}
+                                    disabled={!resources || actionInProgress !== null}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Restart"
+                                >
+                                    {actionInProgress === 'restart' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <RotateCcw className="w-4 h-4 text-blue-500" />}
+                                </button>
+                                <button
+                                    onClick={() => sendPowerAction('stop')}
+                                    disabled={!resources || actionInProgress !== null || resources?.currentState === 'offline'}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Stop"
+                                >
+                                    {actionInProgress === 'stop' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <Square className="w-4 h-4 text-yellow-500" />}
+                                </button>
+                                <button
+                                    onClick={() => sendPowerAction('kill')}
+                                    disabled={!resources || actionInProgress !== null || resources?.currentState === 'offline'}
+                                    className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Kill"
+                                >
+                                    <Skull className="w-4 h-4 text-red-500" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content */}
