@@ -918,6 +918,7 @@ export function PanelClient() {
                     // UI expects: resources.resources.cpuAbsolute, etc.
                     setResources({
                         object: 'stats',
+                        currentState: data.state || resources.state || 'offline', // Add at root for badge access
                         attributes: {
                             current_state: data.state || resources.state || 'offline',
                             is_suspended: false,
