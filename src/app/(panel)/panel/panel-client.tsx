@@ -182,10 +182,10 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
 
     if (data.length < 2) {
         return (
-            <div className="w-full bg-[#1a1e28] rounded-lg p-4" style={{ height }}>
+            <div className="w-full bg-[#0d1117] rounded-b-lg p-4" style={{ height }}>
                 <div className="relative h-full flex">
                     {/* Y-axis labels */}
-                    <div className="flex flex-col justify-between text-[11px] text-gray-500 pr-3 font-mono" style={{ minWidth: '60px' }}>
+                    <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 font-mono" style={{ minWidth: '55px' }}>
                         <div>0</div>
                         <div>0</div>
                         <div>0</div>
@@ -226,10 +226,10 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
     ];
 
     return (
-        <div className="w-full bg-[#1a1e28] rounded-lg p-4" style={{ height }}>
+        <div className="w-full bg-[#0d1117] rounded-b-lg p-4" style={{ height }}>
             <div className="relative h-full flex">
                 {/* Y-axis labels */}
-                <div className="flex flex-col justify-between text-[11px] text-gray-500 pr-3 font-mono" style={{ minWidth: '60px' }}>
+                <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 font-mono" style={{ minWidth: '55px' }}>
                     <div className="leading-none">{formatter(max)}</div>
                     <div className="leading-none">{formatter(mid)}</div>
                     <div className="leading-none">{formatter(min)}</div>
@@ -240,7 +240,7 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
                     <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                                <stop offset="0%" stopColor={color} stopOpacity="0.4" />
                                 <stop offset="100%" stopColor={color} stopOpacity="0.05" />
                             </linearGradient>
                         </defs>
@@ -253,7 +253,7 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
                                 y1={grid.y}
                                 x2={width}
                                 y2={grid.y}
-                                stroke="#2a3142"
+                                stroke="#1e2936"
                                 strokeWidth="0.5"
                             />
                         ))}
@@ -269,6 +269,146 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
                             points={points}
                             fill="none"
                             stroke={color}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Dual-line chart for network (download/upload) matching reference design
+function DualSparklineChart({
+    data1,
+    data2,
+    color1,
+    color2,
+    height = 140,
+    formatValue
+}: {
+    data1: number[];
+    data2: number[];
+    color1: string;
+    color2: string;
+    height?: number;
+    formatValue?: (v: number) => string
+}) {
+    const formatter = formatValue || ((v: number) => v.toFixed(0));
+    const gradientId1 = useId();
+    const gradientId2 = useId();
+
+    if (data1.length < 2 || data2.length < 2) {
+        return (
+            <div className="w-full bg-[#0d1117] rounded-b-lg p-4" style={{ height }}>
+                <div className="relative h-full flex">
+                    <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 font-mono" style={{ minWidth: '55px' }}>
+                        <div>0</div>
+                        <div>0</div>
+                        <div>0</div>
+                    </div>
+                    <div className="flex-1 relative">
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                            <line x1="0" y1="100" x2="100" y2="100" stroke="#3b82f6" strokeWidth="1" strokeOpacity="0.3" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Calculate combined min/max for both datasets
+    const allData = [...data1, ...data2];
+    const min = Math.min(...allData);
+    const max = Math.max(...allData);
+    const mid = (min + max) / 2;
+    const range = max - min || 1;
+
+    const paddingTop = 5;
+    const paddingBottom = 5;
+    const chartHeight = 100 - paddingTop - paddingBottom;
+    const width = 100;
+
+    const getPoints = (data: number[]) => data.map((value, i) => {
+        const x = (i / (data.length - 1)) * width;
+        const normalized = (value - min) / range;
+        const y = paddingTop + chartHeight - (normalized * chartHeight);
+        return `${x},${y}`;
+    }).join(' ');
+
+    const points1 = getPoints(data1);
+    const points2 = getPoints(data2);
+
+    const gridLines = [
+        { y: paddingTop, value: max },
+        { y: paddingTop + chartHeight / 2, value: mid },
+        { y: paddingTop + chartHeight, value: min }
+    ];
+
+    return (
+        <div className="w-full bg-[#0d1117] rounded-b-lg p-4" style={{ height }}>
+            <div className="relative h-full flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 font-mono" style={{ minWidth: '55px' }}>
+                    <div className="leading-none">{formatter(max)}</div>
+                    <div className="leading-none">{formatter(mid)}</div>
+                    <div className="leading-none">{formatter(min)}</div>
+                </div>
+
+                {/* Graph area */}
+                <div className="flex-1 relative">
+                    <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id={gradientId1} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor={color1} stopOpacity="0.3" />
+                                <stop offset="100%" stopColor={color1} stopOpacity="0.02" />
+                            </linearGradient>
+                            <linearGradient id={gradientId2} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor={color2} stopOpacity="0.3" />
+                                <stop offset="100%" stopColor={color2} stopOpacity="0.02" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Grid lines */}
+                        {gridLines.map((grid, i) => (
+                            <line
+                                key={i}
+                                x1="0"
+                                y1={grid.y}
+                                x2={width}
+                                y2={grid.y}
+                                stroke="#1e2936"
+                                strokeWidth="0.5"
+                            />
+                        ))}
+
+                        {/* Filled areas */}
+                        <polygon
+                            points={`0,${100 - paddingBottom} ${points2} ${width},${100 - paddingBottom}`}
+                            fill={`url(#${gradientId2})`}
+                        />
+                        <polygon
+                            points={`0,${100 - paddingBottom} ${points1} ${width},${100 - paddingBottom}`}
+                            fill={`url(#${gradientId1})`}
+                        />
+
+                        {/* Lines - data2 (upload/yellow) first so data1 (download/cyan) is on top */}
+                        <polyline
+                            points={points2}
+                            fill="none"
+                            stroke={color2}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                        <polyline
+                            points={points1}
+                            fill="none"
+                            stroke={color1}
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1288,45 +1428,54 @@ export function PanelClient() {
                             </Card>
                             {statsHistory.length > 1 && selectedServer && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
-                                        <div className="p-3 pb-0 h-[50px]">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs text-muted-foreground">CPU Load</p>
-                                                <span className="text-sm font-semibold text-yellow-500">
-                                                    {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
-                                                    {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal"> / {selectedServer.limits.cpu}%</span> : null}
+                                    {/* CPU Graph Card */}
+                                    <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
+                                        <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
+                                            <span className="font-medium text-sm">CPU</span>
+                                            <span className="text-yellow-500 font-semibold">
+                                                {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
+                                                {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal text-xs"> / {selectedServer.limits.cpu}%</span> : null}
+                                            </span>
+                                        </div>
+                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} />
+                                    </div>
+
+                                    {/* Memory Graph Card */}
+                                    <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
+                                        <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
+                                            <span className="font-medium text-sm">Memory</span>
+                                            <span className="text-green-500 font-semibold">
+                                                {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
+                                                {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal text-xs"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
+                                            </span>
+                                        </div>
+                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} />
+                                    </div>
+
+                                    {/* Network Graph Card with dual lines */}
+                                    <div className="rounded-lg overflow-hidden bg-[#0d1117] border border-[#1e2936]">
+                                        <div className="px-4 py-3 bg-[#161b22] border-b border-[#1e2936] flex items-center justify-between">
+                                            <span className="font-medium text-sm">Network</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex items-center gap-1 text-cyan-400 text-sm">
+                                                    <ArrowDown className="w-3.5 h-3.5" />
+                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}
+                                                </span>
+                                                <span className="flex items-center gap-1 text-yellow-500 text-sm">
+                                                    <ArrowUp className="w-3.5 h-3.5" />
+                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}
                                                 </span>
                                             </div>
                                         </div>
-                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" formatValue={(v) => `${v.toFixed(1)}%`} />
-                                    </Card>
-                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
-                                        <div className="p-3 pb-0 h-[50px]">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs text-muted-foreground">Memory</p>
-                                                <span className="text-sm font-semibold text-green-500">
-                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
-                                                    {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" formatValue={(v) => formatBytes(v)} />
-                                    </Card>
-                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
-                                        <div className="p-3 pb-0 h-[50px]">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs text-muted-foreground">Network I/O</p>
-                                                <span className="text-sm font-semibold text-blue-500">
-                                                    {formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-2 text-xs text-muted-foreground">
-                                                <span>↓ {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}</span>
-                                                <span>↑ {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}</span>
-                                            </div>
-                                        </div>
-                                        <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" formatValue={(v) => formatBytes(v)} />
-                                    </Card>
+                                        <DualSparklineChart
+                                            data1={statsHistory.map(s => s.networkRx)}
+                                            data2={statsHistory.map(s => s.networkTx)}
+                                            color1="#22d3ee"
+                                            color2="#eab308"
+                                            height={120}
+                                            formatValue={(v) => formatBytes(v)}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </>
