@@ -175,7 +175,7 @@ const ConsoleLine = memo(({ line }: { line: string }) => (
 ));
 ConsoleLine.displayName = 'ConsoleLine';
 
-function SparklineChart({ data, color, height = 140, formatValue }: { data: number[]; color: string; height?: number; formatValue?: (v: number) => string }) {
+function SparklineChart({ data, color, height = 140, formatValue, maxLimit }: { data: number[]; color: string; height?: number; formatValue?: (v: number) => string; maxLimit?: number }) {
     const formatter = formatValue || ((v: number) => v.toFixed(0));
     // Use stable ID instead of random - prevents unnecessary SVG re-renders
     const gradientId = useId();
@@ -186,8 +186,8 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
                 <div className="relative h-full flex">
                     {/* Y-axis labels */}
                     <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 font-mono" style={{ minWidth: '55px' }}>
-                        <div>0</div>
-                        <div>0</div>
+                        <div>{maxLimit ? formatter(maxLimit) : '0'}</div>
+                        <div>{maxLimit ? formatter(maxLimit / 2) : '0'}</div>
                         <div>0</div>
                     </div>
                     {/* Empty graph */}
@@ -202,7 +202,7 @@ function SparklineChart({ data, color, height = 140, formatValue }: { data: numb
     }
 
     const min = 0; // Always start at 0
-    const max = Math.max(...data);
+    const max = maxLimit ?? Math.max(...data); // Use limit if provided, else auto-scale
     const mid = max / 2;
     const range = max - min || 1;
 
@@ -1472,7 +1472,7 @@ export function PanelClient() {
                                                 {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal text-xs"> / {selectedServer.limits.cpu}%</span> : null}
                                             </span>
                                         </div>
-                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} />
+                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} maxLimit={selectedServer.limits?.cpu || 100} />
                                     </div>
 
                                     {/* Memory Graph Card */}
@@ -1484,7 +1484,7 @@ export function PanelClient() {
                                                 {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal text-xs"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
                                             </span>
                                         </div>
-                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} />
+                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} maxLimit={selectedServer.limits?.memory ? selectedServer.limits.memory * 1024 * 1024 : undefined} />
                                     </div>
 
                                     {/* Network Graph Card with dual lines */}
