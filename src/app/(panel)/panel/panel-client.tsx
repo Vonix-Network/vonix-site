@@ -976,8 +976,8 @@ export function PanelClient() {
                                 networkTx: data.resources.resources.networkTxBytes,
                             }].slice(-60));
 
-                            // Update resources every 3rd poll (3s effective)
-                            if (pollCount % 3 === 0) {
+                            // Update resources every 2nd poll (2s effective)
+                            if (pollCount % 2 === 0) {
                                 setResources(data.resources);
                             }
                             pollCount++;
