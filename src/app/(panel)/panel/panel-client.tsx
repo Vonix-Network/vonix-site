@@ -760,27 +760,52 @@ export function PanelClient() {
         eventSource.addEventListener('token_expired', () => { eventSource.close(); setTimeout(() => connectConsole(server), 1000); });
     }, [wsConnecting]);
 
-    // Ref to track resource polling interval for smart start/stop
-    const resourceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    // Ref to track if polling should continue
+    const pollingActiveRef = useRef(false);
+    const playerPollingActiveRef = useRef(false);
 
     useEffect(() => {
         if (selectedServer) {
             const currentRef = wsRef.current as any;
             if (currentRef?.close) currentRef.close();
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-            if (resourceIntervalRef.current) clearInterval(resourceIntervalRef.current);
+            pollingActiveRef.current = false; // Stop any existing polling
+            playerPollingActiveRef.current = false;
             setWsConnected(false); setWsConnecting(false); setWsError(null);
             setConsoleLines([]); setStatsHistory([]); setResources(null);
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
             setPlayerData(null); setPlayerError(false); setPlayerLoading(true);
-            fetchServerResources(); connectConsole(selectedServer);
-            fetchPlayers(); // Initial fetch
-            // Start resource polling - every 1s for real-time feel, slows to 3s when SSE connected
-            resourceIntervalRef.current = setInterval(fetchServerResources, 1000);
-            const playerInterval = setInterval(fetchPlayers, 5000); // Every 5 seconds
+
+            // Initial fetches
+            fetchServerResources();
+            connectConsole(selectedServer);
+            fetchPlayers();
+
+            // Resource polling - recursive setTimeout for reliable 1s timing
+            pollingActiveRef.current = true;
+            const pollResources = async () => {
+                if (!pollingActiveRef.current) return;
+                await fetchServerResources();
+                if (pollingActiveRef.current) {
+                    setTimeout(pollResources, 1000);
+                }
+            };
+            setTimeout(pollResources, 1000);
+
+            // Player polling - every 5 seconds
+            playerPollingActiveRef.current = true;
+            const pollPlayers = async () => {
+                if (!playerPollingActiveRef.current) return;
+                await fetchPlayers();
+                if (playerPollingActiveRef.current) {
+                    setTimeout(pollPlayers, 5000);
+                }
+            };
+            setTimeout(pollPlayers, 5000);
+
             return () => {
-                if (resourceIntervalRef.current) clearInterval(resourceIntervalRef.current);
-                clearInterval(playerInterval);
+                pollingActiveRef.current = false;
+                playerPollingActiveRef.current = false;
                 const ref = wsRef.current as any;
                 if (ref?.close) ref.close();
                 if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
