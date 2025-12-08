@@ -505,8 +505,10 @@ export function PanelClient() {
     const [variableValue, setVariableValue] = useState('');
 
     const wsRef = useRef<any>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const [wsConnected, setWsConnected] = useState(false);
     const [wsConnecting, setWsConnecting] = useState(false);
+    const [wsReconnecting, setWsReconnecting] = useState(false);
     const consoleEndRef = useRef<HTMLDivElement>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const consoleContainerRef = useRef<HTMLDivElement>(null);
@@ -576,7 +578,12 @@ export function PanelClient() {
                 const data = await res.json();
                 setServers(data.servers || []);
                 if (data.servers?.length > 0 && !selectedServer) {
-                    setSelectedServer(data.servers[0]);
+                    // Restore from localStorage or default to first server
+                    const savedId = localStorage.getItem('panel_selected_server');
+                    const savedServer = savedId
+                        ? data.servers.find((s: PterodactylServer) => s.identifier === savedId)
+                        : null;
+                    setSelectedServer(savedServer || data.servers[0]);
                 }
             }
         } catch (err) {
@@ -585,6 +592,13 @@ export function PanelClient() {
             setIsLoading(false);
         }
     };
+
+    // Persist selected server to localStorage
+    useEffect(() => {
+        if (selectedServer) {
+            localStorage.setItem('panel_selected_server', selectedServer.identifier);
+        }
+    }, [selectedServer?.identifier]);
 
     const fetchServerResources = useCallback(async () => {
         if (!selectedServer) return;
@@ -863,7 +877,7 @@ export function PanelClient() {
         const eventSource = new EventSource(`/api/admin/pterodactyl/server/${server.identifier}/console`);
         wsRef.current = eventSource;
 
-        eventSource.addEventListener('connected', () => { setWsConnected(true); setWsConnecting(false); });
+        eventSource.addEventListener('connected', () => { setWsConnected(true); setWsConnecting(false); setWsReconnecting(false); });
         eventSource.addEventListener('output', (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -893,12 +907,25 @@ export function PanelClient() {
                 }].slice(-60));
             } catch (e) { }
         });
-        eventSource.addEventListener('disconnected', () => { setWsConnected(false); setWsConnecting(false); });
+        eventSource.addEventListener('disconnected', () => {
+            setWsConnected(false); setWsConnecting(false); setWsReconnecting(true);
+            // Auto-reconnect after 2 seconds
+            setTimeout(() => connectConsole(server), 2000);
+        });
         eventSource.onerror = () => {
             setWsConnected(false); setWsConnecting(false);
-            if (eventSource.readyState === EventSource.CLOSED) setWsError('Console connection closed.');
+            if (eventSource.readyState === EventSource.CLOSED) {
+                setWsError('Console connection closed.');
+                setWsReconnecting(true);
+                // Auto-reconnect after 2 seconds
+                setTimeout(() => connectConsole(server), 2000);
+            }
         };
-        eventSource.addEventListener('token_expired', () => { eventSource.close(); setTimeout(() => connectConsole(server), 1000); });
+        eventSource.addEventListener('token_expired', () => {
+            eventSource.close();
+            setWsReconnecting(true);
+            setTimeout(() => connectConsole(server), 1000);
+        });
     }, [wsConnecting]);
 
     // Refs to track if polling should continue
@@ -908,13 +935,18 @@ export function PanelClient() {
 
     useEffect(() => {
         if (selectedServer) {
+            // Abort any pending requests from previous server
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = new AbortController();
+            const signal = abortControllerRef.current.signal;
+
             const currentRef = wsRef.current as any;
             if (currentRef?.close) currentRef.close();
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
             pollingActiveRef.current = false;
             graphPollingActiveRef.current = false;
             playerPollingActiveRef.current = false;
-            setWsConnected(false); setWsConnecting(false); setWsError(null);
+            setWsConnected(false); setWsConnecting(false); setWsError(null); setWsReconnecting(false);
             setConsoleLines([]); setStatsHistory([]);
             // Don't reset resources to null - keep previous values to prevent flicker
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
@@ -925,15 +957,17 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Graph polling - 1s interval (smooth sparkline charts)
+            // Unified polling - 1s for graphs, also updates resources every 3rd call (3s)
+            let pollCount = 0;
             graphPollingActiveRef.current = true;
-            const pollGraph = async () => {
-                if (!graphPollingActiveRef.current) return;
+            const pollUnified = async () => {
+                if (!graphPollingActiveRef.current || signal.aborted) return;
                 try {
-                    const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`);
+                    const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`, { signal });
                     if (res.ok) {
                         const data = await res.json();
                         if (data.resources) {
+                            // Always update graph history (1s)
                             setStatsHistory(prev => [...prev, {
                                 timestamp: Date.now(),
                                 cpu: data.resources.resources.cpuAbsolute,
@@ -941,38 +975,38 @@ export function PanelClient() {
                                 networkRx: data.resources.resources.networkRxBytes,
                                 networkTx: data.resources.resources.networkTxBytes,
                             }].slice(-60));
+
+                            // Update resources every 3rd poll (3s effective)
+                            if (pollCount % 3 === 0) {
+                                setResources(data.resources);
+                            }
+                            pollCount++;
                         }
                     }
-                } catch (err) { }
-                if (graphPollingActiveRef.current) {
-                    setTimeout(pollGraph, 1000);
+                } catch (err) {
+                    if ((err as Error).name !== 'AbortError') {
+                        // Only log non-abort errors
+                    }
+                }
+                if (graphPollingActiveRef.current && !signal.aborted) {
+                    setTimeout(pollUnified, 1000);
                 }
             };
-            setTimeout(pollGraph, 1000);
-
-            // Stats polling - 3s interval (sidebar stat cards)
-            pollingActiveRef.current = true;
-            const pollResources = async () => {
-                if (!pollingActiveRef.current) return;
-                await fetchServerResources();
-                if (pollingActiveRef.current) {
-                    setTimeout(pollResources, 3000);
-                }
-            };
-            setTimeout(pollResources, 3000);
+            setTimeout(pollUnified, 1000);
 
             // Player polling - 10s interval (players change infrequently)
             playerPollingActiveRef.current = true;
             const pollPlayers = async () => {
-                if (!playerPollingActiveRef.current) return;
+                if (!playerPollingActiveRef.current || signal.aborted) return;
                 await fetchPlayers();
-                if (playerPollingActiveRef.current) {
+                if (playerPollingActiveRef.current && !signal.aborted) {
                     setTimeout(pollPlayers, 10000);
                 }
             };
             setTimeout(pollPlayers, 10000);
 
             return () => {
+                abortControllerRef.current?.abort();
                 pollingActiveRef.current = false;
                 graphPollingActiveRef.current = false;
                 playerPollingActiveRef.current = false;
