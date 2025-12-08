@@ -772,7 +772,7 @@ export default function ServerPanelPage() {
                 )}
 
                 {/* Player List */}
-                {selectedServer && playerData && (
+                {selectedServer && playerData && playerData.players && (
                     <Card variant="glass" className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
@@ -780,10 +780,10 @@ export default function ServerPanelPage() {
                                 <span className="font-semibold text-sm">Players</span>
                             </div>
                             <Badge variant={playerData.online ? 'success' : 'secondary'}>
-                                {playerData.players.online}/{playerData.players.max}
+                                {playerData.players.online || 0}/{playerData.players.max || 0}
                             </Badge>
                         </div>
-                        {playerData.players.list.length > 0 ? (
+                        {(playerData.players.list?.length || 0) > 0 ? (
                             <div className="space-y-1 max-h-32 overflow-auto">
                                 {playerData.players.list.map((player, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-card transition-colors">
