@@ -186,6 +186,8 @@ export default function ServerPanelPage() {
 
     // Player list state
     const [playerData, setPlayerData] = useState<{ online: boolean; players: { online: number; max: number; list: string[] } } | null>(null);
+    const [playerLoading, setPlayerLoading] = useState(false);
+    const [playerError, setPlayerError] = useState(false);
 
     // Files state
     const [currentPath, setCurrentPath] = useState('/');
@@ -340,13 +342,21 @@ export default function ServerPanelPage() {
     // Fetch player list
     const fetchPlayers = useCallback(async () => {
         if (!selectedServer) return;
+        setPlayerLoading(true);
         try {
             const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}/players`);
             if (res.ok) {
                 const data = await res.json();
                 setPlayerData(data);
+                setPlayerError(false);
+            } else {
+                setPlayerError(true);
             }
-        } catch (err) { }
+        } catch (err) {
+            setPlayerError(true);
+        } finally {
+            setPlayerLoading(false);
+        }
     }, [selectedServer]);
 
     // Files functions
@@ -771,31 +781,53 @@ export default function ServerPanelPage() {
                     </Card>
                 )}
 
-                {/* Player List */}
-                {selectedServer && playerData && playerData.players && (
+                {/* Player List - matches stats card styling */}
+                {selectedServer && (
                     <Card variant="glass" className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-neon-purple" />
                                 <span className="font-semibold text-sm">Players</span>
                             </div>
-                            <Badge variant={playerData.online ? 'success' : 'secondary'}>
-                                {playerData.players.online || 0}/{playerData.players.max || 0}
-                            </Badge>
+                            {playerData?.players && !playerError && (
+                                <Badge variant={playerData.online ? 'success' : 'secondary'}>
+                                    {playerData.players.online || 0}/{playerData.players.max || 0}
+                                </Badge>
+                            )}
+                            {playerLoading && !playerData && (
+                                <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
+                            )}
                         </div>
-                        {(playerData.players.list?.length || 0) > 0 ? (
-                            <div className="space-y-1 max-h-32 overflow-auto">
-                                {playerData.players.list.map((player, i) => (
-                                    <div key={i} className="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-card transition-colors">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span className="truncate">{player}</span>
+
+                        {playerError ? (
+                            <p className="text-xs text-error text-center py-2">Unable to load player data</p>
+                        ) : playerLoading && !playerData ? (
+                            <div className="text-xs text-muted-foreground text-center py-2">Loading...</div>
+                        ) : playerData?.players ? (
+                            <>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Online</span>
+                                        <span className="text-neon-purple">{playerData.players.online || 0}</span>
                                     </div>
-                                ))}
-                            </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Max</span>
+                                        <span className="text-muted-foreground">{playerData.players.max || 0}</span>
+                                    </div>
+                                </div>
+                                {(playerData.players.list?.length || 0) > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-border space-y-1 max-h-24 overflow-auto">
+                                        {playerData.players.list.map((player, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-sm py-0.5">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
+                                                <span className="truncate text-xs">{player}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         ) : (
-                            <p className="text-xs text-muted-foreground text-center py-2">
-                                {playerData.online ? 'No players online' : 'Server offline'}
-                            </p>
+                            <p className="text-xs text-muted-foreground text-center py-2">No data</p>
                         )}
                     </Card>
                 )}
