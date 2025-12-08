@@ -120,43 +120,109 @@ function getTimeAgo(dateStr: string): string {
     return `${Math.floor(seconds / 2592000)} months ago`;
 }
 
-function SparklineChart({ data, color, height = 60 }: { data: number[]; color: string; height?: number }) {
+function SparklineChart({ data, color, height = 140, formatValue }: { data: number[]; color: string; height?: number; formatValue?: (v: number) => string }) {
+    const formatter = formatValue || ((v: number) => v.toFixed(0));
+
     if (data.length < 2) {
         return (
-            <svg viewBox={`0 0 100 ${height}`} className="w-full" style={{ height }}>
-                <line x1="0" y1={height - 1} x2="100" y2={height - 1} stroke={color} strokeWidth="1" strokeOpacity="0.3" />
-            </svg>
+            <div className="w-full bg-[#1a1e28] rounded-lg p-4" style={{ height }}>
+                <div className="relative h-full flex">
+                    {/* Y-axis labels */}
+                    <div className="flex flex-col justify-between text-[11px] text-gray-500 pr-3 font-mono" style={{ minWidth: '60px' }}>
+                        <div>0</div>
+                        <div>0</div>
+                        <div>0</div>
+                    </div>
+                    {/* Empty graph */}
+                    <div className="flex-1 relative">
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                            <line x1="0" y1="100" x2="100" y2="100" stroke={color} strokeWidth="1" strokeOpacity="0.3" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
         );
     }
 
     const min = Math.min(...data);
     const max = Math.max(...data);
-    const range = max - min || 1; // Avoid division by zero if all values are the same
-    const padding = height * 0.1; // 10% padding top and bottom
-    const chartHeight = height - (padding * 2);
+    const mid = (min + max) / 2;
+    const range = max - min || 1;
+
+    const paddingTop = 5;
+    const paddingBottom = 5;
+    const chartHeight = 100 - paddingTop - paddingBottom;
     const width = 100;
 
     const points = data.map((value, i) => {
         const x = (i / (data.length - 1)) * width;
-        // Normalize value to 0-1 range, then scale to chart height with padding
         const normalized = (value - min) / range;
-        const y = padding + chartHeight - (normalized * chartHeight);
+        const y = paddingTop + chartHeight - (normalized * chartHeight);
         return `${x},${y}`;
     }).join(' ');
 
     const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Grid lines at min (100), mid (50), max (0) Y positions
+    const gridLines = [
+        { y: paddingTop, value: max },
+        { y: paddingTop + chartHeight / 2, value: mid },
+        { y: paddingTop + chartHeight, value: min }
+    ];
+
     return (
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ height }}>
-            <defs>
-                <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0.05" />
-                </linearGradient>
-            </defs>
-            <polygon points={`0,${height} ${points} ${width},${height}`} fill={`url(#${gradientId})`} />
-            <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <div className="w-full bg-[#1a1e28] rounded-lg p-4" style={{ height }}>
+            <div className="relative h-full flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[11px] text-gray-500 pr-3 font-mono" style={{ minWidth: '60px' }}>
+                    <div className="leading-none">{formatter(max)}</div>
+                    <div className="leading-none">{formatter(mid)}</div>
+                    <div className="leading-none">{formatter(min)}</div>
+                </div>
+
+                {/* Graph area */}
+                <div className="flex-1 relative">
+                    <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                                <stop offset="100%" stopColor={color} stopOpacity="0.05" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Grid lines */}
+                        {gridLines.map((grid, i) => (
+                            <line
+                                key={i}
+                                x1="0"
+                                y1={grid.y}
+                                x2={width}
+                                y2={grid.y}
+                                stroke="#2a3142"
+                                strokeWidth="0.5"
+                            />
+                        ))}
+
+                        {/* Filled area */}
+                        <polygon
+                            points={`0,${100 - paddingBottom} ${points} ${width},${100 - paddingBottom}`}
+                            fill={`url(#${gradientId})`}
+                        />
+
+                        {/* Line */}
+                        <polyline
+                            points={points}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -749,172 +815,213 @@ export function PanelClient() {
                     )}
                 </div>
 
-                {/* Server Stats Cards */}
+                {/* Server Stats Cards - Centered vertically */}
                 {selectedServer && resources && (
-                    <div className="space-y-2 flex-1 overflow-auto pr-1">
-                        {/* Address Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-neon-cyan/20 flex items-center justify-center">
-                                    <Globe className="w-5 h-5 text-neon-cyan" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Address</p>
-                                    <p className="text-sm font-medium text-neon-cyan font-mono truncate">
-                                        {selectedServer.allocation ? `${selectedServer.allocation.ip}:${selectedServer.allocation.port}` : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Uptime Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <Clock className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Uptime</p>
-                                    <p className="text-sm font-medium text-blue-400">{formatUptime(resources.resources.uptime / 1000)}</p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* CPU Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                                    <Cpu className="w-5 h-5 text-yellow-500" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">CPU Load</p>
-                                    <p className="text-sm font-medium text-yellow-500">{resources.resources.cpuAbsolute.toFixed(2)}%</p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Memory Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                                    <Activity className="w-5 h-5 text-green-500" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Memory</p>
-                                    <p className="text-sm font-medium">
-                                        <span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span>
-                                        {selectedServer.limits?.memory && (
-                                            <span className="text-muted-foreground"> / {selectedServer.limits.memory} MiB</span>
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Disk Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <HardDrive className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Disk</p>
-                                    <p className="text-sm font-medium">
-                                        <span className="text-blue-400">{formatBytes(resources.resources.diskBytes)}</span>
-                                        {selectedServer.limits?.disk && (
-                                            <span className="text-muted-foreground"> / {(selectedServer.limits.disk / 1024).toFixed(0)} GiB</span>
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Network Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                    <ArrowDown className="w-3 h-3 text-purple-400" />
-                                    <ArrowUp className="w-3 h-3 text-purple-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Network</p>
-                                    <p className="text-sm font-medium">
-                                        <span className="text-purple-400">↓ {formatBytes(resources.resources.networkRxBytes)}</span>
-                                        <span className="text-muted-foreground"> / </span>
-                                        <span className="text-purple-400">↑ {formatBytes(resources.resources.networkTxBytes)}</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Players Card */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
-                                    <Users className="w-5 h-5 text-pink-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Players Online</p>
-                                    {playerError ? (
-                                        <p className="text-xs text-error">Unable to load</p>
-                                    ) : playerLoading && !playerData ? (
-                                        <p className="text-xs text-muted-foreground">Loading...</p>
-                                    ) : playerData?.players ? (
-                                        <p className="text-sm font-medium text-pink-400">
-                                            {playerData.players.online || 0}
-                                            <span className="text-muted-foreground"> / {playerData.players.max || 0}</span>
+                    <div className="flex-1 flex flex-col justify-center overflow-auto pr-1">
+                        <div className="space-y-2">
+                            {/* Address Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-neon-cyan/20 flex items-center justify-center">
+                                        <Globe className="w-5 h-5 text-neon-cyan" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Address</p>
+                                        <p className="text-sm font-medium text-neon-cyan font-mono truncate">
+                                            {selectedServer.allocation ? `${selectedServer.allocation.ip}:${selectedServer.allocation.port}` : 'N/A'}
                                         </p>
-                                    ) : (
-                                        <p className="text-xs text-muted-foreground">N/A</p>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-                            {/* Player List */}
-                            {playerData?.players?.list && playerData.players.list.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-border space-y-1 max-h-24 overflow-auto">
-                                    {playerData.players.list.map((player, i) => (
-                                        <div key={i} className="flex items-center gap-2 text-xs">
-                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0" />
-                                            <span className="truncate">{player}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </Card>
+                            </Card>
 
-                        {/* Power Controls */}
-                        <Card variant="glass" className="p-3">
-                            <div className="flex items-center justify-between mb-2">
-                                <Badge variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}>
-                                    {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
-                                    {resources.currentState}
-                                </Badge>
-                            </div>
-                            <div className="grid grid-cols-4 gap-1">
-                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('start')} disabled={actionInProgress !== null || resources.currentState === 'running'}>
-                                    {actionInProgress === 'start' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                                </Button>
-                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('restart')} disabled={actionInProgress !== null}>
-                                    {actionInProgress === 'restart' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                                </Button>
-                                <Button variant="neon-outline" size="sm" className="px-2" onClick={() => sendPowerAction('stop')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
-                                    {actionInProgress === 'stop' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />}
-                                </Button>
-                                <Button variant="ghost" size="sm" className="px-2 text-error" onClick={() => sendPowerAction('kill')} disabled={actionInProgress !== null || resources.currentState === 'offline'}>
-                                    <Skull className="w-3 h-3" />
-                                </Button>
-                            </div>
-                        </Card>
+                            {/* Uptime Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                        <Clock className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Uptime</p>
+                                        <p className="text-sm font-medium text-blue-400">{formatUptime(resources.resources.uptime / 1000)}</p>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* CPU Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                        <Cpu className="w-5 h-5 text-yellow-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">CPU Load</p>
+                                        <p className="text-sm font-medium text-yellow-500">{resources.resources.cpuAbsolute.toFixed(2)}%</p>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Memory Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                        <Activity className="w-5 h-5 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Memory</p>
+                                        <p className="text-sm font-medium">
+                                            <span className="text-green-500">{formatBytes(resources.resources.memoryBytes)}</span>
+                                            {selectedServer.limits?.memory && (
+                                                <span className="text-muted-foreground"> / {selectedServer.limits.memory} MiB</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Disk Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                        <HardDrive className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Disk</p>
+                                        <p className="text-sm font-medium">
+                                            <span className="text-blue-400">{formatBytes(resources.resources.diskBytes)}</span>
+                                            {selectedServer.limits?.disk && (
+                                                <span className="text-muted-foreground"> / {(selectedServer.limits.disk / 1024).toFixed(0)} GiB</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Network Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                        <ArrowDown className="w-3 h-3 text-purple-400" />
+                                        <ArrowUp className="w-3 h-3 text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Network</p>
+                                        <p className="text-sm font-medium">
+                                            <span className="text-purple-400">↓ {formatBytes(resources.resources.networkRxBytes)}</span>
+                                            <span className="text-muted-foreground"> / </span>
+                                            <span className="text-purple-400">↑ {formatBytes(resources.resources.networkTxBytes)}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            {/* Players Card */}
+                            <Card variant="glass" className="p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                                        <Users className="w-5 h-5 text-pink-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Players Online</p>
+                                        {playerError ? (
+                                            <p className="text-xs text-error">Unable to load</p>
+                                        ) : playerLoading && !playerData ? (
+                                            <p className="text-xs text-muted-foreground">Loading...</p>
+                                        ) : playerData?.players ? (
+                                            <p className="text-sm font-medium text-pink-400">
+                                                {playerData.players.online || 0}
+                                                <span className="text-muted-foreground"> / {playerData.players.max || 0}</span>
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">N/A</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Player List */}
+                                {playerData?.players?.list && playerData.players.list.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-border space-y-1 max-h-24 overflow-auto">
+                                        {playerData.players.list.map((player, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs">
+                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0" />
+                                                <span className="truncate">{player}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
                     </div>
                 )}
 
-                {/* Back to Admin */}
-                <div className="mt-4 pt-4 border-t border-border">
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = '/admin'}>
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Admin
-                    </Button>
-                </div>
+                {/* Bottom Section - Power Controls & Back to Admin */}
+                {selectedServer && resources && (
+                    <div className="mt-auto pt-4 border-t border-border space-y-3">
+                        {/* Redesigned Power Controls */}
+                        <div className="bg-[#1a1e28] rounded-lg p-3">
+                            <div className="flex items-center justify-between">
+                                {/* Status Badge */}
+                                <Badge
+                                    variant={resources.currentState === 'running' ? 'success' : resources.currentState === 'starting' || resources.currentState === 'stopping' ? 'warning' : 'error'}
+                                    className="px-3 py-1"
+                                >
+                                    {resources.currentState === 'running' ? <Wifi className="w-3 h-3 mr-1.5" /> : <WifiOff className="w-3 h-3 mr-1.5" />}
+                                    {resources.currentState}
+                                </Badge>
+
+                                {/* Power Buttons */}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => sendPowerAction('start')}
+                                        disabled={actionInProgress !== null || resources.currentState === 'running'}
+                                        className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        title="Start"
+                                    >
+                                        {actionInProgress === 'start' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <Play className="w-4 h-4 text-muted-foreground" />}
+                                    </button>
+                                    <button
+                                        onClick={() => sendPowerAction('restart')}
+                                        disabled={actionInProgress !== null}
+                                        className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        title="Restart"
+                                    >
+                                        {actionInProgress === 'restart' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <RotateCcw className="w-4 h-4 text-muted-foreground" />}
+                                    </button>
+                                    <button
+                                        onClick={() => sendPowerAction('stop')}
+                                        disabled={actionInProgress !== null || resources.currentState === 'offline'}
+                                        className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        title="Stop"
+                                    >
+                                        {actionInProgress === 'stop' ? <RefreshCw className="w-4 h-4 text-muted-foreground animate-spin" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                                    </button>
+                                    <button
+                                        onClick={() => sendPowerAction('kill')}
+                                        disabled={actionInProgress !== null || resources.currentState === 'offline'}
+                                        className="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        title="Kill"
+                                    >
+                                        <Skull className="w-4 h-4 text-red-500" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Back to Admin */}
+                        <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = '/admin'}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Admin
+                        </Button>
+                    </div>
+                )}
+
+                {/* Back to Admin - shown when no server selected */}
+                {(!selectedServer || !resources) && (
+                    <div className="mt-auto pt-4 border-t border-border">
+                        <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = '/admin'}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Admin
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Main Content Area */}
@@ -961,22 +1068,62 @@ export function PanelClient() {
                                 </CardHeader>
 
                                 {/* Console Output - with sticky scroll button */}
-                                <div className="flex-1 relative min-h-[400px]">
+                                <div className="flex-1 relative min-h-[525px]">
                                     <div ref={consoleContainerRef} onScroll={handleConsoleScroll} className="absolute inset-0 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3">
                                         {consoleLines.length === 0 ? (
                                             <div className="text-muted-foreground text-center py-8 space-y-2">
                                                 {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
                                             </div>
-                                        ) : consoleLines.map((line, i) => (
-                                            <div key={i} className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: line.replace(/\x1b\[[0-9;]*m/g, '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\[(INFO|WARN|ERROR|DEBUG)\]/gi, (match) => {
-                                                        const level = match.slice(1, -1).toUpperCase();
-                                                        const colors: Record<string, string> = { INFO: '#3b82f6', WARN: '#eab308', ERROR: '#ef4444', DEBUG: '#6b7280' };
-                                                        return `<span style="color: ${colors[level] || '#9ca3af'}">[${level}]</span>`;
-                                                    })
-                                                }} />
-                                        ))}
+                                        ) : consoleLines.map((line, i) => {
+                                            // Enhanced log coloring
+                                            let coloredLine = line
+                                                .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                                .replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
+
+                                            // Timestamps [HH:MM:SS]
+                                            coloredLine = coloredLine.replace(/\[(\d{2}:\d{2}:\d{2})\]/g, '<span style="color: #64748b">[$1]</span>');
+
+                                            // Thread names [Server thread/INFO] or [Async Chat Thread]
+                                            coloredLine = coloredLine.replace(/\[(Server thread|Async[^\]]+|User Authenticator|Netty[^\]]+|Worker[^\]]+)[^\]]*\]/gi, '<span style="color: #475569">$&</span>');
+
+                                            // Log levels with neon theme colors
+                                            coloredLine = coloredLine.replace(/\[INFO\]/gi, '<span style="color: #06b6d4; font-weight: 500">[INFO]</span>');
+                                            coloredLine = coloredLine.replace(/\[WARN(?:ING)?\]/gi, '<span style="color: #eab308; font-weight: 500">[WARN]</span>');
+                                            coloredLine = coloredLine.replace(/\[ERROR\]/gi, '<span style="color: #ef4444; font-weight: 500">[ERROR]</span>');
+                                            coloredLine = coloredLine.replace(/\[DEBUG\]/gi, '<span style="color: #6b7280; font-weight: 500">[DEBUG]</span>');
+
+                                            // Plugin/Mod names in square brackets (after thread, before colon)
+                                            coloredLine = coloredLine.replace(/\[([A-Z][a-zA-Z0-9_-]+)\]:/g, '<span style="color: #a855f7">[$1]</span>:');
+
+                                            // Success keywords
+                                            coloredLine = coloredLine.replace(/\b(Done|Success(?:fully)?|Loaded|Enabled|Started|Complete(?:d)?|joined|authenticated)\b/gi, '<span style="color: #22c55e">$1</span>');
+
+                                            // Warning keywords
+                                            coloredLine = coloredLine.replace(/\b(Warning|Deprecated|Slow|Lag(?:ging)?|overloaded?|Can't keep up)\b/gi, '<span style="color: #f59e0b">$1</span>');
+
+                                            // Error keywords
+                                            coloredLine = coloredLine.replace(/\b(Error|Failed|Exception|Crash(?:ed)?|Lost connection|Disconnected|kicked|banned)\b/gi, '<span style="color: #f87171">$1</span>');
+
+                                            // Player names (capitalized words often player names)
+                                            coloredLine = coloredLine.replace(/\b([A-Z][a-z]+(?:[A-Z][a-z]+)*)\s+(joined|left|authenticated|logged in)/gi, '<span style="color: #8b5cf6">$1</span> $2');
+
+                                            // UUIDs
+                                            coloredLine = coloredLine.replace(/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/gi, '<span style="color: #475569">$1</span>');
+
+                                            // IP addresses
+                                            coloredLine = coloredLine.replace(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g, '<span style="color: #64748b">$1</span>');
+
+                                            // Numbers (file sizes, counts, etc.)
+                                            coloredLine = coloredLine.replace(/\b(\d+(?:\.\d+)?)\s*(MiB|GiB|KiB|MB|GB|KB|ms|ticks?)\b/gi, '<span style="color: #60a5fa">$1</span> <span style="color: #7dd3fc">$2</span>');
+
+                                            // File paths
+                                            coloredLine = coloredLine.replace(/([a-zA-Z]:[\\\/][^\s]+|\/[^\s]+\.[a-zA-Z0-9]+)/g, '<span style="color: #94a3b8">$1</span>');
+
+                                            return (
+                                                <div key={i} className="text-gray-300 whitespace-pre-wrap break-all leading-5 hover:bg-white/5 px-1"
+                                                    dangerouslySetInnerHTML={{ __html: coloredLine }} />
+                                            );
+                                        })}
                                         <div ref={consoleEndRef} />
                                     </div>
 
@@ -1012,48 +1159,44 @@ export function PanelClient() {
                             </Card>
                             {statsHistory.length > 1 && selectedServer && (
                                 <div className="grid grid-cols-3 gap-4 mt-4">
-                                    <Card variant="glass" className="p-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs text-muted-foreground">CPU Load</p>
-                                            <span className="text-sm font-semibold text-yellow-500">
-                                                {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
-                                                {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal"> / {selectedServer.limits.cpu}%</span> : null}
-                                            </span>
-                                        </div>
-                                        {selectedServer.limits?.cpu && (
-                                            <div className="h-1 bg-muted rounded-full mb-2 overflow-hidden">
-                                                <div className="h-full bg-yellow-500 transition-all" style={{ width: `${Math.min(100, (statsHistory[statsHistory.length - 1]?.cpu || 0) / selectedServer.limits.cpu * 100)}%` }} />
+                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
+                                        <div className="p-3 pb-0 h-[50px]">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-xs text-muted-foreground">CPU Load</p>
+                                                <span className="text-sm font-semibold text-yellow-500">
+                                                    {statsHistory[statsHistory.length - 1]?.cpu.toFixed(1)}%
+                                                    {selectedServer.limits?.cpu ? <span className="text-muted-foreground font-normal"> / {selectedServer.limits.cpu}%</span> : null}
+                                                </span>
                                             </div>
-                                        )}
-                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={40} />
-                                    </Card>
-                                    <Card variant="glass" className="p-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs text-muted-foreground">Memory</p>
-                                            <span className="text-sm font-semibold text-green-500">
-                                                {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
-                                                {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
-                                            </span>
                                         </div>
-                                        {selectedServer.limits?.memory && (
-                                            <div className="h-1 bg-muted rounded-full mb-2 overflow-hidden">
-                                                <div className="h-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (statsHistory[statsHistory.length - 1]?.memory || 0) / (selectedServer.limits.memory * 1024 * 1024) * 100)}%` }} />
+                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" formatValue={(v) => `${v.toFixed(1)}%`} />
+                                    </Card>
+                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
+                                        <div className="p-3 pb-0 h-[50px]">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-xs text-muted-foreground">Memory</p>
+                                                <span className="text-sm font-semibold text-green-500">
+                                                    {formatBytes(statsHistory[statsHistory.length - 1]?.memory || 0)}
+                                                    {selectedServer.limits?.memory ? <span className="text-muted-foreground font-normal"> / {(selectedServer.limits.memory / 1024).toFixed(1)} GiB</span> : null}
+                                                </span>
                                             </div>
-                                        )}
-                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={40} />
+                                        </div>
+                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" formatValue={(v) => formatBytes(v)} />
                                     </Card>
-                                    <Card variant="glass" className="p-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs text-muted-foreground">Network I/O</p>
-                                            <span className="text-sm font-semibold text-blue-500">
-                                                {formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}
-                                            </span>
+                                    <Card variant="glass" className="p-0 bg-[#1a1e28]/80 border-[#2a3142]">
+                                        <div className="p-3 pb-0 h-[50px]">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-xs text-muted-foreground">Network I/O</p>
+                                                <span className="text-sm font-semibold text-blue-500">
+                                                    {formatBytes((statsHistory[statsHistory.length - 1]?.networkRx || 0) + (statsHistory[statsHistory.length - 1]?.networkTx || 0))}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-2 text-xs text-muted-foreground">
+                                                <span>↓ {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}</span>
+                                                <span>↑ {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex gap-2 text-xs text-muted-foreground mb-2">
-                                            <span>↓ {formatBytes(statsHistory[statsHistory.length - 1]?.networkRx || 0)}</span>
-                                            <span>↑ {formatBytes(statsHistory[statsHistory.length - 1]?.networkTx || 0)}</span>
-                                        </div>
-                                        <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" height={40} />
+                                        <SparklineChart data={statsHistory.map(s => s.networkRx + s.networkTx)} color="#3b82f6" formatValue={(v) => formatBytes(v)} />
                                     </Card>
                                 </div>
                             )}

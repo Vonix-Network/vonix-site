@@ -55,6 +55,20 @@ export async function GET(
         start(controller) {
             console.log(`[Console SSE] Starting for server ${identifier}`);
 
+            let isClosed = false;
+
+            // Safe close helper to prevent "Controller is already closed" errors
+            const safeClose = () => {
+                if (!isClosed) {
+                    isClosed = true;
+                    try {
+                        controller.close();
+                    } catch (e) {
+                        // Controller already closed, ignore
+                    }
+                }
+            };
+
             // Close any existing connection for this server
             const existingWs = activeConnections.get(identifier);
             if (existingWs) {
@@ -72,6 +86,7 @@ export async function GET(
 
             // Send SSE event helper
             const sendEvent = (event: string, data: any) => {
+                if (isClosed) return;
                 const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
                 try {
                     controller.enqueue(encoder.encode(message));
@@ -137,7 +152,7 @@ export async function GET(
                 console.log(`[Console SSE] WebSocket closed for ${identifier}: ${code} ${reason}`);
                 activeConnections.delete(identifier);
                 sendEvent('disconnected', { code, reason: reason.toString() });
-                controller.close();
+                safeClose();
             });
 
             // Handle client disconnect
@@ -145,6 +160,7 @@ export async function GET(
                 console.log(`[Console SSE] Client disconnected for ${identifier}`);
                 ws.close();
                 activeConnections.delete(identifier);
+                safeClose();
             });
         },
     });
