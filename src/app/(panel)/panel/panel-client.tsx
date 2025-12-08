@@ -895,27 +895,30 @@ export function PanelClient() {
             try {
                 const data = JSON.parse(event.data);
                 if (data) {
+                    // Handle both nested .resources (custom) and flat (standard Pterodactyl) structures
+                    const resources = data.resources || data;
+
                     // Always update graph history
                     setStatsHistory(prev => [...prev, {
                         timestamp: Date.now(),
-                        cpu: data.resources.cpu_absolute,
-                        memory: data.resources.memory_bytes,
-                        networkRx: data.resources.network_rx_bytes,
-                        networkTx: data.resources.network_tx_bytes,
+                        cpu: resources.cpu_absolute,
+                        memory: resources.memory_bytes,
+                        networkRx: resources.network_rx_bytes,
+                        networkTx: resources.network_tx_bytes,
                     }].slice(-60));
 
                     // Update resources for sidebar
                     setResources({
                         attributes: {
-                            current_state: data.state,
+                            current_state: data.state || resources.state,
                             is_suspended: false,
                             resources: {
-                                memory_bytes: data.resources.memory_bytes,
-                                cpu_absolute: data.resources.cpu_absolute,
-                                disk_bytes: data.resources.disk_bytes,
-                                network_rx_bytes: data.resources.network_rx_bytes,
-                                network_tx_bytes: data.resources.network_tx_bytes,
-                                uptime: data.resources.uptime
+                                memory_bytes: resources.memory_bytes,
+                                cpu_absolute: resources.cpu_absolute,
+                                disk_bytes: resources.disk_bytes,
+                                network_rx_bytes: resources.network_rx_bytes,
+                                network_tx_bytes: resources.network_tx_bytes,
+                                uptime: resources.uptime || 0
                             }
                         }
                     } as any);
