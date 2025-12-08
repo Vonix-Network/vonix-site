@@ -788,15 +788,16 @@ export function PanelClient() {
         }
     }, [selectedServer]);
 
-    // Smart polling: Stop HTTP polling when SSE is connected (SSE provides stats events)
-    // Resume polling when SSE disconnects
+    // Smart polling: Reduce HTTP polling frequency when SSE is connected (SSE provides stats events)
+    // Keep a slow fallback in case SSE events are buffered by reverse proxies
     useEffect(() => {
         if (wsConnected && resourceIntervalRef.current) {
-            // SSE connected - stop redundant HTTP polling
+            // SSE connected - slow down HTTP polling to 10s as fallback
             clearInterval(resourceIntervalRef.current);
-            resourceIntervalRef.current = null;
-        } else if (!wsConnected && !resourceIntervalRef.current && selectedServer) {
-            // SSE disconnected - resume HTTP polling as fallback
+            resourceIntervalRef.current = setInterval(fetchServerResources, 10000);
+        } else if (!wsConnected && resourceIntervalRef.current && selectedServer) {
+            // SSE disconnected - resume faster HTTP polling  
+            clearInterval(resourceIntervalRef.current);
             resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
         }
     }, [wsConnected, selectedServer, fetchServerResources]);
