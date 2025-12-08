@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth-guard';
-import { pingServerNative } from '@/lib/minecraft-ping';
-import { getServerStatus } from '@/lib/minecraft-status';
 
 export async function GET(
     request: NextRequest,
@@ -33,7 +31,7 @@ export async function GET(
 
         const panelUrl = panelUrlSetting.value.replace(/\/$/, '');
 
-        // Fetch server details
+        // Fetch server details to get allocation
         const serverRes = await fetch(`${panelUrl}/api/client/servers/${identifier}`, {
             headers: {
                 'Authorization': `Bearer ${apiKeySetting.value}`,
@@ -60,62 +58,80 @@ export async function GET(
             });
         }
 
-        // Get the IP and port - use ip_alias if available (usually the public hostname)
+        // Get the IP and port
         const ip = allocation.ip_alias || allocation.ip;
         const port = allocation.port;
 
-        console.log(`[players] Attempting to get players for ${ip}:${port}`);
+        console.log(`[players] Getting players for ${ip}:${port}`);
 
-        // Try native ping first (fastest, most reliable)
-        let result = await pingServerNative(ip, port);
+        // Method 1: Try native TCP ping first (fastest)
+        try {
+            const { pingServerNative } = await import('@/lib/minecraft-ping');
+            const nativeResult = await pingServerNative(ip, port);
 
-        // If native ping failed, try mcstatus.io API
-        if (!result.success || !result.data?.online) {
-            console.log(`[players] Native ping failed, trying mcstatus.io API for ${ip}:${port}`);
-            result = await getServerStatus(ip, port);
+            if (nativeResult.success && nativeResult.data?.online) {
+                const playerList = extractPlayerNames(nativeResult.data.players);
+                console.log(`[players] Native ping success: ${nativeResult.data.players?.online || 0} players`);
+                return NextResponse.json({
+                    online: true,
+                    players: {
+                        online: nativeResult.data.players?.online || 0,
+                        max: nativeResult.data.players?.max || 0,
+                        list: playerList,
+                    },
+                    source: 'native'
+                });
+            }
+        } catch (e) {
+            console.log(`[players] Native ping failed: ${e}`);
         }
 
-        if (result.success && result.data) {
-            // Extract player names from the result
-            // The ping result has players.list as array of {name_raw, name_clean, uuid}
-            const playerList: string[] = [];
+        // Method 2: Try mcstatus.io API
+        try {
+            const { getServerStatus } = await import('@/lib/minecraft-status');
+            const mcstatusResult = await getServerStatus(ip, port);
 
-            if (result.data.players?.list && Array.isArray(result.data.players.list)) {
-                for (const player of result.data.players.list) {
-                    // Handle both formats: { name_clean } from native ping or { name } from API
-                    const name = player.name_clean || player.name_raw || player.name || 'Unknown';
-                    if (name && name !== 'Unknown') {
-                        playerList.push(name);
-                    }
-                }
+            if (mcstatusResult.success && mcstatusResult.data?.online) {
+                const playerList = extractPlayerNames(mcstatusResult.data.players);
+                console.log(`[players] mcstatus.io success: ${mcstatusResult.data.players?.online || 0} players`);
+                return NextResponse.json({
+                    online: true,
+                    players: {
+                        online: mcstatusResult.data.players?.online || 0,
+                        max: mcstatusResult.data.players?.max || 0,
+                        list: playerList,
+                    },
+                    source: 'mcstatus.io'
+                });
             }
-
-            // Also check for sample format (used by some APIs)
-            if (result.data.players?.sample && Array.isArray(result.data.players.sample)) {
-                for (const player of result.data.players.sample) {
-                    const name = player.name || player.name_clean || 'Unknown';
-                    if (name && name !== 'Unknown' && !playerList.includes(name)) {
-                        playerList.push(name);
-                    }
-                }
-            }
-
-            console.log(`[players] Got ${result.data.players?.online || 0} players online, ${playerList.length} names`);
-
-            return NextResponse.json({
-                online: result.data.online,
-                players: {
-                    online: result.data.players?.online || 0,
-                    max: result.data.players?.max || 0,
-                    list: playerList,
-                },
-            });
+        } catch (e) {
+            console.log(`[players] mcstatus.io failed: ${e}`);
         }
 
-        console.log(`[players] Failed to get player data for ${ip}:${port}`);
+        // Method 3: Try mcsrvstat.us API
+        try {
+            const mcsrvstatResult = await fetchMcsrvstat(ip, port);
+            if (mcsrvstatResult.online) {
+                console.log(`[players] mcsrvstat.us success: ${mcsrvstatResult.players?.online || 0} players`);
+                return NextResponse.json({
+                    online: true,
+                    players: {
+                        online: mcsrvstatResult.players?.online || 0,
+                        max: mcsrvstatResult.players?.max || 0,
+                        list: mcsrvstatResult.players?.list || [],
+                    },
+                    source: 'mcsrvstat.us'
+                });
+            }
+        } catch (e) {
+            console.log(`[players] mcsrvstat.us failed: ${e}`);
+        }
+
+        console.log(`[players] All methods failed for ${ip}:${port}`);
         return NextResponse.json({
             online: false,
-            players: { online: 0, max: 0, list: [] }
+            players: { online: 0, max: 0, list: [] },
+            source: 'none'
         });
 
     } catch (error) {
@@ -126,4 +142,65 @@ export async function GET(
             players: { online: 0, max: 0, list: [] }
         }, { status: 500 });
     }
+}
+
+// Extract player names from various response formats
+function extractPlayerNames(players: any): string[] {
+    if (!players) return [];
+
+    const names: string[] = [];
+
+    // Handle list format (from native ping)
+    if (players.list && Array.isArray(players.list)) {
+        for (const player of players.list) {
+            if (typeof player === 'string') {
+                names.push(player);
+            } else if (player.name_clean) {
+                names.push(player.name_clean);
+            } else if (player.name_raw) {
+                names.push(player.name_raw);
+            } else if (player.name) {
+                names.push(player.name);
+            }
+        }
+    }
+
+    // Handle sample format (from some APIs)
+    if (players.sample && Array.isArray(players.sample)) {
+        for (const player of players.sample) {
+            const name = player.name || player.name_clean || '';
+            if (name && !names.includes(name)) {
+                names.push(name);
+            }
+        }
+    }
+
+    return names.filter(n => n && n !== 'Unknown');
+}
+
+// Fetch from mcsrvstat.us API
+async function fetchMcsrvstat(ip: string, port: number): Promise<{
+    online: boolean;
+    players?: { online: number; max: number; list: string[] };
+}> {
+    const address = port === 25565 ? ip : `${ip}:${port}`;
+    const response = await fetch(`https://api.mcsrvstat.us/2/${address}`, {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 30 }
+    });
+
+    if (!response.ok) {
+        throw new Error(`mcsrvstat.us returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+        online: data.online === true,
+        players: data.online ? {
+            online: data.players?.online || 0,
+            max: data.players?.max || 0,
+            list: data.players?.list || [],
+        } : undefined,
+    };
 }

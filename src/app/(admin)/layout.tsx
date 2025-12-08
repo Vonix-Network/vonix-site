@@ -24,7 +24,7 @@ const adminNav = [
 
 // Superadmin-only items for Pterodactyl Panel integration
 const superadminNav = [
-  { href: '/admin/panel', icon: Gamepad2, label: 'Server Panel' },
+  { href: '/panel', icon: Gamepad2, label: 'Server Panel' },
   { href: '/admin/pterodactyl', icon: Settings, label: 'Pterodactyl Settings' },
 ];
 
