@@ -941,10 +941,12 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Unified polling - 3s for both graphs and sidebar stats (in sync)
+            // Unified polling - 3s interval (Start-to-Start timing)
             graphPollingActiveRef.current = true;
             const pollUnified = async () => {
                 if (!graphPollingActiveRef.current || signal.aborted) return;
+                const startTime = Date.now(); // Capture start time for latency compensation
+
                 try {
                     const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`, { signal });
                     if (res.ok) {
@@ -968,8 +970,12 @@ export function PanelClient() {
                         // Only log non-abort errors
                     }
                 }
+
                 if (graphPollingActiveRef.current && !signal.aborted) {
-                    setTimeout(pollUnified, 3000);
+                    // Calculate elapsed time and adjust next poll to ensure consistent 3s interval
+                    const elapsed = Date.now() - startTime;
+                    const delay = Math.max(0, 3000 - elapsed);
+                    setTimeout(pollUnified, delay);
                 }
             };
             pollUnified(); // Start immediately for faster initial load
