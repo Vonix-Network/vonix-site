@@ -919,7 +919,7 @@ export function PanelClient() {
                     setResources({
                         object: 'stats',
                         attributes: {
-                            current_state: data.state || resources.state || 'running',
+                            current_state: data.state || resources.state || 'offline',
                             is_suspended: false,
                             resources: {
                                 memory_bytes: get('memory_bytes', 'memoryBytes'),
@@ -1455,9 +1455,9 @@ export function PanelClient() {
                                     <span className="uppercase text-[10px] font-bold tracking-wider">{resources.currentState}</span>
                                 </Badge>
                             ) : (
-                                <Badge variant="secondary" className="px-2 py-1 h-8 animate-pulse flex items-center gap-1.5">
-                                    <RefreshCw className="w-3 h-3 animate-spin" />
-                                    <span className="text-[10px]">LOADING</span>
+                                <Badge variant="secondary" className="px-2 py-1 h-8 flex items-center gap-1.5">
+                                    <WifiOff className="w-3 h-3 text-muted-foreground" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">OFFLINE</span>
                                 </Badge>
                             )}
 
