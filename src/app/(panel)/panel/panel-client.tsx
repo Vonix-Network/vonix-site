@@ -788,19 +788,8 @@ export function PanelClient() {
         }
     }, [selectedServer]);
 
-    // Smart polling: Reduce HTTP polling frequency when SSE is connected (SSE provides stats events)
-    // Keep a slow fallback in case SSE events are buffered by reverse proxies
-    useEffect(() => {
-        if (wsConnected && resourceIntervalRef.current) {
-            // SSE connected - slow down HTTP polling to 3s as fallback
-            clearInterval(resourceIntervalRef.current);
-            resourceIntervalRef.current = setInterval(fetchServerResources, 3000);
-        } else if (!wsConnected && resourceIntervalRef.current && selectedServer) {
-            // SSE disconnected - resume fast HTTP polling (1s)
-            clearInterval(resourceIntervalRef.current);
-            resourceIntervalRef.current = setInterval(fetchServerResources, 1000);
-        }
-    }, [wsConnected, selectedServer, fetchServerResources]);
+    // Note: SSE provides real-time stats updates when connected
+    // HTTP polling at 1s provides consistent fallback regardless of SSE state
 
     const sendPowerAction = async (action: 'start' | 'stop' | 'restart' | 'kill') => {
         if (!selectedServer) return;
