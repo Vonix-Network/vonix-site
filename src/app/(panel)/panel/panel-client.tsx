@@ -890,23 +890,7 @@ export function PanelClient() {
                 }
             } catch (e) { }
         });
-        eventSource.addEventListener('stats', (event) => {
-            try {
-                const stats = JSON.parse(event.data);
-                setResources(prev => prev ? {
-                    ...prev, currentState: stats.state,
-                    resources: {
-                        memoryBytes: stats.memory_bytes || 0, cpuAbsolute: stats.cpu_absolute || 0,
-                        diskBytes: stats.disk_bytes || 0, networkRxBytes: stats.network?.rx_bytes || 0,
-                        networkTxBytes: stats.network?.tx_bytes || 0, uptime: stats.uptime || 0,
-                    },
-                } : null);
-                setStatsHistory(prev => [...prev, {
-                    timestamp: Date.now(), cpu: stats.cpu_absolute || 0, memory: stats.memory_bytes || 0,
-                    networkRx: stats.network?.rx_bytes || 0, networkTx: stats.network?.tx_bytes || 0,
-                }].slice(-60));
-            } catch (e) { }
-        });
+
 
         eventSource.addEventListener('disconnected', () => {
             setWsConnected(false); setWsConnecting(false); setWsReconnecting(true);
@@ -934,12 +918,6 @@ export function PanelClient() {
     const graphPollingActiveRef = useRef(false);
     const playerPollingActiveRef = useRef(false);
 
-    // Track connection state via ref for polling loop
-    const wsConnectedRef = useRef(false);
-    useEffect(() => {
-        wsConnectedRef.current = wsConnected;
-    }, [wsConnected]);
-
     useEffect(() => {
         if (selectedServer) {
             // Abort any pending requests from previous server
@@ -963,7 +941,7 @@ export function PanelClient() {
             connectConsole(selectedServer);
             fetchPlayers();
 
-            // Unified polling - 2s for both graphs and sidebar stats (in sync)
+            // Unified polling - 3s for both graphs and sidebar stats (in sync)
             graphPollingActiveRef.current = true;
             const pollUnified = async () => {
                 if (!graphPollingActiveRef.current || signal.aborted) return;
@@ -971,9 +949,8 @@ export function PanelClient() {
                     const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}`, { signal });
                     if (res.ok) {
                         const data = await res.json();
-                        // Only update stats from poll if SSE is NOT connected (hybrid strategy)
-                        if (data.resources && !wsConnectedRef.current) {
-                            // Always update graph history (2s)
+                        if (data.resources) {
+                            // Always update graph history (3s)
                             setStatsHistory(prev => [...prev, {
                                 timestamp: Date.now(),
                                 cpu: data.resources.resources.cpuAbsolute,
@@ -992,7 +969,7 @@ export function PanelClient() {
                     }
                 }
                 if (graphPollingActiveRef.current && !signal.aborted) {
-                    setTimeout(pollUnified, 2000);
+                    setTimeout(pollUnified, 3000);
                 }
             };
             pollUnified(); // Start immediately for faster initial load
