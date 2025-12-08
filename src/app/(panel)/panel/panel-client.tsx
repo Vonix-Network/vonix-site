@@ -907,8 +907,10 @@ export function PanelClient() {
                         networkTx: resources.network_tx_bytes,
                     }].slice(-60));
 
-                    // Update resources for sidebar
+                    // Update resources for sidebar (Map snake_case to camelCase and ensure correct structure)
+                    // UI expects: resources.resources.cpuAbsolute, etc.
                     setResources({
+                        object: 'stats',
                         attributes: {
                             current_state: data.state || resources.state,
                             is_suspended: false,
@@ -920,6 +922,15 @@ export function PanelClient() {
                                 network_tx_bytes: resources.network_tx_bytes,
                                 uptime: resources.uptime || 0
                             }
+                        },
+                        // The UI accesses resources.resources.* directly, so we provide it here
+                        resources: {
+                            memoryBytes: resources.memory_bytes,
+                            cpuAbsolute: resources.cpu_absolute,
+                            diskBytes: resources.disk_bytes,
+                            networkRxBytes: resources.network_rx_bytes,
+                            networkTxBytes: resources.network_tx_bytes,
+                            uptime: resources.uptime || 0
                         }
                     } as any);
                 }
