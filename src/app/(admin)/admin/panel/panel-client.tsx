@@ -7,7 +7,7 @@ import {
     FolderOpen, Database, Archive, Settings2, ChevronRight, Clock,
     Globe, ArrowDown, ArrowUp, Maximize2, Minimize2, ChevronDown,
     File, Folder, ArrowLeft, Plus, Trash2, Edit, Save, X, Download,
-    Copy, Lock, Unlock, Calendar
+    Copy, Lock, Unlock, Calendar, Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -184,6 +184,9 @@ export default function ServerPanelPage() {
     const [showServerDropdown, setShowServerDropdown] = useState(false);
     const [statsHistory, setStatsHistory] = useState<StatsHistory[]>([]);
 
+    // Player list state
+    const [playerData, setPlayerData] = useState<{ online: boolean; players: { online: number; max: number; list: string[] } } | null>(null);
+
     // Files state
     const [currentPath, setCurrentPath] = useState('/');
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -330,6 +333,18 @@ export default function ServerPanelPage() {
                         networkTx: data.resources.resources.networkTxBytes,
                     }].slice(-60));
                 }
+            }
+        } catch (err) { }
+    }, [selectedServer]);
+
+    // Fetch player list
+    const fetchPlayers = useCallback(async () => {
+        if (!selectedServer) return;
+        try {
+            const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}/players`);
+            if (res.ok) {
+                const data = await res.json();
+                setPlayerData(data);
             }
         } catch (err) { }
     }, [selectedServer]);
@@ -617,10 +632,14 @@ export default function ServerPanelPage() {
             setWsConnected(false); setWsConnecting(false); setWsError(null);
             setConsoleLines([]); setStatsHistory([]); setResources(null);
             setCurrentPath('/'); setFiles([]); setEditingFile(null);
+            setPlayerData(null);
             fetchServerResources(); connectConsole(selectedServer);
-            const interval = setInterval(fetchServerResources, 3000);
+            fetchPlayers(); // Initial fetch
+            const resourceInterval = setInterval(fetchServerResources, 3000);
+            const playerInterval = setInterval(fetchPlayers, 10000); // Every 10 seconds
             return () => {
-                clearInterval(interval);
+                clearInterval(resourceInterval);
+                clearInterval(playerInterval);
                 const ref = wsRef.current as any;
                 if (ref?.close) ref.close();
                 if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
@@ -749,6 +768,35 @@ export default function ServerPanelPage() {
                                 <Skull className="w-3 h-3" />
                             </Button>
                         </div>
+                    </Card>
+                )}
+
+                {/* Player List */}
+                {selectedServer && playerData && (
+                    <Card variant="glass" className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-neon-purple" />
+                                <span className="font-semibold text-sm">Players</span>
+                            </div>
+                            <Badge variant={playerData.online ? 'success' : 'secondary'}>
+                                {playerData.players.online}/{playerData.players.max}
+                            </Badge>
+                        </div>
+                        {playerData.players.list.length > 0 ? (
+                            <div className="space-y-1 max-h-32 overflow-auto">
+                                {playerData.players.list.map((player, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-card transition-colors">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                        <span className="truncate">{player}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                                {playerData.online ? 'No players online' : 'Server offline'}
+                            </p>
+                        )}
                     </Card>
                 )}
 
