@@ -750,7 +750,7 @@ export default function ServerPanelPage() {
                                     <Button variant="ghost" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</Button>
                                 </div>
                             </CardHeader>
-                            <div ref={consoleContainerRef} className="flex-1 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3">
+                            <div ref={consoleContainerRef} className="flex-1 bg-[#0a0a0a] font-mono text-xs overflow-auto p-3 max-h-[500px]">
                                 {consoleLines.length === 0 ? (
                                     <div className="text-muted-foreground text-center py-8 space-y-2">
                                         {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
