@@ -370,6 +370,12 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             <p className="text-xs text-muted-foreground mt-4">
               Ranks are automatically granted based on your donation amount! (e.g. $5 = Supporter for 30 days)
             </p>
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+              <p className="text-xs text-yellow-500 flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Important: Please ensure your Ko-Fi email matches your account email for automatic rank assignment!
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

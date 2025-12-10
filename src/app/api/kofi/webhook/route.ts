@@ -239,7 +239,38 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Strategy 2: Fallback to Email lookup
+        // Strategy 2: Fallback to Display Name (from_name)
+        if (!foundUser && data.from_name) {
+            // Clean display name, similar logic
+            const potentialUsername = data.from_name.trim().split(/\s+/)[0];
+            if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
+                // Try to find user by username or minecraftUsername
+                const [userByMc] = await db
+                    .select()
+                    .from(users)
+                    .where(eq(users.minecraftUsername, potentialUsername))
+                    .limit(1);
+
+                if (userByMc) {
+                    foundUser = userByMc;
+                    console.log(`Found user by Minecraft username in display name: ${potentialUsername}`);
+                } else {
+                    // Try regular username check too
+                    const [userByName] = await db
+                        .select()
+                        .from(users)
+                        .where(eq(users.username, potentialUsername))
+                        .limit(1);
+
+                    if (userByName) {
+                        foundUser = userByName;
+                        console.log(`Found user by website username in display name: ${potentialUsername}`);
+                    }
+                }
+            }
+        }
+
+        // Strategy 3: Fallback to Email lookup
         if (!foundUser && data.email) {
             const [userByEmail] = await db
                 .select()
