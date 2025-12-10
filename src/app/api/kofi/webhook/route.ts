@@ -136,9 +136,9 @@ export async function POST(request: NextRequest) {
             transactionId: data.kofi_transaction_id,
         });
 
-        // Only process donations (not subscriptions through Ko-Fi for now)
-        if (data.type !== 'Donation') {
-            console.log(`Ko-Fi webhook type ${data.type} not handled, only Donation is supported`);
+        // Only process donations and subscriptions
+        if (data.type !== 'Donation' && data.type !== 'Subscription') {
+            console.log(`Ko-Fi webhook type ${data.type} not handled`);
             return NextResponse.json({ received: true, processed: false });
         }
 
@@ -164,71 +164,131 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find the best rank for this donation amount
-        const matchedRank = await findBestRankForAmount(amount);
+        // Determine Rank
         let rankId: string | null = null;
         let rankDays = 30; // Default to 30 days for Ko-Fi donations
 
-        if (matchedRank) {
-            rankId = matchedRank.id;
-            // Calculate days based on amount vs monthly min amount
-            // If they donated more than the minimum, give proportional time
-            if (matchedRank.minAmount > 0) {
-                rankDays = Math.floor((amount / matchedRank.minAmount) * 30);
-                rankDays = Math.max(rankDays, 7); // Minimum 7 days
-                rankDays = Math.min(rankDays, 365); // Maximum 1 year
+        // Priority 1: Use tier_name if present (for Memberships)
+        if (data.tier_name) {
+            rankId = data.tier_name.toLowerCase();
+            // Verify if this rank exists in our DB to be safe, otherwise fallback to amount matching
+            const [rankExists] = await db
+                .select()
+                .from(donationRanks)
+                .where(eq(donationRanks.id, rankId))
+                .limit(1);
+
+            if (!rankExists) {
+                console.warn(`Ko-Fi tier name '${data.tier_name}' does not match any rank ID. Falling back to amount matching.`);
+                rankId = null;
+            } else {
+                console.log(`Matched Ko-Fi tier '${data.tier_name}' to rank '${rankId}'`);
             }
-            console.log(`Matched Ko-Fi donation to rank: ${matchedRank.name} for ${rankDays} days`);
         }
 
-        // Try to find user by email
+        // Priority 2: Find the best rank based on donation amount if no tier matched
+        if (!rankId) {
+            const matchedRank = await findBestRankForAmount(amount);
+            if (matchedRank) {
+                rankId = matchedRank.id;
+                // Calculate days based on amount vs monthly min amount
+                // If they donated more than the minimum, give proportional time
+                if (matchedRank.minAmount > 0) {
+                    rankDays = Math.floor((amount / matchedRank.minAmount) * 30);
+                    rankDays = Math.max(rankDays, 7); // Minimum 7 days
+                    rankDays = Math.min(rankDays, 365); // Maximum 1 year
+                }
+                console.log(`Matched Ko-Fi donation to rank: ${matchedRank.name} for ${rankDays} days`);
+            }
+        }
+
+        // Try to find user
         let userId: number | null = null;
         let username = data.from_name;
+        let foundUser: typeof users.$inferSelect | undefined;
 
-        if (data.email) {
-            const [user] = await db
+        // Strategy 1: Check if message contains a valid Minecraft username
+        if (data.message) {
+            // Clean message, look for single word that looks like a username
+            const potentialUsername = data.message.trim().split(/\s+/)[0];
+            // Basic regex for MC username (3-16 chars, letters, numbers, underscores)
+            if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
+                // Try to find user by username or minecraftUsername
+                const [userByMc] = await db
+                    .select()
+                    .from(users)
+                    .where(eq(users.minecraftUsername, potentialUsername))
+                    .limit(1);
+
+                if (userByMc) {
+                    foundUser = userByMc;
+                    console.log(`Found user by Minecraft username in message: ${potentialUsername}`);
+                } else {
+                    // Try regular username check too
+                    const [userByName] = await db
+                        .select()
+                        .from(users)
+                        .where(eq(users.username, potentialUsername))
+                        .limit(1);
+
+                    if (userByName) {
+                        foundUser = userByName;
+                        console.log(`Found user by website username in message: ${potentialUsername}`);
+                    }
+                }
+            }
+        }
+
+        // Strategy 2: Fallback to Email lookup
+        if (!foundUser && data.email) {
+            const [userByEmail] = await db
                 .select()
                 .from(users)
                 .where(eq(users.email, data.email))
                 .limit(1);
 
-            if (user) {
-                userId = user.id;
-                username = user.minecraftUsername || user.username;
+            if (userByEmail) {
+                foundUser = userByEmail;
+                console.log(`Found user by email: ${data.email}`);
+            }
+        }
 
-                // Calculate new expiration date
-                const now = new Date();
-                let newExpiresAt: Date;
+        if (foundUser) {
+            userId = foundUser.id;
+            username = foundUser.minecraftUsername || foundUser.username;
 
-                if (user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
-                    // Extend existing rank
-                    newExpiresAt = new Date(user.rankExpiresAt);
-                    newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
-                } else {
-                    // New rank assignment
-                    newExpiresAt = new Date();
-                    newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
-                }
+            // Calculate new expiration date
+            const now = new Date();
+            let newExpiresAt: Date;
 
-                // Update user with rank and total donated
-                const updateData: Record<string, any> = {
-                    totalDonated: (user.totalDonated || 0) + amount,
-                    updatedAt: new Date(),
-                };
+            if (foundUser.rankExpiresAt && new Date(foundUser.rankExpiresAt) > now) {
+                // Extend existing rank
+                newExpiresAt = new Date(foundUser.rankExpiresAt);
+                newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
+            } else {
+                // New rank assignment
+                newExpiresAt = new Date();
+                newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
+            }
 
-                if (rankId) {
-                    updateData.currentRankId = rankId;
-                    updateData.rankExpiresAt = newExpiresAt;
-                }
+            // Update user with rank and total donated
+            const updateData: Record<string, any> = {
+                totalDonated: (foundUser.totalDonated || 0) + amount,
+                updatedAt: new Date(),
+            };
 
-                await db
-                    .update(users)
-                    .set(updateData)
-                    .where(eq(users.id, user.id));
+            if (rankId) {
+                updateData.currentRankId = rankId;
+                updateData.rankExpiresAt = newExpiresAt;
+            }
 
-                if (rankId) {
-                    console.log(`✅ Assigned rank ${rankId} to user ${username} until ${newExpiresAt.toISOString()}`);
-                }
+            await db
+                .update(users)
+                .set(updateData)
+                .where(eq(users.id, foundUser.id));
+
+            if (rankId) {
+                console.log(`✅ Assigned rank ${rankId} to user ${username} until ${newExpiresAt.toISOString()}`);
             }
         }
 
@@ -240,13 +300,13 @@ export async function POST(request: NextRequest) {
             amount,
             currency: data.currency || 'USD',
             method: 'kofi',
-            message: data.message || `Ko-Fi donation from ${data.from_name}`,
+            message: data.message || `Ko-Fi ${data.type} from ${data.from_name}`,
             displayed: data.is_public,
             receiptNumber,
             paymentId: `kofi_${data.kofi_transaction_id}`,
             rankId: rankId || undefined,
             days: rankDays,
-            paymentType: 'one_time',
+            paymentType: 'one_time', // Ko-Fi payments are treated as one-time in our DB
             status: 'completed',
             createdAt: new Date(),
         });
