@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Heart, Crown, Star, Sparkles, Check,
   Zap, Shield, Gift, CreditCard, Loader2, X, Clock, RefreshCw, Calendar,
@@ -371,9 +372,15 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               Ranks are automatically granted based on your donation amount! (e.g. $5 = Supporter for 30 days)
             </p>
             <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-              <p className="text-xs text-yellow-500 flex items-center justify-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Important: Please ensure your Ko-Fi email matches your account email for automatic rank assignment!
+              <p className="text-xs text-yellow-500 flex items-center justify-center gap-1">
+                <AlertCircle className="w-4 h-4 mr-1 shrink-0" />
+                <span>
+                  Important: Please ensure your Ko-Fi email matches your{' '}
+                  <Link href="/settings" className="underline hover:text-yellow-400 font-medium">
+                    account email
+                  </Link>{' '}
+                  for automatic rank assignment!
+                </span>
               </p>
             </div>
           </CardContent>
