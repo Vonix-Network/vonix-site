@@ -25,7 +25,7 @@ A modern, secure Minecraft community platform with a stunning Neon Rainbow theme
 - **UI Components**: Custom components with Radix UI primitives
 - **Authentication**: [NextAuth.js v5](https://authjs.dev/)
 - **Database**: SQLite with [Drizzle ORM](https://orm.drizzle.team/)
-- **Payments**: [Stripe](https://stripe.com/)
+- **Payments**: [Stripe](https://stripe.com/) or [Ko-Fi](https://ko-fi.com/) (configurable)
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/) + [TanStack Query](https://tanstack.com/query)
 
 ## Security Features

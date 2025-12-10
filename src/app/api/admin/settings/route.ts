@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
       defaultUserRole: settingsObject['default_user_role'] || 'user',
       maxLoginAttempts: settingsObject['max_login_attempts'] || 5,
       lockoutDuration: settingsObject['lockout_duration'] || 15,
+      // Payment provider
+      paymentProvider: settingsObject['payment_provider'] || 'stripe',
       // Stripe settings
       stripeMode: settingsObject['stripe_mode'] || 'test',
       stripeTestPublishableKey: settingsObject['stripe_test_publishable_key'] || '',
@@ -61,6 +63,9 @@ export async function GET(request: NextRequest) {
       stripeLivePublishableKey: settingsObject['stripe_live_publishable_key'] || '',
       stripeLiveSecretKey: settingsObject['stripe_live_secret_key'] ? '••••••••' : '',
       stripeWebhookSecret: settingsObject['stripe_webhook_secret'] ? '••••••••' : '',
+      // Ko-Fi settings
+      kofiVerificationToken: settingsObject['kofi_verification_token'] ? '••••••••' : '',
+      kofiPageUrl: settingsObject['kofi_page_url'] || '',
       // SMTP settings
       smtpHost: settingsObject['smtp_host'] || '',
       smtpPort: settingsObject['smtp_port'] || 587,
@@ -117,12 +122,17 @@ export async function PUT(request: NextRequest) {
       defaultUserRole: { dbKey: 'default_user_role', category: 'security', isPublic: false },
       maxLoginAttempts: { dbKey: 'max_login_attempts', category: 'security', isPublic: false },
       lockoutDuration: { dbKey: 'lockout_duration', category: 'security', isPublic: false },
+      // Payment settings
+      paymentProvider: { dbKey: 'payment_provider', category: 'payments', isPublic: false },
       stripeMode: { dbKey: 'stripe_mode', category: 'payments', isPublic: false },
       stripeTestPublishableKey: { dbKey: 'stripe_test_publishable_key', category: 'payments', isPublic: false },
       stripeTestSecretKey: { dbKey: 'stripe_test_secret_key', category: 'payments', isPublic: false },
       stripeLivePublishableKey: { dbKey: 'stripe_live_publishable_key', category: 'payments', isPublic: false },
       stripeLiveSecretKey: { dbKey: 'stripe_live_secret_key', category: 'payments', isPublic: false },
       stripeWebhookSecret: { dbKey: 'stripe_webhook_secret', category: 'payments', isPublic: false },
+      // Ko-Fi settings
+      kofiVerificationToken: { dbKey: 'kofi_verification_token', category: 'payments', isPublic: false },
+      kofiPageUrl: { dbKey: 'kofi_page_url', category: 'payments', isPublic: false },
       // SMTP settings
       smtpHost: { dbKey: 'smtp_host', category: 'email', isPublic: false },
       smtpPort: { dbKey: 'smtp_port', category: 'email', isPublic: false },
@@ -178,8 +188,10 @@ export async function PUT(request: NextRequest) {
     // Clear caches so new settings take effect immediately
     const { clearSettingsCache } = await import('@/lib/settings');
     const { clearStripeConfigCache } = await import('@/lib/stripe');
+    const { clearKofiConfigCache } = await import('@/lib/kofi');
     clearSettingsCache();
     clearStripeConfigCache();
+    clearKofiConfigCache();
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

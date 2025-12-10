@@ -321,46 +321,79 @@ Generated in `/admin/api-keys`:
 - `POST /api/minecraft/verify` - Verify player login
 - `POST /api/minecraft/xp` - Award XP
 
-## 💳 Stripe Configuration
+## 💳 Payment Configuration
 
-### Setup Webhook
-1. Go to Stripe Dashboard → Webhooks
+The site supports multiple payment providers, configurable via **Admin Panel → Settings → Payments**:
+
+### Payment Provider Options
+
+| Provider | Features | Best For |
+|----------|----------|----------|
+| **Stripe** | Credit cards, subscriptions, recurring billing | Full e-commerce with rank subscriptions |
+| **Ko-Fi** | One-time donations, simple setup | Communities that prefer Ko-Fi |
+| **Disabled** | No payments | Sites not accepting donations |
+
+---
+
+### Stripe Setup
+
+#### 1. Configure in Admin Dashboard
+1. Go to **Admin → Settings → Payments**
+2. Select **Stripe** as the payment provider
+3. Choose mode: **Test** (development) or **Live** (production)
+4. Enter your API keys from [Stripe Dashboard](https://dashboard.stripe.com/apikeys):
+   - **Publishable Key**: `pk_test_...` or `pk_live_...`
+   - **Secret Key**: `sk_test_...` or `sk_live_...`
+   - **Webhook Secret**: `whsec_...`
+
+#### 2. Configure Stripe Webhook
+1. Go to [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks)
 2. Add endpoint: `https://yourdomain.com/api/stripe/webhook`
-3. Select events:
+3. Select these events:
    - `checkout.session.completed`
    - `invoice.payment_succeeded`
    - `invoice.payment_failed`
    - `customer.subscription.deleted`
    - `customer.subscription.updated`
    - `payment_intent.succeeded`
+4. Copy the webhook signing secret to admin settings
 
-4. Copy webhook secret to setup wizard or admin settings
+#### Test Cards (Test Mode)
+- **Success**: `4242 4242 4242 4242`
+- **Declined**: `4000 0000 0000 0002`
+- **Requires Auth**: `4000 0025 0000 3155`
 
-### Test Mode
-Use test keys during development:
-- Secret: `sk_test_...`
-- Publishable: `pk_test_...`
-- Webhook Secret: `whsec_test_...`
+---
 
-## 🆘 Troubleshooting
+### Ko-Fi Setup
 
-### Setup wizard not appearing?
-- Clear browser cache
-- Check `.env.local` is configured
-- Ensure database is initialized: `npm run db:push`
+Ko-Fi is a simpler alternative for accepting one-time donations. **Note**: Ko-Fi donations don't automatically assign ranks.
 
-### 404 on routes?
-- Restart dev server: Stop and run `npm run dev` again
-- Check file structure in `src/app/`
+#### 1. Configure in Admin Dashboard
+1. Go to **Admin → Settings → Payments**
+2. Select **Ko-Fi** as the payment provider
+3. Enter:
+   - **Ko-Fi Page URL**: `https://ko-fi.com/yourusername`
+   - **Verification Token**: Found at [ko-fi.com/manage/webhooks](https://ko-fi.com/manage/webhooks)
 
-### Database errors?
-- Delete `data/vonix.db` and run `npm run db:push`
-- This will reset all data (only do in development!)
+#### 2. Configure Ko-Fi Webhook
+1. Go to [Ko-Fi Webhook Settings](https://ko-fi.com/manage/webhooks)
+2. Add webhook URL: `https://yourdomain.com/api/kofi/webhook`
+3. Copy your verification token to admin settings
 
-### Stripe not working?
-- Verify keys are correct in admin settings
-- Check webhook is configured
-- Test with Stripe test cards
+#### Ko-Fi Features
+- ✅ Automatic rank assignment based on donation amount
+- ✅ Proportional duration (e.g. donate 2x monthly price = 60 days)
+- ⚠️ One-time donations only (no recurring subscriptions)
+
+---
+
+### Disabling Donations
+
+To disable all donations:
+1. Go to **Admin → Settings → Payments**
+2. Select **Disabled**
+3. The donate page will show a "Donations Currently Unavailable" message
 
 ## 🔗 Helpful Commands
 

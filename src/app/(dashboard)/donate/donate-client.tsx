@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
   Heart, Crown, Star, Sparkles, Check,
-  Zap, Shield, Gift, CreditCard, Loader2, X, Clock, RefreshCw, Calendar
+  Zap, Shield, Gift, CreditCard, Loader2, X, Clock, RefreshCw, Calendar,
+  Coffee, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,14 @@ interface DonatePageClientProps {
   recentDonations: RecentDonation[];
   stats: DonationStats;
   userSubscription: UserSubscription | null;
+}
+
+interface PaymentConfig {
+  provider: 'stripe' | 'kofi' | 'disabled';
+  enabled: boolean;
+  pageUrl?: string;
+  mode?: 'test' | 'live';
+  message?: string;
 }
 
 // Duration options for one-time purchases
@@ -111,12 +120,37 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Payment provider state
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+  const [paymentConfigLoading, setPaymentConfigLoading] = useState(true);
+
   // One-time purchase modal state
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedRank, setSelectedRank] = useState<DonationRank | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(30);
 
   const displayRanks = ranks.length > 0 ? ranks : defaultRanks;
+
+  // Fetch payment config on mount
+  useEffect(() => {
+    const fetchPaymentConfig = async () => {
+      try {
+        const res = await fetch('/api/payments/config');
+        if (res.ok) {
+          const data = await res.json();
+          setPaymentConfig(data);
+        } else {
+          setPaymentConfig({ provider: 'disabled', enabled: false });
+        }
+      } catch (err) {
+        console.error('Failed to fetch payment config:', err);
+        setPaymentConfig({ provider: 'disabled', enabled: false });
+      } finally {
+        setPaymentConfigLoading(false);
+      }
+    };
+    fetchPaymentConfig();
+  }, []);
 
   // Calculate price for a rank and duration
   const calculatePrice = (rank: DonationRank, days: number): number => {
@@ -287,6 +321,59 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         </p>
       </div>
 
+      {/* Loading payment config */}
+      {paymentConfigLoading && (
+        <div className="text-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-neon-cyan" />
+          <p className="text-muted-foreground mt-2">Loading payment options...</p>
+        </div>
+      )}
+
+      {/* Donations Disabled */}
+      {!paymentConfigLoading && paymentConfig?.provider === 'disabled' && (
+        <Card variant="glass" className="max-w-2xl mx-auto mb-12">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-2xl font-bold text-muted-foreground mb-2">
+              Donations Currently Unavailable
+            </h2>
+            <p className="text-muted-foreground">
+              We&apos;re not accepting donations at this time. Please check back later!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ko-Fi Primary Donation Button */}
+      {!paymentConfigLoading && paymentConfig?.provider === 'kofi' && paymentConfig.enabled && (
+        <Card variant="gradient" className="max-w-2xl mx-auto mb-12">
+          <CardContent className="p-8 text-center">
+            <Coffee className="w-16 h-16 mx-auto mb-4 text-neon-pink" />
+            <h2 className="text-2xl font-bold mb-4">Support Us on Ko-Fi</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Click the button below to make a donation through Ko-Fi. All donations are greatly appreciated!
+            </p>
+            <Button
+              variant="gradient"
+              size="lg"
+              onClick={() => {
+                if (paymentConfig.pageUrl) {
+                  window.open(paymentConfig.pageUrl, '_blank');
+                }
+              }}
+              className="bg-[#FF5E5B] hover:bg-[#FF5E5B]/90 border-none"
+            >
+              <Coffee className="w-5 h-5 mr-2" />
+              Donate on Ko-Fi
+              <ExternalLink className="w-4 h-4 ml-2" />
+            </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Ranks are automatically granted based on your donation amount! (e.g. $5 = Supporter for 30 days)
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Rank Status (if logged in and has rank) */}
       {userSubscription && userSubscription.hasRank && userSubscription.rank && !userSubscription.isExpired && (
         <Card variant="neon-glow" className="mb-8 max-w-2xl mx-auto">
@@ -371,124 +458,128 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         </Card>
       </div>
 
-      {/* Donation Ranks */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
-        <p className="text-center text-muted-foreground mb-8">Subscribe for auto-renewal or buy a one-time rank</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {displayRanks.map((rank) => {
-            const isCurrentRank = userHasRank(rank.id);
+      {/* Donation Ranks - Stripe Only */}
+      {!paymentConfigLoading && paymentConfig?.provider === 'stripe' && (
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
+          <p className="text-center text-muted-foreground mb-8">Subscribe for auto-renewal or buy a one-time rank</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {displayRanks.map((rank) => {
+              const isCurrentRank = userHasRank(rank.id);
 
-            return (
-              <Card
-                key={rank.id}
-                variant="glass"
-                hover
-                className={`relative overflow-hidden ${isCurrentRank ? 'ring-2 ring-green-500/50' : ''}`}
-                style={{ borderColor: `${rank.color}50` }}
-              >
-                {/* Current rank badge */}
-                {isCurrentRank && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                      <Check className="w-3 h-3 mr-1" /> Current
-                    </Badge>
-                  </div>
-                )}
+              return (
+                <Card
+                  key={rank.id}
+                  variant="glass"
+                  hover
+                  className={`relative overflow-hidden ${isCurrentRank ? 'ring-2 ring-green-500/50' : ''}`}
+                  style={{ borderColor: `${rank.color}50` }}
+                >
+                  {/* Current rank badge */}
+                  {isCurrentRank && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                        <Check className="w-3 h-3 mr-1" /> Current
+                      </Badge>
+                    </div>
+                  )}
 
-                {/* Glow effect */}
-                <div
-                  className="absolute inset-0 opacity-10"
-                  style={{ background: `radial-gradient(circle at top, ${rank.color}, transparent 70%)` }}
-                />
-
-                <CardHeader className="text-center relative">
+                  {/* Glow effect */}
                   <div
-                    className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
-                    style={{
-                      background: `${rank.color}20`,
-                      border: `2px solid ${rank.color}50`,
-                    }}
-                  >
-                    {rank.icon || <Star className="w-8 h-8" style={{ color: rank.color }} />}
-                  </div>
-                  <CardTitle style={{ color: rank.color }}>{rank.name}</CardTitle>
-                  <CardDescription>
-                    <span className="text-2xl font-bold text-foreground">
-                      {formatCurrency(rank.minAmount)}
-                    </span>
-                    <span className="text-muted-foreground">/month</span>
-                  </CardDescription>
-                </CardHeader>
+                    className="absolute inset-0 opacity-10"
+                    style={{ background: `radial-gradient(circle at top, ${rank.color}, transparent 70%)` }}
+                  />
 
-                <CardContent className="relative">
-                  <ul className="space-y-2 mb-6">
-                    {rank.perks.map((perk, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
-                        <span className="text-muted-foreground">{perk}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="space-y-2">
-                    <Button
-                      variant="neon-outline"
-                      className="w-full"
-                      style={{ borderColor: rank.color, color: rank.color }}
-                      onClick={() => handleSubscribe(rank)}
-                      disabled={loadingRankId === rank.id}
+                  <CardHeader className="text-center relative">
+                    <div
+                      className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                      style={{
+                        background: `${rank.color}20`,
+                        border: `2px solid ${rank.color}50`,
+                      }}
                     >
-                      {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                      )}
-                      {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full text-muted-foreground hover:text-foreground"
-                      onClick={() => openPurchaseModal(rank)}
-                      disabled={loadingRankId === rank.id}
-                    >
-                      <Clock className="w-4 h-4 mr-2" />
-                      {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+                      {rank.icon || <Star className="w-8 h-8" style={{ color: rank.color }} />}
+                    </div>
+                    <CardTitle style={{ color: rank.color }}>{rank.name}</CardTitle>
+                    <CardDescription>
+                      <span className="text-2xl font-bold text-foreground">
+                        {formatCurrency(rank.minAmount)}
+                      </span>
+                      <span className="text-muted-foreground">/month</span>
+                    </CardDescription>
+                  </CardHeader>
 
-      {/* One-time Donation */}
-      <Card variant="gradient" className="mb-12">
-        <CardContent className="py-8 text-center">
-          <Sparkles className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
-          <h2 className="text-2xl font-bold mb-4">One-Time Tip</h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Want to support without a rank? Every donation helps keep our servers running!
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {[5, 10, 25, 50, 100].map((amount) => (
-              <Button
-                key={amount}
-                variant="glass"
-                size="lg"
-                onClick={() => handleOneTimePayment(amount)}
-                disabled={loadingAmount === amount}
-              >
-                {loadingAmount === amount ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : null}
-                {formatCurrency(amount)}
-              </Button>
-            ))}
+                  <CardContent className="relative">
+                    <ul className="space-y-2 mb-6">
+                      {rank.perks.map((perk, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
+                          <span className="text-muted-foreground">{perk}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="space-y-2">
+                      <Button
+                        variant="neon-outline"
+                        className="w-full"
+                        style={{ borderColor: rank.color, color: rank.color }}
+                        onClick={() => handleSubscribe(rank)}
+                        disabled={loadingRankId === rank.id}
+                      >
+                        {loadingRankId === rank.id && loadingType === 'subscription' ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full text-muted-foreground hover:text-foreground"
+                        onClick={() => openPurchaseModal(rank)}
+                        disabled={loadingRankId === rank.id}
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                        {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
+
+      {/* One-time Donation - Stripe Only */}
+      {!paymentConfigLoading && paymentConfig?.provider === 'stripe' && (
+        <Card variant="gradient" className="mb-12">
+          <CardContent className="py-8 text-center">
+            <Sparkles className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
+            <h2 className="text-2xl font-bold mb-4">One-Time Tip</h2>
+            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+              Want to support without a rank? Every donation helps keep our servers running!
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {[5, 10, 25, 50, 100].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="glass"
+                  size="lg"
+                  onClick={() => handleOneTimePayment(amount)}
+                  disabled={loadingAmount === amount}
+                >
+                  {loadingAmount === amount ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  {formatCurrency(amount)}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Donations */}
       <Card variant="glass">
@@ -565,12 +656,20 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
           </div>
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-neon-orange" />
-            <span className="text-sm">Instant Activation</span>
+            <span className="text-sm">{paymentConfig?.provider === 'stripe' ? 'Instant Activation' : 'Quick Processing'}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-neon-cyan" />
-            <span className="text-sm">Powered by Stripe</span>
-          </div>
+          {paymentConfig?.provider === 'stripe' && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-neon-cyan" />
+              <span className="text-sm">Powered by Stripe</span>
+            </div>
+          )}
+          {paymentConfig?.provider === 'kofi' && (
+            <div className="flex items-center gap-2">
+              <Coffee className="w-5 h-5 text-neon-pink" />
+              <span className="text-sm">Powered by Ko-Fi</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -610,8 +709,8 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                       key={option.days}
                       onClick={() => setSelectedDuration(option.days)}
                       className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${selectedDuration === option.days
-                          ? 'border-neon-cyan bg-neon-cyan/10'
-                          : 'border-border hover:border-neon-cyan/50'
+                        ? 'border-neon-cyan bg-neon-cyan/10'
+                        : 'border-border hover:border-neon-cyan/50'
                         }`}
                     >
                       <div className="flex items-center gap-3">

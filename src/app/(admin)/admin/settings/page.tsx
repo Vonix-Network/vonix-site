@@ -34,6 +34,8 @@ interface SiteSettings {
   defaultUserRole: string;
   maxLoginAttempts: number;
   lockoutDuration: number;
+  // Payment provider settings
+  paymentProvider: 'stripe' | 'kofi' | 'disabled';
   // Stripe settings
   stripeMode: 'test' | 'live';
   stripeTestPublishableKey: string;
@@ -41,6 +43,9 @@ interface SiteSettings {
   stripeLivePublishableKey: string;
   stripeLiveSecretKey: string;
   stripeWebhookSecret: string;
+  // Ko-Fi settings
+  kofiVerificationToken: string;
+  kofiPageUrl: string;
   // SMTP settings
   smtpHost: string;
   smtpPort: number;
@@ -79,6 +84,8 @@ const defaultSettings: SiteSettings = {
   defaultUserRole: 'user',
   maxLoginAttempts: 5,
   lockoutDuration: 15,
+  // Payment provider defaults
+  paymentProvider: 'stripe',
   // Stripe defaults
   stripeMode: 'test',
   stripeTestPublishableKey: '',
@@ -86,6 +93,9 @@ const defaultSettings: SiteSettings = {
   stripeLivePublishableKey: '',
   stripeLiveSecretKey: '',
   stripeWebhookSecret: '',
+  // Ko-Fi defaults
+  kofiVerificationToken: '',
+  kofiPageUrl: '',
   // SMTP defaults
   smtpHost: '',
   smtpPort: 587,
@@ -446,147 +456,281 @@ export default function AdminSettingsPage() {
           {/* Payment Settings */}
           {activeTab === 'payments' && (
             <>
+              {/* Payment Provider Selection */}
               <Card variant="glass">
                 <CardHeader>
-                  <CardTitle>Stripe Mode</CardTitle>
+                  <CardTitle>Payment Provider</CardTitle>
                   <CardDescription>
-                    Switch between test and live mode for payments
+                    Choose which payment provider to use for donations, or disable donations entirely
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Mode Toggle */}
-                  <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
-                    <span className="font-medium flex-1">Current Mode</span>
-                    <div className="flex items-center gap-2 p-1 rounded-lg bg-background/50">
-                      <button
-                        onClick={() => setSettings({ ...settings, stripeMode: 'test' })}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.stripeMode === 'test'
-                          ? 'bg-neon-orange text-white shadow-lg'
-                          : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                      >
-                        🧪 Test Mode
-                      </button>
-                      <button
-                        onClick={() => setSettings({ ...settings, stripeMode: 'live' })}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.stripeMode === 'live'
-                          ? 'bg-success text-white shadow-lg'
-                          : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                      >
-                        🚀 Live Mode
-                      </button>
-                    </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setSettings({ ...settings, paymentProvider: 'stripe' })}
+                      className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'stripe'
+                          ? 'border-neon-purple bg-neon-purple/10 text-neon-purple'
+                          : 'border-border hover:border-neon-purple/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">💳</div>
+                      <div className="font-medium">Stripe</div>
+                      <div className="text-xs mt-1 opacity-70">Credit Cards & Subscriptions</div>
+                    </button>
+                    <button
+                      onClick={() => setSettings({ ...settings, paymentProvider: 'kofi' })}
+                      className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'kofi'
+                          ? 'border-neon-pink bg-neon-pink/10 text-neon-pink'
+                          : 'border-border hover:border-neon-pink/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">☕</div>
+                      <div className="font-medium">Ko-Fi</div>
+                      <div className="text-xs mt-1 opacity-70">One-Time Donations Only</div>
+                    </button>
+                    <button
+                      onClick={() => setSettings({ ...settings, paymentProvider: 'disabled' })}
+                      className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'disabled'
+                          ? 'border-destructive bg-destructive/10 text-destructive'
+                          : 'border-border hover:border-destructive/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">🚫</div>
+                      <div className="font-medium">Disabled</div>
+                      <div className="text-xs mt-1 opacity-70">Donations Off</div>
+                    </button>
                   </div>
 
-                  {settings.stripeMode === 'test' && (
-                    <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
-                      <p className="text-sm text-neon-orange font-medium">
-                        ⚠️ Test Mode Active - No real charges will be made
+                  {settings.paymentProvider === 'disabled' && (
+                    <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                      <p className="text-sm text-destructive font-medium">
+                        ⚠️ Donations are disabled
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Use Stripe test card: 4242 4242 4242 4242
-                      </p>
-                    </div>
-                  )}
-
-                  {settings.stripeMode === 'live' && (
-                    <div className="p-4 rounded-lg bg-success/10 border border-success/30">
-                      <p className="text-sm text-success font-medium">
-                        🚀 Live Mode Active - Real payments are enabled
+                        Users will not be able to donate or purchase ranks on the website.
                       </p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              <Card variant="glass">
-                <CardHeader>
-                  <CardTitle>
-                    {settings.stripeMode === 'test' ? '🧪 Test' : '🚀 Live'} API Keys
-                  </CardTitle>
-                  <CardDescription>
-                    {settings.stripeMode === 'test'
-                      ? 'Configure your Stripe test API keys for development'
-                      : 'Configure your Stripe live API keys for production'
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {settings.stripeMode === 'test' ? (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Test Publishable Key</label>
-                        <Input
-                          type="password"
-                          value={settings.stripeTestPublishableKey}
-                          onChange={(e) => setSettings({ ...settings, stripeTestPublishableKey: e.target.value })}
-                          placeholder="pk_test_..."
-                        />
+              {/* Stripe Configuration */}
+              {settings.paymentProvider === 'stripe' && (
+                <>
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>Stripe Mode</CardTitle>
+                      <CardDescription>
+                        Switch between test and live mode for payments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                        <span className="font-medium flex-1">Current Mode</span>
+                        <div className="flex items-center gap-2 p-1 rounded-lg bg-background/50">
+                          <button
+                            onClick={() => setSettings({ ...settings, stripeMode: 'test' })}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.stripeMode === 'test'
+                              ? 'bg-neon-orange text-white shadow-lg'
+                              : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                          >
+                            🧪 Test Mode
+                          </button>
+                          <button
+                            onClick={() => setSettings({ ...settings, stripeMode: 'live' })}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.stripeMode === 'live'
+                              ? 'bg-success text-white shadow-lg'
+                              : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                          >
+                            🚀 Live Mode
+                          </button>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Test Secret Key</label>
-                        <Input
-                          type="password"
-                          value={settings.stripeTestSecretKey}
-                          onChange={(e) => setSettings({ ...settings, stripeTestSecretKey: e.target.value })}
-                          placeholder="sk_test_..."
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Live Publishable Key</label>
-                        <Input
-                          type="password"
-                          value={settings.stripeLivePublishableKey}
-                          onChange={(e) => setSettings({ ...settings, stripeLivePublishableKey: e.target.value })}
-                          placeholder="pk_live_..."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Live Secret Key</label>
-                        <Input
-                          type="password"
-                          value={settings.stripeLiveSecretKey}
-                          onChange={(e) => setSettings({ ...settings, stripeLiveSecretKey: e.target.value })}
-                          placeholder="sk_live_..."
-                        />
-                      </div>
-                    </>
-                  )}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Webhook Secret</label>
-                    <Input
-                      type="password"
-                      value={settings.stripeWebhookSecret}
-                      onChange={(e) => setSettings({ ...settings, stripeWebhookSecret: e.target.value })}
-                      placeholder="whsec_..."
-                    />
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card variant="glass">
-                <CardHeader>
-                  <CardTitle>Webhook Configuration</CardTitle>
-                  <CardDescription>
-                    Add this URL to your Stripe webhook settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
-                    <h4 className="font-medium mb-2">Webhook URL</h4>
-                    <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
-                      {typeof window !== 'undefined' ? window.location.origin : ''}/api/stripe/webhook
-                    </code>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Events to listen for: checkout.session.completed, invoice.payment_succeeded, customer.subscription.*
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                      {settings.stripeMode === 'test' && (
+                        <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                          <p className="text-sm text-neon-orange font-medium">
+                            ⚠️ Test Mode Active - No real charges will be made
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use Stripe test card: 4242 4242 4242 4242
+                          </p>
+                        </div>
+                      )}
+
+                      {settings.stripeMode === 'live' && (
+                        <div className="p-4 rounded-lg bg-success/10 border border-success/30">
+                          <p className="text-sm text-success font-medium">
+                            🚀 Live Mode Active - Real payments are enabled
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>
+                        {settings.stripeMode === 'test' ? '🧪 Test' : '🚀 Live'} API Keys
+                      </CardTitle>
+                      <CardDescription>
+                        {settings.stripeMode === 'test'
+                          ? 'Configure your Stripe test API keys for development'
+                          : 'Configure your Stripe live API keys for production'
+                        }
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {settings.stripeMode === 'test' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Test Publishable Key</label>
+                            <Input
+                              type="password"
+                              value={settings.stripeTestPublishableKey}
+                              onChange={(e) => setSettings({ ...settings, stripeTestPublishableKey: e.target.value })}
+                              placeholder="pk_test_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Test Secret Key</label>
+                            <Input
+                              type="password"
+                              value={settings.stripeTestSecretKey}
+                              onChange={(e) => setSettings({ ...settings, stripeTestSecretKey: e.target.value })}
+                              placeholder="sk_test_..."
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Live Publishable Key</label>
+                            <Input
+                              type="password"
+                              value={settings.stripeLivePublishableKey}
+                              onChange={(e) => setSettings({ ...settings, stripeLivePublishableKey: e.target.value })}
+                              placeholder="pk_live_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Live Secret Key</label>
+                            <Input
+                              type="password"
+                              value={settings.stripeLiveSecretKey}
+                              onChange={(e) => setSettings({ ...settings, stripeLiveSecretKey: e.target.value })}
+                              placeholder="sk_live_..."
+                            />
+                          </div>
+                        </>
+                      )}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Webhook Secret</label>
+                        <Input
+                          type="password"
+                          value={settings.stripeWebhookSecret}
+                          onChange={(e) => setSettings({ ...settings, stripeWebhookSecret: e.target.value })}
+                          placeholder="whsec_..."
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>Stripe Webhook Configuration</CardTitle>
+                      <CardDescription>
+                        Add this URL to your Stripe webhook settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                        <h4 className="font-medium mb-2">Webhook URL</h4>
+                        <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/api/stripe/webhook
+                        </code>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Events to listen for: checkout.session.completed, invoice.payment_succeeded, customer.subscription.*
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {/* Ko-Fi Configuration */}
+              {settings.paymentProvider === 'kofi' && (
+                <>
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>☕</span>
+                        Ko-Fi Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure your Ko-Fi integration for accepting donations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 rounded-lg bg-neon-pink/10 border border-neon-pink/30">
+                        <p className="text-sm text-neon-pink font-medium">
+                          ℹ️ Ko-Fi supports one-time donations only
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Subscriptions require Stripe. Ko-Fi donations will not apply ranks automatically.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Ko-Fi Page URL</label>
+                        <Input
+                          value={settings.kofiPageUrl}
+                          onChange={(e) => setSettings({ ...settings, kofiPageUrl: e.target.value })}
+                          placeholder="https://ko-fi.com/yourusername"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Your Ko-Fi page URL where users will be redirected to donate
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Verification Token</label>
+                        <Input
+                          type="password"
+                          value={settings.kofiVerificationToken}
+                          onChange={(e) => setSettings({ ...settings, kofiVerificationToken: e.target.value })}
+                          placeholder="Enter your Ko-Fi verification token"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Find this in your Ko-Fi account under Webhooks settings (ko-fi.com/manage/webhooks)
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>Ko-Fi Webhook Configuration</CardTitle>
+                      <CardDescription>
+                        Add this URL to your Ko-Fi webhook settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-4 rounded-lg bg-neon-pink/10 border border-neon-pink/30">
+                        <h4 className="font-medium mb-2">Webhook URL</h4>
+                        <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/api/kofi/webhook
+                        </code>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Go to ko-fi.com/manage/webhooks and paste this URL
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </>
           )}
 
