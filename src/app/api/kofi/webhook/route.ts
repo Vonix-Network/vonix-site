@@ -30,8 +30,24 @@ interface KofiWebhookData {
     is_subscription_payment: boolean;
     is_first_subscription_payment: boolean;
     kofi_transaction_id: string;
-    shop_items: any[] | null;
+    shop_items: Array<{
+        direct_link_code: string;
+        variation_name: string;
+        quantity: number;
+    }> | null;
     tier_name: string | null;
+    shipping: {
+        full_name: string;
+        street_address: string;
+        city: string;
+        state_or_province: string;
+        postal_code: string;
+        country: string;
+        country_code: string;
+        telephone: string;
+    } | null;
+    discord_username: string | null;
+    discord_userid: string | null;
 }
 
 /**
