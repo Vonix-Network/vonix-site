@@ -471,11 +471,15 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         </Card>
       </div>
 
-      {/* Donation Ranks - Stripe Only */}
-      {!paymentConfigLoading && paymentConfig?.provider === 'stripe' && (
+      {/* Donation Ranks */}
+      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'kofi' && paymentConfig.enabled) && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
-          <p className="text-center text-muted-foreground mb-8">Subscribe for auto-renewal or buy a one-time rank</p>
+          <p className="text-center text-muted-foreground mb-8">
+            {paymentConfig?.provider === 'kofi'
+              ? 'Support us on Ko-Fi to automatically receive these ranks!'
+              : 'Subscribe for auto-renewal or buy a one-time rank'}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {displayRanks.map((rank) => {
               const isCurrentRank = userHasRank(rank.id);
@@ -532,31 +536,49 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                       ))}
                     </ul>
 
-                    <div className="space-y-2">
-                      <Button
-                        variant="neon-outline"
-                        className="w-full"
-                        style={{ borderColor: rank.color, color: rank.color }}
-                        onClick={() => handleSubscribe(rank)}
-                        disabled={loadingRankId === rank.id}
-                      >
-                        {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                        )}
-                        {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full text-muted-foreground hover:text-foreground"
-                        onClick={() => openPurchaseModal(rank)}
-                        disabled={loadingRankId === rank.id}
-                      >
-                        <Clock className="w-4 h-4 mr-2" />
-                        {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
-                      </Button>
-                    </div>
+                    {paymentConfig?.provider === 'stripe' ? (
+                      <div className="space-y-2">
+                        <Button
+                          variant="neon-outline"
+                          className="w-full"
+                          style={{ borderColor: rank.color, color: rank.color }}
+                          onClick={() => handleSubscribe(rank)}
+                          disabled={loadingRankId === rank.id}
+                        >
+                          {loadingRankId === rank.id && loadingType === 'subscription' ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                          )}
+                          {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full text-muted-foreground hover:text-foreground"
+                          onClick={() => openPurchaseModal(rank)}
+                          disabled={loadingRankId === rank.id}
+                        >
+                          <Clock className="w-4 h-4 mr-2" />
+                          {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Button
+                          variant="neon-outline"
+                          className="w-full"
+                          style={{ borderColor: rank.color, color: rank.color }}
+                          onClick={() => {
+                            if (paymentConfig?.pageUrl) {
+                              window.open(paymentConfig.pageUrl, '_blank');
+                            }
+                          }}
+                        >
+                          <Coffee className="w-4 h-4 mr-2" />
+                          Donate {formatCurrency(rank.minAmount)}
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
