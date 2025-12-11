@@ -24,6 +24,7 @@ export function DiscordPanel({ isMobile }: DiscordPanelProps) {
         isSending,
         sendMessage,
         settings,
+        refreshMessages,
     } = useDiscordChat();
 
     const [newMessage, setNewMessage] = useState('');
@@ -55,6 +56,13 @@ export function DiscordPanel({ isMobile }: DiscordPanelProps) {
             setHasNewMessages(true);
         }
     }, [messages, isAtBottom]);
+
+    // Load messages when panel mounts
+    useEffect(() => {
+        if (settings.enabled && messages.length === 0) {
+            refreshMessages();
+        }
+    }, [settings.enabled, messages.length, refreshMessages]);
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -132,6 +140,99 @@ export function DiscordPanel({ isMobile }: DiscordPanelProps) {
                                             className={cn('text-sm break-words', isOwn ? 'text-foreground' : 'text-foreground/90')}
                                             dangerouslySetInnerHTML={{ __html: renderDiscordMarkdown(msg.content) }}
                                         />
+
+                                        {/* Embeds */}
+                                        {msg.embeds && msg.embeds.length > 0 && (
+                                            <div className="mt-2 space-y-2">
+                                                {msg.embeds.map((embed: any, i: number) => (
+                                                    <div
+                                                        key={i}
+                                                        className="rounded-lg border border-border bg-secondary/50 p-3 text-left max-w-xs"
+                                                        style={{ borderLeftColor: embed.color ? `#${embed.color.toString(16).padStart(6, '0')}` : DISCORD_COLOR, borderLeftWidth: '3px' }}
+                                                    >
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-1 min-w-0">
+                                                                {embed.author && (
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        {embed.author.iconURL && (
+                                                                            <img src={embed.author.iconURL} alt="" className="w-5 h-5 rounded-full" />
+                                                                        )}
+                                                                        <span className="text-xs font-medium">
+                                                                            {embed.author.url ? (
+                                                                                <a href={embed.author.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                                                    {embed.author.name}
+                                                                                </a>
+                                                                            ) : embed.author.name}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {embed.title && (
+                                                                    <div className="font-semibold text-sm mb-1">
+                                                                        {embed.url ? (
+                                                                            <a href={embed.url} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: DISCORD_COLOR }}>
+                                                                                {embed.title}
+                                                                            </a>
+                                                                        ) : embed.title}
+                                                                    </div>
+                                                                )}
+                                                                {embed.description && (
+                                                                    <p className="text-xs text-muted-foreground mb-2">{embed.description}</p>
+                                                                )}
+                                                                {embed.fields && embed.fields.length > 0 && (
+                                                                    <div className="grid gap-1 mt-2">
+                                                                        {embed.fields.map((field: any, fi: number) => (
+                                                                            <div key={fi} className={field.inline ? 'inline-block mr-4' : 'block'}>
+                                                                                <div className="text-xs font-semibold text-foreground">{field.name}</div>
+                                                                                <div className="text-xs text-muted-foreground">{field.value}</div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {embed.image?.url && (
+                                                                    <img src={embed.image.url} alt="" className="mt-2 rounded max-h-40 max-w-full object-cover" />
+                                                                )}
+                                                                {embed.footer && (
+                                                                    <div className="flex items-center gap-1 mt-2 pt-1 border-t border-border/50">
+                                                                        {embed.footer.iconURL && (
+                                                                            <img src={embed.footer.iconURL} alt="" className="w-4 h-4 rounded-full" />
+                                                                        )}
+                                                                        <span className="text-[10px] text-muted-foreground">{embed.footer.text}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {embed.thumbnail?.url && (
+                                                                <div className="flex-shrink-0">
+                                                                    <img src={embed.thumbnail.url} alt="" className="w-16 h-16 rounded object-cover" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Attachments */}
+                                        {msg.attachments && msg.attachments.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {msg.attachments.map((att: any, i: number) => {
+                                                    const isImage = att.contentType?.startsWith('image/') ||
+                                                        /\.(png|jpg|jpeg|gif|webp)$/i.test(att.url || att.filename);
+                                                    if (isImage) {
+                                                        return (
+                                                            <a key={i} href={att.url} target="_blank" rel="noopener noreferrer">
+                                                                <img src={att.url} alt={att.filename} className="rounded max-h-32 object-cover hover:opacity-80 transition-opacity" />
+                                                            </a>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-1 rounded bg-secondary text-xs hover:bg-secondary/80">
+                                                            <ExternalLink className="w-3 h-3" />
+                                                            {att.filename || 'Attachment'}
+                                                        </a>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
