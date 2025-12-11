@@ -227,8 +227,9 @@ export default async function HomePage() {
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Content */}
-            <div className="space-y-6">
-              <Badge variant="neon-purple" className="mb-4">
+            {/* Left Side - Content */}
+            <div className="space-y-6 text-center lg:text-left">
+              <Badge variant="neon-purple" className="mb-4 mx-auto lg:mx-0">
                 <Zap className="h-3 w-3 mr-1" />
                 Premium Features
               </Badge>
@@ -239,14 +240,14 @@ export default async function HomePage() {
                 <span className="gradient-text">All in One Place</span>
               </h2>
 
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground mx-auto lg:mx-0 max-w-xl lg:max-w-none">
                 Vonix Network offers a complete Minecraft community experience with
                 advanced features designed for both casual and hardcore players.
               </p>
 
               <div className="space-y-3 pt-4">
                 {perks.map((perk, index) => (
-                  <div key={index} className="flex items-center gap-3 group">
+                  <div key={index} className="flex items-center gap-3 group justify-center lg:justify-start">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
                       <Check className="h-4 w-4 text-success" />
                     </div>
