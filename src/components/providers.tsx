@@ -7,8 +7,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePresenceHeartbeat } from '@/hooks/use-presence';
-import { Messenger } from '@/components/messenger';
-import { DiscordChat } from '@/components/discord-chat';
+import { UnifiedChat } from '@/components/unified-chat';
 import { SocketProvider } from '@/lib/socket-context';
 
 function PresenceProvider({ children }: { children: React.ReactNode }) {
@@ -18,23 +17,7 @@ function PresenceProvider({ children }: { children: React.ReactNode }) {
 
 // Separate component to access pathname inside providers
 function FloatingChats() {
-  const pathname = usePathname();
-
-  // Don't show floating chats on admin or panel pages
-  const isAdminPage = pathname?.startsWith('/admin');
-  const isPanelPage = pathname?.startsWith('/panel');
-
-  if (isAdminPage || isPanelPage) {
-    return null;
-  }
-
-  return (
-    <>
-      {/* Messenger on right side, Discord Chat on left side */}
-      <Messenger />
-      <DiscordChat />
-    </>
-  );
+  return <UnifiedChat />;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

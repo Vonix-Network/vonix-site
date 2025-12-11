@@ -42,6 +42,7 @@ export function Footer() {
                             <li><Link href="/leaderboard" className="hover:text-neon-cyan transition-colors">Leaderboard</Link></li>
                             <li><Link href="/events" className="hover:text-neon-cyan transition-colors">Events</Link></li>
                             <li><Link href="/donations" className="hover:text-neon-cyan transition-colors">Donations</Link></li>
+                            <li><a href="https://discord.gg/TXmVwQB5p7" target="_blank" rel="noopener noreferrer" className="hover:text-neon-cyan transition-colors">Discord</a></li>
                         </ul>
                     </div>
 
