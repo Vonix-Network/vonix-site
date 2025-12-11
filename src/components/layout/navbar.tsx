@@ -19,6 +19,7 @@ import {
   UserPlus,
   Shield,
   ChevronDown,
+  HardDrive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +29,7 @@ import { NotificationBell } from './notification-bell';
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Servers', href: '/servers', icon: Users },
+  { name: 'Hosting', href: '/hosting', icon: HardDrive },
   { name: 'Forum', href: '/forum', icon: MessageSquare },
   { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'Donate', href: '/donate', icon: Heart },

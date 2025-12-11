@@ -67,7 +67,7 @@ async function getUser(username: string) {
 
 async function getUserStats(userId: number) {
   try {
-    const [postCount, forumCount, playtimeData] = await Promise.all([
+    const [socialPostsCount, forumPostsCount, serverXpData] = await Promise.all([
       db.select({ count: sql<number>`count(*)` })
         .from(socialPosts)
         .where(eq(socialPosts.userId, userId)),
@@ -79,21 +79,22 @@ async function getUserStats(userId: number) {
         .where(eq(serverXp.userId, userId)),
     ]);
 
-    // IMPORTANT: serverXp schema has 'amount', not 'playtimeSeconds'. 
-    // I'll assume 'amount' is what we want for now, or just return 0 if playtime logic is complex.
-    // Re-checking serverXp schema:
-    // export const serverXp = sqliteTable('server_xp', { ... amount: integer('amount').default(0).notNull() ... });
-    // It seems 'amount' is XP gain. Playtime might not be tracked in this table anymore?
-    // I'll default playtime to 0 for now to avoid errors.
+    // Sum up playtime from all servers
+    const totalPlaytimeSeconds = serverXpData.reduce(
+      (acc, record) => acc + (record.playtimeSeconds || 0),
+      0
+    );
 
     return {
-      socialPosts: postCount[0]?.count || 0,
-      forumPosts: forumCount[0]?.count || 0,
-      playtimeSeconds: 0,
+      socialPosts: socialPostsCount[0]?.count || 0,
+      forumPosts: forumPostsCount[0]?.count || 0,
+      playtimeSeconds: totalPlaytimeSeconds,
     };
-  } catch {
+  } catch (err) {
+    console.error('Error fetching user stats:', err);
     return { socialPosts: 0, forumPosts: 0, playtimeSeconds: 0 };
   }
+
 }
 
 async function getRecentPosts(userId: number) {

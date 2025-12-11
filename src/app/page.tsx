@@ -375,6 +375,7 @@ export default async function HomePage() {
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/servers" className="hover:text-neon-cyan transition-colors">Servers</Link></li>
+                <li><a href="https://ultraservers.com/aff.php?code=kJj5hk5koEMNj5Il" target="_blank" rel="noopener noreferrer" className="hover:text-neon-cyan transition-colors">Server Hosting</a></li>
                 <li><Link href="/ranks" className="hover:text-neon-cyan transition-colors">Ranks</Link></li>
                 <li><Link href="/blog" className="hover:text-neon-cyan transition-colors">Blog</Link></li>
                 <li><Link href="/support" className="hover:text-neon-cyan transition-colors">Support</Link></li>
