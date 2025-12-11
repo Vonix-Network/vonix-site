@@ -136,7 +136,14 @@ async function handleMessage(message: Message) {
             embeds: embeds.length > 0 ? JSON.stringify(embeds) : null,
             attachments: attachments.length > 0 ? JSON.stringify(attachments) : null,
             createdAt: message.createdAt,
-        }).onConflictDoNothing().returning();
+        }).onConflictDoUpdate({
+            target: discordMessages.discordMessageId,
+            set: {
+                content: message.content,
+                embeds: embeds.length > 0 ? JSON.stringify(embeds) : null,
+                attachments: attachments.length > 0 ? JSON.stringify(attachments) : null,
+            }
+        }).returning();
 
         // Emit to connected clients via WebSocket if message was inserted
         if (inserted) {
@@ -253,10 +260,30 @@ export async function initDiscordBot() {
         });
 
         // Set up event handlers
-        discordClient.on('ready', () => {
+        discordClient.on('ready', async () => {
             console.log(`🤖 Discord bot connected as ${discordClient?.user?.tag}`);
             if (chatChannelId) {
                 console.log(`📡 Listening to chat channel: ${chatChannelId}`);
+
+                // Backfill recent messages from chat channel
+                try {
+                    const channel = await discordClient?.channels.fetch(chatChannelId);
+                    if (channel && channel.isTextBased()) {
+                        console.log('Fetching recent Discord messages for backfill...');
+                        const messages = await (channel as TextChannel).messages.fetch({ limit: 50 });
+                        console.log(`Found ${messages.size} recent messages to backfill`);
+
+                        // Process messages in reverse order (oldest to newest) to maintain order in logs
+                        const sortedMessages = Array.from(messages.values()).reverse();
+
+                        for (const message of sortedMessages) {
+                            await handleMessage(message);
+                        }
+                        console.log('✅ Discord history backfill complete');
+                    }
+                } catch (error) {
+                    console.error('Failed to backfill Discord messages:', error);
+                }
             }
             if (viscordChannelId) {
                 console.log(`📡 Listening to Viscord channel: ${viscordChannelId}`);
