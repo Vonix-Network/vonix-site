@@ -66,6 +66,14 @@ export async function GET(request: NextRequest) {
       // Ko-Fi settings
       kofiVerificationToken: settingsObject['kofi_verification_token'] ? '••••••••' : '',
       kofiPageUrl: settingsObject['kofi_page_url'] || '',
+      // Square settings
+      squareMode: settingsObject['square_mode'] || 'sandbox',
+      squareSandboxAccessToken: settingsObject['square_sandbox_access_token'] ? '••••••••' : '',
+      squareSandboxApplicationId: settingsObject['square_sandbox_application_id'] || '',
+      squareProductionAccessToken: settingsObject['square_production_access_token'] ? '••••••••' : '',
+      squareProductionApplicationId: settingsObject['square_production_application_id'] || '',
+      squareWebhookSignatureKey: settingsObject['square_webhook_signature_key'] ? '••••••••' : '',
+      squareLocationId: settingsObject['square_location_id'] || '',
       // SMTP settings
       smtpHost: settingsObject['smtp_host'] || '',
       smtpPort: settingsObject['smtp_port'] || 587,
@@ -133,6 +141,14 @@ export async function PUT(request: NextRequest) {
       // Ko-Fi settings
       kofiVerificationToken: { dbKey: 'kofi_verification_token', category: 'payments', isPublic: false },
       kofiPageUrl: { dbKey: 'kofi_page_url', category: 'payments', isPublic: false },
+      // Square settings
+      squareMode: { dbKey: 'square_mode', category: 'payments', isPublic: false },
+      squareSandboxAccessToken: { dbKey: 'square_sandbox_access_token', category: 'payments', isPublic: false },
+      squareSandboxApplicationId: { dbKey: 'square_sandbox_application_id', category: 'payments', isPublic: false },
+      squareProductionAccessToken: { dbKey: 'square_production_access_token', category: 'payments', isPublic: false },
+      squareProductionApplicationId: { dbKey: 'square_production_application_id', category: 'payments', isPublic: false },
+      squareWebhookSignatureKey: { dbKey: 'square_webhook_signature_key', category: 'payments', isPublic: false },
+      squareLocationId: { dbKey: 'square_location_id', category: 'payments', isPublic: false },
       // SMTP settings
       smtpHost: { dbKey: 'smtp_host', category: 'email', isPublic: false },
       smtpPort: { dbKey: 'smtp_port', category: 'email', isPublic: false },
@@ -189,9 +205,11 @@ export async function PUT(request: NextRequest) {
     const { clearSettingsCache } = await import('@/lib/settings');
     const { clearStripeConfigCache } = await import('@/lib/stripe');
     const { clearKofiConfigCache } = await import('@/lib/kofi');
+    const { clearSquareConfigCache } = await import('@/lib/square');
     clearSettingsCache();
     clearStripeConfigCache();
     clearKofiConfigCache();
+    clearSquareConfigCache();
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

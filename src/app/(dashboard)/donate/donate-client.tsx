@@ -62,11 +62,12 @@ interface DonatePageClientProps {
 }
 
 interface PaymentConfig {
-  provider: 'stripe' | 'kofi' | 'disabled';
+  provider: 'stripe' | 'kofi' | 'square' | 'disabled';
   enabled: boolean;
   pageUrl?: string;
-  mode?: 'test' | 'live';
+  mode?: 'test' | 'live' | 'sandbox' | 'production';
   message?: string;
+  applicationId?: string;
 }
 
 // Duration options for one-time purchases
@@ -189,6 +190,12 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     setLoadingType('subscription');
 
     try {
+      // Square doesn't support subscriptions - show error
+      if (paymentConfig?.provider === 'square') {
+        setError('Square does not support subscriptions. Please use one-time purchase or contact an administrator.');
+        return;
+      }
+
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,7 +237,13 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
     try {
       const amount = calculatePrice(selectedRank, selectedDuration);
-      const response = await fetch('/api/stripe/create-checkout', {
+
+      // Use appropriate endpoint based on provider
+      const endpoint = paymentConfig?.provider === 'square'
+        ? '/api/square/create-checkout'
+        : '/api/stripe/create-checkout';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,7 +282,12 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     setLoadingAmount(amount);
 
     try {
-      const response = await fetch('/api/stripe/create-checkout', {
+      // Use appropriate endpoint based on provider
+      const endpoint = paymentConfig?.provider === 'square'
+        ? '/api/square/create-checkout'
+        : '/api/stripe/create-checkout';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -472,7 +490,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       </div>
 
       {/* Donation Ranks */}
-      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'kofi' && paymentConfig.enabled) && (
+      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square' || paymentConfig?.provider === 'kofi') && paymentConfig.enabled && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
           <p className="text-center text-muted-foreground mb-8">
@@ -536,22 +554,24 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                       ))}
                     </ul>
 
-                    {paymentConfig?.provider === 'stripe' ? (
+                    {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') ? (
                       <div className="space-y-2">
-                        <Button
-                          variant="neon-outline"
-                          className="w-full"
-                          style={{ borderColor: rank.color, color: rank.color }}
-                          onClick={() => handleSubscribe(rank)}
-                          disabled={loadingRankId === rank.id}
-                        >
-                          {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                          )}
-                          {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
-                        </Button>
+                        {paymentConfig?.provider === 'stripe' && (
+                          <Button
+                            variant="neon-outline"
+                            className="w-full"
+                            style={{ borderColor: rank.color, color: rank.color }}
+                            onClick={() => handleSubscribe(rank)}
+                            disabled={loadingRankId === rank.id}
+                          >
+                            {loadingRankId === rank.id && loadingType === 'subscription' ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           className="w-full text-muted-foreground hover:text-foreground"
@@ -587,8 +607,8 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         </div>
       )}
 
-      {/* One-time Donation - Stripe Only */}
-      {!paymentConfigLoading && paymentConfig?.provider === 'stripe' && (
+      {/* One-time Donation - Stripe/Square Only */}
+      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
         <Card variant="gradient" className="mb-12">
           <CardContent className="py-8 text-center">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
@@ -697,6 +717,12 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             <div className="flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-neon-cyan" />
               <span className="text-sm">Powered by Stripe</span>
+            </div>
+          )}
+          {paymentConfig?.provider === 'square' && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-neon-green" />
+              <span className="text-sm">Powered by Square</span>
             </div>
           )}
           {paymentConfig?.provider === 'kofi' && (

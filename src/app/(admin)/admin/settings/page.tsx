@@ -35,7 +35,7 @@ interface SiteSettings {
   maxLoginAttempts: number;
   lockoutDuration: number;
   // Payment provider settings
-  paymentProvider: 'stripe' | 'kofi' | 'disabled';
+  paymentProvider: 'stripe' | 'kofi' | 'square' | 'disabled';
   // Stripe settings
   stripeMode: 'test' | 'live';
   stripeTestPublishableKey: string;
@@ -46,6 +46,14 @@ interface SiteSettings {
   // Ko-Fi settings
   kofiVerificationToken: string;
   kofiPageUrl: string;
+  // Square settings
+  squareMode: 'sandbox' | 'production';
+  squareSandboxAccessToken: string;
+  squareSandboxApplicationId: string;
+  squareProductionAccessToken: string;
+  squareProductionApplicationId: string;
+  squareWebhookSignatureKey: string;
+  squareLocationId: string;
   // SMTP settings
   smtpHost: string;
   smtpPort: number;
@@ -96,6 +104,14 @@ const defaultSettings: SiteSettings = {
   // Ko-Fi defaults
   kofiVerificationToken: '',
   kofiPageUrl: '',
+  // Square defaults
+  squareMode: 'sandbox',
+  squareSandboxAccessToken: '',
+  squareSandboxApplicationId: '',
+  squareProductionAccessToken: '',
+  squareProductionApplicationId: '',
+  squareWebhookSignatureKey: '',
+  squareLocationId: '',
   // SMTP defaults
   smtpHost: '',
   smtpPort: 587,
@@ -465,34 +481,45 @@ export default function AdminSettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <button
                       onClick={() => setSettings({ ...settings, paymentProvider: 'stripe' })}
                       className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'stripe'
-                          ? 'border-neon-purple bg-neon-purple/10 text-neon-purple'
-                          : 'border-border hover:border-neon-purple/50 text-muted-foreground hover:text-foreground'
+                        ? 'border-neon-purple bg-neon-purple/10 text-neon-purple'
+                        : 'border-border hover:border-neon-purple/50 text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       <div className="text-2xl mb-2">💳</div>
                       <div className="font-medium">Stripe</div>
-                      <div className="text-xs mt-1 opacity-70">Credit Cards & Subscriptions</div>
+                      <div className="text-xs mt-1 opacity-70">Cards & Subscriptions</div>
+                    </button>
+                    <button
+                      onClick={() => setSettings({ ...settings, paymentProvider: 'square' })}
+                      className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'square'
+                        ? 'border-neon-green bg-neon-green/10 text-neon-green'
+                        : 'border-border hover:border-neon-green/50 text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">⬜</div>
+                      <div className="font-medium">Square</div>
+                      <div className="text-xs mt-1 opacity-70">One-Time Only</div>
                     </button>
                     <button
                       onClick={() => setSettings({ ...settings, paymentProvider: 'kofi' })}
                       className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'kofi'
-                          ? 'border-neon-pink bg-neon-pink/10 text-neon-pink'
-                          : 'border-border hover:border-neon-pink/50 text-muted-foreground hover:text-foreground'
+                        ? 'border-neon-pink bg-neon-pink/10 text-neon-pink'
+                        : 'border-border hover:border-neon-pink/50 text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       <div className="text-2xl mb-2">☕</div>
                       <div className="font-medium">Ko-Fi</div>
-                      <div className="text-xs mt-1 opacity-70">One-Time Donations Only</div>
+                      <div className="text-xs mt-1 opacity-70">One-Time Only</div>
                     </button>
                     <button
                       onClick={() => setSettings({ ...settings, paymentProvider: 'disabled' })}
                       className={`p-4 rounded-lg border-2 text-center transition-all ${settings.paymentProvider === 'disabled'
-                          ? 'border-destructive bg-destructive/10 text-destructive'
-                          : 'border-border hover:border-destructive/50 text-muted-foreground hover:text-foreground'
+                        ? 'border-destructive bg-destructive/10 text-destructive'
+                        : 'border-border hover:border-destructive/50 text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       <div className="text-2xl mb-2">🚫</div>
@@ -725,6 +752,169 @@ export default function AdminSettingsPage() {
                         </code>
                         <p className="text-xs text-muted-foreground mt-2">
                           Go to ko-fi.com/manage/webhooks and paste this URL
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {/* Square Configuration */}
+              {settings.paymentProvider === 'square' && (
+                <>
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>Square Mode</CardTitle>
+                      <CardDescription>
+                        Switch between sandbox and production mode for payments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                        <span className="font-medium flex-1">Current Mode</span>
+                        <div className="flex items-center gap-2 p-1 rounded-lg bg-background/50">
+                          <button
+                            onClick={() => setSettings({ ...settings, squareMode: 'sandbox' })}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.squareMode === 'sandbox'
+                              ? 'bg-neon-orange text-white shadow-lg'
+                              : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                          >
+                            🧪 Sandbox
+                          </button>
+                          <button
+                            onClick={() => setSettings({ ...settings, squareMode: 'production' })}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${settings.squareMode === 'production'
+                              ? 'bg-success text-white shadow-lg'
+                              : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                          >
+                            🚀 Production
+                          </button>
+                        </div>
+                      </div>
+
+                      {settings.squareMode === 'sandbox' && (
+                        <div className="p-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                          <p className="text-sm text-neon-orange font-medium">
+                            ⚠️ Sandbox Mode Active - No real charges will be made
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use Square sandbox test cards for testing
+                          </p>
+                        </div>
+                      )}
+
+                      {settings.squareMode === 'production' && (
+                        <div className="p-4 rounded-lg bg-success/10 border border-success/30">
+                          <p className="text-sm text-success font-medium">
+                            🚀 Production Mode Active - Real payments are enabled
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>
+                        {settings.squareMode === 'sandbox' ? '🧪 Sandbox' : '🚀 Production'} Credentials
+                      </CardTitle>
+                      <CardDescription>
+                        {settings.squareMode === 'sandbox'
+                          ? 'Configure your Square sandbox credentials for development'
+                          : 'Configure your Square production credentials for live payments'
+                        }
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {settings.squareMode === 'sandbox' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Sandbox Access Token</label>
+                            <Input
+                              type="password"
+                              value={settings.squareSandboxAccessToken}
+                              onChange={(e) => setSettings({ ...settings, squareSandboxAccessToken: e.target.value })}
+                              placeholder="EAAAl..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Sandbox Application ID</label>
+                            <Input
+                              value={settings.squareSandboxApplicationId}
+                              onChange={(e) => setSettings({ ...settings, squareSandboxApplicationId: e.target.value })}
+                              placeholder="sandbox-sq0idb-..."
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Production Access Token</label>
+                            <Input
+                              type="password"
+                              value={settings.squareProductionAccessToken}
+                              onChange={(e) => setSettings({ ...settings, squareProductionAccessToken: e.target.value })}
+                              placeholder="EAAAl..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Production Application ID</label>
+                            <Input
+                              value={settings.squareProductionApplicationId}
+                              onChange={(e) => setSettings({ ...settings, squareProductionApplicationId: e.target.value })}
+                              placeholder="sq0idp-..."
+                            />
+                          </div>
+                        </>
+                      )}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Location ID</label>
+                        <Input
+                          value={settings.squareLocationId}
+                          onChange={(e) => setSettings({ ...settings, squareLocationId: e.target.value })}
+                          placeholder="L..."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Find this in your Square Dashboard under Locations
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Webhook Signature Key</label>
+                        <Input
+                          type="password"
+                          value={settings.squareWebhookSignatureKey}
+                          onChange={(e) => setSettings({ ...settings, squareWebhookSignatureKey: e.target.value })}
+                          placeholder="Your webhook signature key"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card variant="glass">
+                    <CardHeader>
+                      <CardTitle>Square Webhook Configuration</CardTitle>
+                      <CardDescription>
+                        Add this URL to your Square webhook settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
+                        <h4 className="font-medium mb-2">Webhook URL</h4>
+                        <code className="text-sm bg-secondary px-2 py-1 rounded block break-all">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/api/square/webhook
+                        </code>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Events to subscribe to: payment.completed
+                        </p>
+                      </div>
+                      <div className="p-4 mt-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
+                        <p className="text-sm text-neon-orange font-medium">
+                          ℹ️ Square supports one-time payments only
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          For subscriptions, use Stripe instead. Square donations auto-assign ranks based on amount.
                         </p>
                       </div>
                     </CardContent>

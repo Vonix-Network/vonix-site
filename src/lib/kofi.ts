@@ -74,7 +74,7 @@ export async function isKofiConfigured(): Promise<boolean> {
 /**
  * Get the current payment provider from settings
  */
-export async function getPaymentProvider(): Promise<'stripe' | 'kofi' | 'disabled'> {
+export async function getPaymentProvider(): Promise<'stripe' | 'kofi' | 'square' | 'disabled'> {
     try {
         const settings = await db
             .select()
@@ -83,7 +83,7 @@ export async function getPaymentProvider(): Promise<'stripe' | 'kofi' | 'disable
 
         if (settings.length > 0 && settings[0].value) {
             const provider = settings[0].value;
-            if (provider === 'stripe' || provider === 'kofi' || provider === 'disabled') {
+            if (provider === 'stripe' || provider === 'kofi' || provider === 'square' || provider === 'disabled') {
                 return provider;
             }
         }

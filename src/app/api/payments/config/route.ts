@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { getPaymentProvider, getKofiPageUrl, isKofiConfigured } from '@/lib/kofi';
 import { isStripeConfigured, getStripeMode, getPublishableKey } from '@/lib/stripe';
+import { isSquareConfigured, getSquareMode, getApplicationId } from '@/lib/square';
 
 export async function GET() {
     try {
@@ -30,6 +31,22 @@ export async function GET() {
                 message: configured
                     ? 'Ko-Fi donations are enabled'
                     : 'Ko-Fi is not configured. Please set it up in the admin dashboard.',
+            });
+        }
+
+        if (provider === 'square') {
+            const configured = await isSquareConfigured();
+            const mode = configured ? await getSquareMode() : 'sandbox';
+            const applicationId = configured ? await getApplicationId() : null;
+
+            return NextResponse.json({
+                provider: 'square',
+                enabled: configured,
+                mode,
+                applicationId,
+                message: configured
+                    ? `Square ${mode} mode is enabled`
+                    : 'Square is not configured. Please set it up in the admin dashboard.',
             });
         }
 
