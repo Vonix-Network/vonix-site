@@ -268,31 +268,8 @@ export default async function HomePage() {
 
             {/* Right Side - Live Server Status */}
             <div className="relative">
-              <Card variant="neon-glow" className="p-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-neon-rainbow flex items-center justify-center">
-                      <Server className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">Live Server Status</h3>
-                      <p className="text-muted-foreground">Real-time updates</p>
-                    </div>
-                  </div>
-
-                  {/* Live Server Status Component - Carousel style */}
-                  <ServerStatusList variant="carousel" showRefresh={true} />
-
-                  <div className="pt-2">
-                    <Button variant="neon-outline" className="w-full" asChild>
-                      <Link href="/servers">
-                        View All Servers
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              {/* Live Server Status Component - Carousel style */}
+              <ServerStatusList variant="carousel" showRefresh={true} />
 
               {/* Decorative elements */}
               <div className="absolute -top-4 -right-4 w-24 h-24 bg-neon-cyan/20 rounded-full blur-2xl" />
