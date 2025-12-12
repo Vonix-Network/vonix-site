@@ -502,7 +502,7 @@ export default function AdminSettingsPage() {
                     >
                       <div className="text-2xl mb-2">⬜</div>
                       <div className="font-medium">Square</div>
-                      <div className="text-xs mt-1 opacity-70">One-Time Only</div>
+                      <div className="text-xs mt-1 opacity-70">Cards & Subscriptions</div>
                     </button>
                     <button
                       onClick={() => setSettings({ ...settings, paymentProvider: 'kofi' })}
@@ -906,15 +906,15 @@ export default function AdminSettingsPage() {
                           {typeof window !== 'undefined' ? window.location.origin : ''}/api/square/webhook
                         </code>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Events to subscribe to: payment.completed
+                          Events to subscribe to: payment.completed, subscription.created, subscription.updated, invoice.payment_made
                         </p>
                       </div>
-                      <div className="p-4 mt-4 rounded-lg bg-neon-orange/10 border border-neon-orange/30">
-                        <p className="text-sm text-neon-orange font-medium">
-                          ℹ️ Square supports one-time payments only
+                      <div className="p-4 mt-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
+                        <p className="text-sm text-neon-green font-medium">
+                          ✅ Square supports one-time payments and subscriptions
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          For subscriptions, use Stripe instead. Square donations auto-assign ranks based on amount.
+                          Users can purchase ranks or subscribe for monthly auto-renewal. Ranks are auto-assigned via webhooks.
                         </p>
                       </div>
                     </CardContent>
