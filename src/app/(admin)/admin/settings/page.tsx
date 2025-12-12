@@ -1580,6 +1580,71 @@ export default function AdminSettingsPage() {
                       Custom avatar for the webhook bot. Leave empty to use the default webhook avatar.
                     </p>
                   </div>
+
+                  {/* Test Donation Embed Buttons */}
+                  <div className="pt-4 border-t border-border">
+                    <label className="text-sm font-medium block mb-3">Test Donation Embeds</label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Send a test donation embed to verify your webhook configuration.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="neon-outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/admin/test-donation-embed', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ includeRank: false }),
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                              toast.success('Test donation sent (without rank)!');
+                            } else {
+                              toast.error(data.error || 'Failed to send test embed');
+                            }
+                          } catch {
+                            toast.error('Failed to send test embed');
+                          }
+                        }}
+                        disabled={!discordSettings.donationWebhookUrl}
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Test (No Rank)
+                      </Button>
+                      <Button
+                        variant="neon-outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/admin/test-donation-embed', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ includeRank: true }),
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                              toast.success('Test donation sent (with rank)!');
+                            } else {
+                              toast.error(data.error || 'Failed to send test embed');
+                            }
+                          } catch {
+                            toast.error('Failed to send test embed');
+                          }
+                        }}
+                        disabled={!discordSettings.donationWebhookUrl}
+                      >
+                        <Heart className="w-4 h-4 mr-2" />
+                        Test (With Rank)
+                      </Button>
+                    </div>
+                    {!discordSettings.donationWebhookUrl && (
+                      <p className="text-xs text-warning mt-2">
+                        ⚠️ Save a Donation Webhook URL first to enable testing
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
