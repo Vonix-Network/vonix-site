@@ -234,6 +234,8 @@ export async function verifyWebhookSignature(
 
 /**
  * Create a checkout link for one-time payment
+ * Note: Since Payment Links API may not be available in sandbox,
+ * we create an order and return the order ID for client-side payment processing
  */
 export async function createCheckoutLink({
     userId,
@@ -257,9 +259,8 @@ export async function createCheckoutLink({
 
     const amountInCents = Math.round(amount * 100);
 
-    // Create a payment link using Square Checkout API
-    const response = await client.checkoutApi.createPaymentLink({
-        idempotencyKey: `vonix-${userId}-${Date.now()}`,
+    // Create an order
+    const orderResponse = await client.ordersApi.createOrder({
         order: {
             locationId: config.locationId,
             lineItems: [
@@ -281,22 +282,25 @@ export async function createCheckoutLink({
                 type: 'one_time',
             },
         },
-        checkoutOptions: {
-            redirectUrl,
-            merchantSupportEmail: customerEmail,
-        },
-        prePopulatedData: customerEmail ? {
-            buyerEmail: customerEmail,
-        } : undefined,
+        idempotencyKey: `vonix-order-${userId}-${Date.now()}`,
     });
 
-    if (!response.result.paymentLink?.url || !response.result.paymentLink?.orderId) {
-        throw new Error('Failed to create Square checkout link');
+    if (!orderResponse.result.order?.id) {
+        throw new Error('Failed to create Square order');
     }
 
+    const orderId = orderResponse.result.order.id;
+
+    // Since Payment Links API isn't available in sandbox,
+    // return a URL that will load Square Web Payments SDK on the client
+    // The donate page will handle this by showing a payment form
+    const checkoutUrl = `${redirectUrl}?orderId=${orderId}&provider=square&amount=${amount}`;
+
+    console.log(`Created Square order ${orderId} for ${rankName} rank`);
+
     return {
-        checkoutUrl: response.result.paymentLink.url,
-        orderId: response.result.paymentLink.orderId,
+        checkoutUrl,
+        orderId,
     };
 }
 
