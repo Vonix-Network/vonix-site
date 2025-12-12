@@ -669,7 +669,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
                     {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') ? (
                       <div className="space-y-2">
-                        {paymentConfig?.provider === 'stripe' && (
+                        {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
                           <Button
                             variant="neon-outline"
                             className="w-full"
