@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
             };
 
             if (rankId) {
-                updateData.currentRankId = rankId;
+                updateData.donationRankId = rankId;
                 updateData.rankExpiresAt = newExpiresAt;
             }
 
