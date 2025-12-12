@@ -179,26 +179,40 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       setSquareCardReady(false);
       setError(null);
 
-      // Load Square SDK script if not already loaded
-      if (!(window as any).Square) {
-        const script = document.createElement('script');
-        script.src = paymentConfig.mode === 'production'
-          ? 'https://web.squarecdn.com/v1/square.js'
-          : 'https://sandbox.web.squarecdn.com/v1/square.js';
-        script.async = true;
-        script.onload = () => initializeCard();
-        script.onerror = () => setError('Failed to load Square payment SDK');
-        document.body.appendChild(script);
-      } else {
-        await initializeCard();
-      }
-    };
-
-    const initializeCard = async () => {
       try {
+        // Load Square SDK script if not already loaded
+        if (!(window as any).Square) {
+          console.log('Loading Square SDK from:', paymentConfig.mode === 'production'
+            ? 'https://web.squarecdn.com/v1/square.js'
+            : 'https://sandbox.web.squarecdn.com/v1/square.js');
+
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = paymentConfig.mode === 'production'
+              ? 'https://web.squarecdn.com/v1/square.js'
+              : 'https://sandbox.web.squarecdn.com/v1/square.js';
+            script.async = true;
+            script.onload = () => {
+              console.log('Square SDK loaded successfully');
+              resolve();
+            };
+            script.onerror = (e) => {
+              console.error('Failed to load Square SDK script:', e);
+              reject(new Error('Failed to load Square payment SDK'));
+            };
+            document.body.appendChild(script);
+          });
+        }
+
+        // Now initialize the card
+        if (!(window as any).Square) {
+          throw new Error('Square SDK not available after loading');
+        }
+
+        console.log('Initializing Square payments with application ID:', paymentConfig.applicationId);
         const payments = (window as any).Square.payments(
           paymentConfig.applicationId,
-          paymentConfig.mode === 'production' ? undefined : undefined // locationId is optional for card
+          paymentConfig.mode === 'production' ? undefined : undefined
         );
         squarePaymentsRef.current = payments;
 
@@ -214,9 +228,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         await card.attach('#square-card-container');
         squareCardRef.current = card;
         setSquareCardReady(true);
+        console.log('Square card form attached successfully');
       } catch (err) {
         console.error('Failed to initialize Square card:', err);
-        setError('Failed to initialize payment form. Please try again.');
+        setError(err instanceof Error ? err.message : 'Failed to initialize payment form. Please try again.');
       }
     };
 
@@ -281,23 +296,37 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       setSquareOneTimeCardReady(false);
       setError(null);
 
-      // Load Square SDK script if not already loaded
-      if (!(window as any).Square) {
-        const script = document.createElement('script');
-        script.src = paymentConfig.mode === 'production'
-          ? 'https://web.squarecdn.com/v1/square.js'
-          : 'https://sandbox.web.squarecdn.com/v1/square.js';
-        script.async = true;
-        script.onload = () => initializeCard();
-        script.onerror = () => setError('Failed to load Square payment SDK');
-        document.body.appendChild(script);
-      } else {
-        await initializeCard();
-      }
-    };
-
-    const initializeCard = async () => {
       try {
+        // Load Square SDK script if not already loaded
+        if (!(window as any).Square) {
+          console.log('Loading Square SDK for one-time payment from:', paymentConfig.mode === 'production'
+            ? 'https://web.squarecdn.com/v1/square.js'
+            : 'https://sandbox.web.squarecdn.com/v1/square.js');
+
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = paymentConfig.mode === 'production'
+              ? 'https://web.squarecdn.com/v1/square.js'
+              : 'https://sandbox.web.squarecdn.com/v1/square.js';
+            script.async = true;
+            script.onload = () => {
+              console.log('Square SDK loaded successfully');
+              resolve();
+            };
+            script.onerror = (e) => {
+              console.error('Failed to load Square SDK script:', e);
+              reject(new Error('Failed to load Square payment SDK'));
+            };
+            document.body.appendChild(script);
+          });
+        }
+
+        // Now initialize the card
+        if (!(window as any).Square) {
+          throw new Error('Square SDK not available after loading');
+        }
+
+        console.log('Initializing Square payments for one-time with application ID:', paymentConfig.applicationId);
         const payments = (window as any).Square.payments(
           paymentConfig.applicationId,
           paymentConfig.mode === 'production' ? undefined : undefined
@@ -315,9 +344,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         await card.attach('#square-onetime-card-container');
         squareOneTimeCardRef.current = card;
         setSquareOneTimeCardReady(true);
+        console.log('Square one-time card form attached successfully');
       } catch (err) {
         console.error('Failed to initialize Square card:', err);
-        setError('Failed to initialize payment form. Please try again.');
+        setError(err instanceof Error ? err.message : 'Failed to initialize payment form. Please try again.');
       }
     };
 
@@ -528,12 +558,43 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     setLoadingAmount(amount);
 
     try {
-      // Use appropriate endpoint based on provider
-      const endpoint = paymentConfig?.provider === 'square'
-        ? '/api/square/create-checkout'
-        : '/api/stripe/create-checkout';
+      // For Square, create order and show payment modal
+      if (paymentConfig?.provider === 'square') {
+        const response = await fetch('/api/square/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rankId: 'one-time',
+            days: 0,
+            amount,
+            paymentType: 'one_time',
+          }),
+        });
 
-      const response = await fetch(endpoint, {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        // Store order ID and show Square payment modal
+        setSquareOrderId(data.orderId);
+        // Create a temporary "rank" for the tip to display in modal
+        setSelectedRank({
+          id: 'one-time',
+          name: 'One-Time Donation',
+          minAmount: amount,
+          color: '#00D9FF',
+          icon: '💙',
+          perks: [],
+        });
+        setSelectedDuration(0);
+        setShowSquareOneTimeModal(true);
+        return;
+      }
+
+      // Stripe flow
+      const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

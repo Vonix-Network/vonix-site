@@ -45,13 +45,16 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { rankId, amount, days, paymentType } = body;
 
-        // Validate input
-        if (!rankId || !amount || !days) {
+        // Validate input - require amount always, other fields depend on payment type
+        if (amount === undefined || amount === null) {
             return NextResponse.json(
-                { error: 'Missing required fields: rankId, amount, days' },
+                { error: 'Missing required field: amount' },
                 { status: 400 }
             );
         }
+
+        // Handle one-time tips (no rank)
+        const isOneTimeTip = rankId === 'one-time' || !rankId || days === 0;
 
         // Get user details
         const [user] = await db
@@ -67,18 +70,26 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get rank details
-        const [rank] = await db
-            .select()
-            .from(donationRanks)
-            .where(eq(donationRanks.id, rankId))
-            .limit(1);
+        let rankName = 'One-Time Donation';
+        let daysValue = 0;
 
-        if (!rank) {
-            return NextResponse.json(
-                { error: 'Rank not found' },
-                { status: 404 }
-            );
+        if (!isOneTimeTip) {
+            // Get rank details for rank purchases
+            const [rank] = await db
+                .select()
+                .from(donationRanks)
+                .where(eq(donationRanks.id, rankId))
+                .limit(1);
+
+            if (!rank) {
+                return NextResponse.json(
+                    { error: 'Rank not found' },
+                    { status: 404 }
+                );
+            }
+
+            rankName = rank.name;
+            daysValue = parseInt(days) || 30;
         }
 
         // Note: Square only supports one-time payments via checkout links
@@ -102,20 +113,20 @@ export async function POST(request: NextRequest) {
                 locationId: config.locationId,
                 lineItems: [
                     {
-                        name: `${rank.name} Rank`,
+                        name: isOneTimeTip ? 'One-Time Donation' : `${rankName} Rank`,
                         quantity: '1',
                         basePriceMoney: {
                             amount: BigInt(amountInCents),
                             currency: 'USD',
                         },
-                        note: `${days} days of ${rank.name} rank benefits`,
+                        note: isOneTimeTip ? 'Thank you for your support!' : `${daysValue} days of ${rankName} rank benefits`,
                     },
                 ],
                 metadata: {
                     userId: userId.toString(),
-                    rankId,
-                    rankName: rank.name,
-                    days: days.toString(),
+                    rankId: isOneTimeTip ? 'one-time' : rankId,
+                    rankName,
+                    days: daysValue.toString(),
                     type: 'one_time',
                 },
             },
@@ -128,15 +139,15 @@ export async function POST(request: NextRequest) {
 
         const orderId = orderResponse.result.order.id;
 
-        console.log(`Created Square order ${orderId} for user ${userId}, rank ${rankId}`);
+        console.log(`Created Square order ${orderId} for user ${userId}, rank ${isOneTimeTip ? 'one-time' : rankId}`);
 
         // Return order details for client-side payment form
         // Client will show Square Web Payments SDK card form and call /api/square/pay
         return NextResponse.json({
             orderId,
             amount: parseFloat(amount),
-            rankName: rank.name,
-            days: parseInt(days),
+            rankName,
+            days: daysValue,
             // No URL - client handles payment modal
         });
     } catch (error) {
