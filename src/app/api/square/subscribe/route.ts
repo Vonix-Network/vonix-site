@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { db } from '@/db';
-import { users, donationRanks } from '@/db/schema';
+import { users, donationRanks, donations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import {
     getOrCreateSquareCustomer,
@@ -141,9 +141,26 @@ export async function POST(request: NextRequest) {
                 donationRankId: rank.id,
                 rankExpiresAt: newExpiresAt,
                 totalDonated: (user.totalDonated || 0) + rank.minAmount,
+                squareSubscriptionId: subscriptionId,
+                subscriptionStatus: 'active',
                 updatedAt: new Date(),
             })
             .where(eq(users.id, userId));
+
+        // Step 6: Record donation in database for donation history
+        await db.insert(donations).values({
+            userId,
+            amount: rank.minAmount,
+            currency: 'USD',
+            method: 'square',
+            paymentId: `square_sub_${subscriptionId}`,
+            subscriptionId,
+            rankId: rank.id,
+            days: 30,
+            paymentType: 'subscription',
+            status: 'completed',
+            message: `${rank.name} Monthly Subscription`,
+        });
 
         console.log(`✅ Square subscription ${subscriptionId} created for user ${userId}, rank ${rank.name}`);
 
