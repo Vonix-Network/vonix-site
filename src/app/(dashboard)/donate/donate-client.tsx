@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { formatCurrency, getMinotaurBustUrl } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -147,6 +148,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   const [squareOneTimeCardReady, setSquareOneTimeCardReady] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const squareOneTimeCardRef = useRef<any>(null);
+
+  // Guest donation state (for non-logged-in users)
+  const [guestName, setGuestName] = useState('');
+  const [guestMinecraftUsername, setGuestMinecraftUsername] = useState('');
 
   const displayRanks = ranks.length > 0 ? ranks : defaultRanks;
 
@@ -577,13 +582,23 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   };
 
   const handleOneTimePayment = async (amount: number) => {
+    // For guests, validate they provided a name
     if (status !== 'authenticated') {
-      router.push('/login?callbackUrl=/donate');
-      return;
+      if (!guestName.trim()) {
+        setError('Please enter your name to continue');
+        return;
+      }
     }
 
     setError(null);
     setLoadingAmount(amount);
+
+    // Determine donor info for API
+    const isGuest = status !== 'authenticated';
+    const donorName = isGuest ? guestName.trim() : undefined;
+    const donorMinecraftUsername = isGuest
+      ? (guestMinecraftUsername.trim() || 'Maid') // Default to "Maid" skin
+      : undefined;
 
     try {
       // For Square, create order and show payment modal
@@ -596,6 +611,8 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             days: 0,
             amount,
             paymentType: 'one_time',
+            guestName: donorName,
+            guestMinecraftUsername: donorMinecraftUsername,
           }),
         });
 
@@ -630,6 +647,8 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
           days: 0,
           amount,
           paymentType: 'one_time',
+          guestName: donorName,
+          guestMinecraftUsername: donorMinecraftUsername,
         }),
       });
 
@@ -891,31 +910,50 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
                     {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') ? (
                       <div className="space-y-2">
-                        {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
-                          <Button
-                            variant="neon-outline"
-                            className="w-full"
-                            style={{ borderColor: rank.color, color: rank.color }}
-                            onClick={() => handleSubscribe(rank)}
-                            disabled={loadingRankId === rank.id}
-                          >
-                            {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4 mr-2" />
+                        {/* Rank purchases require login */}
+                        {status !== 'authenticated' ? (
+                          <div className="text-center py-3">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Login required for rank purchases
+                            </p>
+                            <Button
+                              variant="neon-outline"
+                              className="w-full"
+                              style={{ borderColor: rank.color, color: rank.color }}
+                              onClick={() => router.push('/login?callbackUrl=/donate')}
+                            >
+                              Login to Subscribe
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
+                              <Button
+                                variant="neon-outline"
+                                className="w-full"
+                                style={{ borderColor: rank.color, color: rank.color }}
+                                onClick={() => handleSubscribe(rank)}
+                                disabled={loadingRankId === rank.id}
+                              >
+                                {loadingRankId === rank.id && loadingType === 'subscription' ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                )}
+                                {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                              </Button>
                             )}
-                            {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              className="w-full text-muted-foreground hover:text-foreground"
+                              onClick={() => openPurchaseModal(rank)}
+                              disabled={loadingRankId === rank.id}
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
+                            </Button>
+                          </>
                         )}
-                        <Button
-                          variant="ghost"
-                          className="w-full text-muted-foreground hover:text-foreground"
-                          onClick={() => openPurchaseModal(rank)}
-                          disabled={loadingRankId === rank.id}
-                        >
-                          <Clock className="w-4 h-4 mr-2" />
-                          {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
-                        </Button>
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -951,6 +989,41 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
               Want to support without a rank? Every donation helps keep our servers running!
             </p>
+
+            {/* Guest donor info form - shown when not logged in */}
+            {status !== 'authenticated' && (
+              <div className="max-w-md mx-auto mb-6 space-y-4">
+                <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                  <p className="text-sm text-muted-foreground mb-4 text-center">
+                    Not logged in? No problem! Enter your details below:
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Your Name *</label>
+                      <Input
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder="Enter your display name"
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Minecraft Username (Optional)</label>
+                      <Input
+                        value={guestMinecraftUsername}
+                        onChange={(e) => setGuestMinecraftUsername(e.target.value)}
+                        placeholder="For avatar display (defaults to 'Maid')"
+                        className="bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your Minecraft skin will appear in the donation announcement!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap justify-center gap-4">
               {[5, 10, 25, 50, 100].map((amount) => (
                 <Button

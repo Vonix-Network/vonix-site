@@ -314,6 +314,7 @@ export async function createCheckoutSession({
   customerEmail,
   successUrl,
   cancelUrl,
+  metadata: additionalMetadata,
 }: {
   userId: number;
   rankId: string;
@@ -323,8 +324,19 @@ export async function createCheckoutSession({
   customerEmail?: string;
   successUrl: string;
   cancelUrl: string;
+  metadata?: Record<string, string>;
 }): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
+
+  // Build metadata object with standard fields + any additional guest metadata
+  const baseMetadata = {
+    userId: userId.toString(),
+    rankId,
+    rankName,
+    days: days.toString(),
+    type: 'one_time',
+  };
+  const mergedMetadata = { ...baseMetadata, ...(additionalMetadata || {}) };
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -344,22 +356,10 @@ export async function createCheckoutSession({
         quantity: 1,
       },
     ],
-    metadata: {
-      userId: userId.toString(),
-      rankId,
-      rankName,
-      days: days.toString(),
-      type: 'one_time',
-    },
+    metadata: mergedMetadata,
     // CRITICAL: Pass metadata to payment intent so webhook can access it
     payment_intent_data: {
-      metadata: {
-        userId: userId.toString(),
-        rankId,
-        rankName,
-        days: days.toString(),
-        type: 'one_time',
-      },
+      metadata: mergedMetadata,
     },
     success_url: successUrl,
     cancel_url: cancelUrl,

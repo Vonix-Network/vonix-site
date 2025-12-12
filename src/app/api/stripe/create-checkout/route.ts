@@ -21,18 +21,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require authentication
+    // Check authentication - only required for rank purchases
     const session = await auth();
-    if (!session?.user) {
+    const user = session?.user as any;
+
+    const body = await request.json();
+    const {
+      rankId,
+      days = 30,
+      amount: customAmount,
+      paymentType = 'one_time',
+      guestName,
+      guestMinecraftUsername
+    } = body;
+
+    // Require authentication for rank purchases (not one-time donations)
+    if (rankId !== 'one-time' && rankId && !session?.user) {
       return NextResponse.json(
-        { error: 'Please log in to make a donation' },
+        { error: 'Please log in to purchase a rank' },
         { status: 401 }
       );
     }
-
-    const user = session.user as any;
-    const body = await request.json();
-    const { rankId, days = 30, amount: customAmount, paymentType = 'one_time' } = body;
 
     if (!['one_time', 'subscription'].includes(paymentType)) {
       return NextResponse.json(
@@ -44,7 +53,7 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     let checkoutSession;
 
-    // Handle one-time donations without a rank
+    // Handle one-time donations without a rank (allows guests)
     if (rankId === 'one-time' || !rankId) {
       const amount = customAmount || 5;
 
@@ -55,15 +64,26 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Determine if this is a guest donation
+      const isGuest = !session?.user;
+      const donorName = isGuest ? guestName : user?.name || user?.username;
+      const donorMinecraftUsername = isGuest ? (guestMinecraftUsername || 'Maid') : undefined;
+
       checkoutSession = await createCheckoutSession({
-        userId: parseInt(user.id),
+        userId: isGuest ? 0 : parseInt(user.id), // 0 for guests
         rankId: 'one-time',
         rankName: 'One-Time Donation',
         amount,
         days: 0,
-        customerEmail: user.email,
+        customerEmail: isGuest ? undefined : user.email,
         successUrl: `${appUrl}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${appUrl}/donate?canceled=true`,
+        // Pass guest info as metadata
+        metadata: isGuest ? {
+          isGuest: 'true',
+          guestName: donorName || 'Anonymous',
+          guestMinecraftUsername: donorMinecraftUsername || 'Maid',
+        } : undefined,
       });
     } else {
       // Handle rank purchases/subscriptions

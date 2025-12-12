@@ -128,10 +128,6 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
   console.log('Checkout session completed:', session.id);
 
   const userId = session.client_reference_id || session.metadata?.userId;
-  if (!userId) {
-    console.error('No user ID found in checkout session');
-    return;
-  }
 
   // For subscriptions, the invoice.payment_succeeded event will handle rank assignment
   if (session.mode === 'subscription') {
@@ -142,7 +138,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
   // Handle one-time payments directly from checkout session
   // This provides redundancy if payment_intent.succeeded isn't configured
   if (session.mode === 'payment' && session.payment_status === 'paid') {
-    console.log('One-time payment checkout completed, processing rank...');
+    console.log('One-time payment checkout completed, processing...');
 
     const metadata = session.metadata || {};
     const rankId = metadata.rankId;
@@ -151,6 +147,11 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
     const paymentIntentId = typeof session.payment_intent === 'string'
       ? session.payment_intent
       : session.payment_intent?.id;
+
+    // Check for guest donation
+    const isGuest = metadata.isGuest === 'true' || userId === '0' || !userId;
+    const guestName = metadata.guestName || 'Anonymous';
+    const guestMinecraftUsername = metadata.guestMinecraftUsername || 'Maid';
 
     // Check if this payment was already processed (idempotency)
     if (paymentIntentId) {
@@ -166,63 +167,72 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
       }
     }
 
-    // Get user
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, parseInt(userId)))
-      .limit(1);
+    // Handle guest vs registered user
+    let user = null;
+    let donorName = guestName;
+    let donorMinecraftUsername: string | undefined = guestMinecraftUsername;
 
-    if (!user) {
-      console.error('User not found for checkout session:', userId);
-      return;
-    }
+    if (!isGuest && userId) {
+      // Get user for registered donations
+      const [foundUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
 
-    // If this is a rank purchase (not just a tip)
-    if (rankId && rankId !== 'one-time' && days > 0) {
-      const now = new Date();
-      let expiresAt: Date;
+      if (foundUser) {
+        user = foundUser;
+        donorName = foundUser.minecraftUsername || foundUser.username;
+        donorMinecraftUsername = foundUser.minecraftUsername || undefined;
 
-      // Check if user already has this rank with remaining time
-      if (user.donationRankId === rankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
-        const currentExpiry = new Date(user.rankExpiresAt);
-        expiresAt = new Date(currentExpiry);
-        expiresAt.setDate(currentExpiry.getDate() + days);
-        console.log(`Extending existing rank ${rankId} by ${days} days`);
-      } else {
-        expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + days);
-        console.log(`Assigning new rank ${rankId} for ${days} days`);
+        // Update user's total donated
+        if (rankId && rankId !== 'one-time' && days > 0) {
+          // Rank purchase
+          const now = new Date();
+          let expiresAt: Date;
+
+          if (user.donationRankId === rankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
+            const currentExpiry = new Date(user.rankExpiresAt);
+            expiresAt = new Date(currentExpiry);
+            expiresAt.setDate(currentExpiry.getDate() + days);
+            console.log(`Extending existing rank ${rankId} by ${days} days`);
+          } else {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + days);
+            console.log(`Assigning new rank ${rankId} for ${days} days`);
+          }
+
+          await db
+            .update(users)
+            .set({
+              donationRankId: rankId,
+              rankExpiresAt: expiresAt,
+              totalDonated: (user.totalDonated || 0) + amount,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, parseInt(userId)));
+
+          console.log(`✅ Rank ${rankId} applied to user ${userId} via checkout.session.completed (expires: ${expiresAt.toISOString()})`);
+        } else {
+          // Pure tip
+          await db
+            .update(users)
+            .set({
+              totalDonated: (user.totalDonated || 0) + amount,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, parseInt(userId)));
+
+          console.log(`✅ Tip of $${amount} recorded for user ${userId}`);
+        }
       }
-
-      // Update user's rank
-      await db
-        .update(users)
-        .set({
-          donationRankId: rankId,
-          rankExpiresAt: expiresAt,
-          totalDonated: (user.totalDonated || 0) + amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, parseInt(userId)));
-
-      console.log(`✅ Rank ${rankId} applied to user ${userId} via checkout.session.completed (expires: ${expiresAt.toISOString()})`);
     } else {
-      // Pure tip - just update total donated
-      await db
-        .update(users)
-        .set({
-          totalDonated: (user.totalDonated || 0) + amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, parseInt(userId)));
-
-      console.log(`✅ Tip of $${amount} recorded for user ${userId}`);
+      console.log(`✅ Guest donation of $${amount} from "${guestName}"`);
     }
 
     // Create donation record
     await db.insert(donations).values({
-      userId: parseInt(userId),
+      userId: isGuest ? null : parseInt(userId!),
       amount,
       currency: session.currency?.toUpperCase() || 'USD',
       status: 'completed',
@@ -230,16 +240,34 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
       rankId: rankId && rankId !== 'one-time' ? rankId : null,
       days: days > 0 ? days : null,
       paymentType: 'one_time',
-      minecraftUsername: user.minecraftUsername,
-      minecraftUuid: user.minecraftUuid,
+      minecraftUsername: isGuest ? guestMinecraftUsername : user?.minecraftUsername,
+      minecraftUuid: isGuest ? null : user?.minecraftUuid,
       createdAt: new Date(),
     });
+
+    // Send Discord notification for this donation
+    try {
+      const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+      await sendDonationDiscordNotification({
+        username: donorName,
+        minecraftUsername: donorMinecraftUsername,
+        amount,
+        currency: session.currency?.toUpperCase() || 'USD',
+        paymentType: 'one_time',
+        rankName: null,
+        days: null,
+        message: isGuest ? `Guest donation from ${guestName}` : null,
+      });
+      console.log('✅ Sent Discord donation notification');
+    } catch (discordError) {
+      console.error('Failed to send Discord notification:', discordError);
+    }
 
     // Send admin donation alert
     try {
       const { sendAdminDonationAlert } = await import('@/lib/email');
       await sendAdminDonationAlert(
-        user.minecraftUsername || user.username,
+        donorName,
         amount,
         rankId && rankId !== 'one-time' ? rankId : undefined
       );
