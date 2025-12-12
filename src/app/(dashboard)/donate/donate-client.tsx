@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -134,6 +134,11 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   // Square subscription modal state
   const [showSquareCardModal, setShowSquareCardModal] = useState(false);
   const [squareCardLoading, setSquareCardLoading] = useState(false);
+  const [squareCardReady, setSquareCardReady] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const squareCardRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const squarePaymentsRef = useRef<any>(null);
 
   const displayRanks = ranks.length > 0 ? ranks : defaultRanks;
 
@@ -157,6 +162,108 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     };
     fetchPaymentConfig();
   }, []);
+
+  // Initialize Square Web Payments SDK when modal opens
+  useEffect(() => {
+    if (!showSquareCardModal || !paymentConfig?.applicationId) return;
+
+    const initSquare = async () => {
+      setSquareCardReady(false);
+      setError(null);
+
+      // Load Square SDK script if not already loaded
+      if (!(window as any).Square) {
+        const script = document.createElement('script');
+        script.src = paymentConfig.mode === 'production'
+          ? 'https://web.squarecdn.com/v1/square.js'
+          : 'https://sandbox.web.squarecdn.com/v1/square.js';
+        script.async = true;
+        script.onload = () => initializeCard();
+        script.onerror = () => setError('Failed to load Square payment SDK');
+        document.body.appendChild(script);
+      } else {
+        await initializeCard();
+      }
+    };
+
+    const initializeCard = async () => {
+      try {
+        const payments = (window as any).Square.payments(
+          paymentConfig.applicationId,
+          paymentConfig.mode === 'production' ? undefined : undefined // locationId is optional for card
+        );
+        squarePaymentsRef.current = payments;
+
+        // Destroy existing card if any
+        if (squareCardRef.current) {
+          await squareCardRef.current.destroy();
+        }
+
+        // Wait for container to be in DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const card = await payments.card();
+        await card.attach('#square-card-container');
+        squareCardRef.current = card;
+        setSquareCardReady(true);
+      } catch (err) {
+        console.error('Failed to initialize Square card:', err);
+        setError('Failed to initialize payment form. Please try again.');
+      }
+    };
+
+    initSquare();
+
+    return () => {
+      // Cleanup on unmount
+      if (squareCardRef.current) {
+        squareCardRef.current.destroy().catch(() => { });
+        squareCardRef.current = null;
+      }
+    };
+  }, [showSquareCardModal, paymentConfig?.applicationId, paymentConfig?.mode]);
+
+  // Handle Square subscription
+  const handleSquareSubscribe = useCallback(async () => {
+    if (!squareCardRef.current || !selectedRank) return;
+
+    setSquareCardLoading(true);
+    setError(null);
+
+    try {
+      // Tokenize the card
+      const tokenResult = await squareCardRef.current.tokenize();
+
+      if (tokenResult.status !== 'OK') {
+        const errorMessages = tokenResult.errors?.map((e: any) => e.message).join(', ');
+        throw new Error(errorMessages || 'Card tokenization failed');
+      }
+
+      // Call our subscribe API with the card nonce
+      const response = await fetch('/api/square/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rankId: selectedRank.id,
+          cardNonce: tokenResult.token,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create subscription');
+      }
+
+      // Success! Redirect to success page
+      window.location.href = '/donate/success?subscription=true';
+    } catch (err) {
+      console.error('Square subscription error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSquareCardLoading(false);
+    }
+  }, [selectedRank]);
 
   // Calculate price for a rank and duration
   const calculatePrice = (rank: DonationRank, days: number): number => {
@@ -848,16 +955,17 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 </div>
               )}
 
-              {/* Square Web Payments SDK Card Container - Would be dynamically populated */}
+              {/* Square Web Payments SDK Card Container */}
               <div
                 id="square-card-container"
-                className="min-h-[100px] border border-border rounded-lg p-4 bg-background/50 flex items-center justify-center"
+                className="min-h-[100px] border border-border rounded-lg bg-background/50"
               >
-                <p className="text-sm text-muted-foreground text-center">
-                  Square subscription setup requires card entry via Square&apos;s secure form.
-                  <br />
-                  <span className="text-xs">Contact administrators for subscription setup.</span>
-                </p>
+                {!squareCardReady && (
+                  <div className="flex items-center justify-center h-[100px]">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -876,19 +984,15 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 <Button
                   variant="gradient"
                   className="flex-1"
-                  disabled={squareCardLoading}
-                  onClick={async () => {
-                    // Note: Full implementation would use Square Web Payments SDK
-                    // For now, we show a message to contact admin for subscription setup
-                    setError('Square subscriptions require manual setup. Please contact an administrator or use one-time payment.');
-                  }}
+                  disabled={squareCardLoading || !squareCardReady}
+                  onClick={handleSquareSubscribe}
                 >
                   {squareCardLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <CreditCard className="w-4 h-4 mr-2" />
                   )}
-                  Subscribe
+                  {squareCardReady ? 'Subscribe' : 'Loading...'}
                 </Button>
               </div>
             </CardContent>
