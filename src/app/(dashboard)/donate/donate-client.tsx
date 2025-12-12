@@ -1040,6 +1040,47 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 </Button>
               ))}
             </div>
+
+            {/* Custom Amount Input */}
+            <div className="mt-6 flex items-center justify-center gap-3 max-w-xs mx-auto">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Custom"
+                  className="pl-7 bg-background text-center"
+                  id="custom-tip-amount"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const input = e.target as HTMLInputElement;
+                      const amount = parseFloat(input.value);
+                      if (amount >= 1) handleOneTimePayment(amount);
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                variant="neon"
+                size="lg"
+                onClick={() => {
+                  const input = document.getElementById('custom-tip-amount') as HTMLInputElement;
+                  const amount = parseFloat(input?.value || '0');
+                  if (amount >= 1) {
+                    handleOneTimePayment(amount);
+                  } else {
+                    setError('Minimum donation is $1');
+                  }
+                }}
+                disabled={loadingAmount !== null}
+              >
+                {loadingAmount !== null && ![5, 10, 25, 50, 100].includes(loadingAmount) ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Donate
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
