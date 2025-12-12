@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   User, Shield, Bell, Palette, Key, CreditCard,
-  Save, Loader2, Eye, EyeOff, Check, Crown, ExternalLink, AlertTriangle, Calendar
+  Save, Loader2, Eye, EyeOff, Check, Crown, ExternalLink, AlertTriangle, Calendar, History
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,6 +76,18 @@ export default function SettingsPage() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
+  const [donations, setDonations] = useState<{
+    id: number;
+    amount: number;
+    currency: string;
+    method: string | null;
+    paymentType: string | null;
+    rankId: string | null;
+    days: number | null;
+    createdAt: string;
+    message: string | null;
+  }[]>([]);
+  const [loadingDonations, setLoadingDonations] = useState(false);
 
   // When the session/user finishes loading, hydrate the profile form
   // so that inputs show the current saved values instead of staying empty.
@@ -93,6 +105,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeTab === 'subscription' && !subscription && !loadingSubscription) {
       fetchSubscription();
+      fetchDonations();
     }
   }, [activeTab]);
 
@@ -108,6 +121,21 @@ export default function SettingsPage() {
       console.error('Error fetching subscription:', err);
     } finally {
       setLoadingSubscription(false);
+    }
+  };
+
+  const fetchDonations = async () => {
+    setLoadingDonations(true);
+    try {
+      const res = await fetch('/api/user/donations');
+      if (res.ok) {
+        const data = await res.json();
+        setDonations(data.donations || []);
+      }
+    } catch (err) {
+      console.error('Error fetching donations:', err);
+    } finally {
+      setLoadingDonations(false);
     }
   };
 
@@ -530,6 +558,61 @@ export default function SettingsPage() {
                       <p className="text-xs text-muted-foreground mt-1">
                         Thank you for supporting the server!
                       </p>
+                    </div>
+
+                    {/* Donation History */}
+                    <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <History className="w-4 h-4" />
+                        Donation History
+                      </h3>
+                      {loadingDonations ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : donations.length > 0 ? (
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                          {donations.map((donation) => (
+                            <div
+                              key={donation.id}
+                              className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-neon-green">
+                                    ${donation.amount.toFixed(2)}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {donation.method || 'unknown'}
+                                  </Badge>
+                                  {donation.paymentType === 'subscription' && (
+                                    <Badge variant="outline" className="text-xs bg-neon-purple/10 border-neon-purple/30 text-neon-purple">
+                                      Subscription
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(donation.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
+                                  {donation.days && donation.days > 0 && (
+                                    <span> · {donation.days} days</span>
+                                  )}
+                                  {donation.message && (
+                                    <span className="block text-foreground/70 mt-0.5">{donation.message}</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No donation history yet.
+                        </p>
+                      )}
                     </div>
                   </>
                 ) : (
