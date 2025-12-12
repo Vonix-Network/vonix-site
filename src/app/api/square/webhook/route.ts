@@ -116,14 +116,22 @@ export async function POST(request: NextRequest) {
             eventId: event.event_id,
         });
 
-        // Handle payment.completed event
-        if (event.type === 'payment.completed') {
-            await handlePaymentCompleted(event);
-        } else if (event.type === 'order.fulfillment.updated' || event.type === 'order.updated') {
-            // Handle order-based events if needed
-            console.log(`Square event ${event.type} received, skipping (handled via payment.completed)`);
-        } else {
-            console.log(`Square webhook type ${event.type} not handled`);
+        // Handle different event types
+        switch (event.type) {
+            case 'payment.completed':
+                await handlePaymentCompleted(event);
+                break;
+            case 'subscription.created':
+                await handleSubscriptionCreated(event);
+                break;
+            case 'subscription.updated':
+                await handleSubscriptionUpdated(event);
+                break;
+            case 'invoice.payment_made':
+                await handleInvoicePaymentMade(event);
+                break;
+            default:
+                console.log(`Square webhook type ${event.type} not handled`);
         }
 
         return NextResponse.json({ received: true });
@@ -296,6 +304,177 @@ async function handlePaymentCompleted(event: SquareWebhookEvent) {
 
     // Send admin notification (async, don't wait)
     sendAdminDonationAlert(username, amount, rankId || undefined)
+        .catch(err => console.error('Failed to send admin donation alert:', err));
+}
+
+/**
+ * Handle subscription.created event
+ */
+async function handleSubscriptionCreated(event: SquareWebhookEvent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (event.data.object as any).subscription;
+    if (!subscription) {
+        console.error('No subscription object in Square webhook');
+        return;
+    }
+
+    console.log(`✅ Square subscription created: ${subscription.id}, status: ${subscription.status}`);
+
+    // The subscription is already created via /api/square/subscribe
+    // This webhook confirms it's active in Square's system
+    // User rank is assigned during the subscribe API call, so we just log here
+}
+
+/**
+ * Handle subscription.updated event
+ */
+async function handleSubscriptionUpdated(event: SquareWebhookEvent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (event.data.object as any).subscription;
+    if (!subscription) {
+        console.error('No subscription object in Square webhook');
+        return;
+    }
+
+    const status = subscription.status;
+    const subscriptionId = subscription.id;
+
+    console.log(`Square subscription updated: ${subscriptionId}, new status: ${status}`);
+
+    // Find user with this subscription
+    const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.squareSubscriptionId, subscriptionId))
+        .limit(1);
+
+    if (!user) {
+        console.log(`No user found for Square subscription ${subscriptionId}`);
+        return;
+    }
+
+    // Map Square status to our subscription status
+    let newStatus: 'active' | 'canceled' | 'past_due' | 'paused' | 'trialing';
+    switch (status) {
+        case 'ACTIVE':
+            newStatus = 'active';
+            break;
+        case 'CANCELED':
+            newStatus = 'canceled';
+            break;
+        case 'DEACTIVATED':
+            newStatus = 'canceled';
+            break;
+        case 'PAUSED':
+            newStatus = 'paused';
+            break;
+        case 'PENDING':
+            newStatus = 'trialing';
+            break;
+        default:
+            newStatus = 'active';
+    }
+
+    await db
+        .update(users)
+        .set({ subscriptionStatus: newStatus, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+
+    console.log(`✅ Updated subscription status for user ${user.id} to ${newStatus}`);
+}
+
+/**
+ * Handle invoice.payment_made event (subscription renewal)
+ */
+async function handleInvoicePaymentMade(event: SquareWebhookEvent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoice = (event.data.object as any).invoice;
+    if (!invoice) {
+        console.error('No invoice object in Square webhook');
+        return;
+    }
+
+    const subscriptionId = invoice.subscription_id;
+    if (!subscriptionId) {
+        console.log('Invoice is not associated with a subscription');
+        return;
+    }
+
+    // Check for duplicate (idempotency)
+    const invoiceId = invoice.id;
+    const [existingDonation] = await db
+        .select()
+        .from(donations)
+        .where(eq(donations.paymentId, `square_invoice_${invoiceId}`))
+        .limit(1);
+
+    if (existingDonation) {
+        console.log('Square invoice already processed:', invoiceId);
+        return;
+    }
+
+    // Find user with this subscription
+    const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.squareSubscriptionId, subscriptionId))
+        .limit(1);
+
+    if (!user) {
+        console.log(`No user found for Square subscription ${subscriptionId}`);
+        return;
+    }
+
+    const amount = (invoice.payment_requests?.[0]?.computed_amount_money?.amount || 0) / 100;
+    const currency = invoice.payment_requests?.[0]?.computed_amount_money?.currency || 'USD';
+
+    // Extend user rank by 30 days (monthly renewal)
+    const now = new Date();
+    let newExpiresAt: Date;
+
+    if (user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
+        newExpiresAt = new Date(user.rankExpiresAt);
+        newExpiresAt.setDate(newExpiresAt.getDate() + 30);
+    } else {
+        newExpiresAt = new Date();
+        newExpiresAt.setDate(newExpiresAt.getDate() + 30);
+    }
+
+    await db
+        .update(users)
+        .set({
+            rankExpiresAt: newExpiresAt,
+            totalDonated: (user.totalDonated || 0) + amount,
+            subscriptionStatus: 'active',
+            updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+
+    // Create donation record for renewal
+    const receiptNumber = `VN-SQ-SUB-${Date.now()}-${invoiceId.slice(-6)}`;
+
+    await db.insert(donations).values({
+        userId: user.id,
+        amount,
+        currency,
+        method: 'square',
+        message: `Subscription Renewal - ${user.donationRankId || 'Rank'}`,
+        displayed: true,
+        receiptNumber,
+        paymentId: `square_invoice_${invoiceId}`,
+        subscriptionId,
+        rankId: user.donationRankId || undefined,
+        days: 30,
+        paymentType: 'subscription_renewal',
+        status: 'completed',
+        createdAt: new Date(),
+    });
+
+    const username = user.minecraftUsername || user.username;
+    console.log(`✅ Square subscription renewed for user ${username}, rank extended to ${newExpiresAt.toISOString()}`);
+
+    // Send admin notification
+    sendAdminDonationAlert(username, amount, user.donationRankId || undefined)
         .catch(err => console.error('Failed to send admin donation alert:', err));
 }
 

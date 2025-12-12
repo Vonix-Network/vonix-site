@@ -7,8 +7,8 @@
 
 import { Client, Environment } from 'square';
 import { db } from '@/db';
-import { siteSettings } from '@/db/schema';
-import { like } from 'drizzle-orm';
+import { siteSettings, users, donationRanks } from '@/db/schema';
+import { like, eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
 let squareClientInstance: Client | null = null;
@@ -298,4 +298,306 @@ export async function createCheckoutLink({
         checkoutUrl: response.result.paymentLink.url,
         orderId: response.result.paymentLink.orderId,
     };
+}
+
+// ===================================
+// CUSTOMER MANAGEMENT
+// ===================================
+
+/**
+ * Get or create a Square customer for a user
+ */
+export async function getOrCreateSquareCustomer(
+    userId: number,
+    email: string,
+    displayName?: string
+): Promise<string> {
+    const client = await getSquareClient();
+
+    // Check if user already has a Square customer ID
+    const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+    if (user?.squareCustomerId) {
+        // Verify customer still exists in Square
+        try {
+            await client.customersApi.retrieveCustomer(user.squareCustomerId);
+            return user.squareCustomerId;
+        } catch {
+            console.log(`Square customer ${user.squareCustomerId} not found, creating new one`);
+        }
+    }
+
+    // Create new Square customer
+    const response = await client.customersApi.createCustomer({
+        idempotencyKey: `vonix-customer-${userId}-${Date.now()}`,
+        emailAddress: email,
+        referenceId: userId.toString(),
+        givenName: displayName || user?.username || undefined,
+    });
+
+    if (!response.result.customer?.id) {
+        throw new Error('Failed to create Square customer');
+    }
+
+    // Store customer ID in database
+    await db
+        .update(users)
+        .set({ squareCustomerId: response.result.customer.id, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+    console.log(`Created Square customer ${response.result.customer.id} for user ${userId}`);
+    return response.result.customer.id;
+}
+
+/**
+ * Save a card on file for a customer (from a nonce)
+ */
+export async function saveCardOnFile(
+    customerId: string,
+    sourceId: string // This is the card nonce from Web Payments SDK
+): Promise<string> {
+    const client = await getSquareClient();
+
+    const response = await client.cardsApi.createCard({
+        idempotencyKey: `vonix-card-${customerId}-${Date.now()}`,
+        sourceId,
+        card: {
+            customerId,
+        },
+    });
+
+    if (!response.result.card?.id) {
+        throw new Error('Failed to save card on file');
+    }
+
+    return response.result.card.id;
+}
+
+// ===================================
+// CATALOG / SUBSCRIPTION PLANS
+// ===================================
+
+/**
+ * Get or create a subscription plan for a rank
+ */
+export async function getOrCreateSubscriptionPlan(rank: {
+    id: string;
+    name: string;
+    squareSubscriptionPlanId?: string | null;
+}): Promise<string> {
+    const client = await getSquareClient();
+
+    // Check if rank already has a Square plan ID
+    if (rank.squareSubscriptionPlanId) {
+        try {
+            const existing = await client.catalogApi.retrieveCatalogObject(rank.squareSubscriptionPlanId);
+            if (existing.result.object) {
+                return rank.squareSubscriptionPlanId;
+            }
+        } catch {
+            console.log(`Square plan ${rank.squareSubscriptionPlanId} not found, creating new one`);
+        }
+    }
+
+    // Create new subscription plan in Square Catalog
+    const response = await client.catalogApi.upsertCatalogObject({
+        idempotencyKey: `vonix-plan-${rank.id}-${Date.now()}`,
+        object: {
+            type: 'SUBSCRIPTION_PLAN',
+            id: `#vonix-plan-${rank.id}`,
+            subscriptionPlanData: {
+                name: `${rank.name} Rank Subscription`,
+                eligibleItemIds: [], // We're not selling catalog items, just subscriptions
+                allItems: false,
+            },
+            presentAtAllLocations: true,
+        },
+    });
+
+    if (!response.result.catalogObject?.id) {
+        throw new Error('Failed to create Square subscription plan');
+    }
+
+    const planId = response.result.catalogObject.id;
+
+    // Update rank in database
+    await db
+        .update(donationRanks)
+        .set({ squareSubscriptionPlanId: planId, updatedAt: new Date() })
+        .where(eq(donationRanks.id, rank.id));
+
+    console.log(`Created Square subscription plan ${planId} for rank ${rank.id}`);
+    return planId;
+}
+
+/**
+ * Get or create a subscription plan variation (monthly pricing)
+ */
+export async function getOrCreateSubscriptionPlanVariation(
+    planId: string,
+    rank: {
+        id: string;
+        name: string;
+        minAmount: number; // Monthly price in dollars
+        squareSubscriptionPlanVariationId?: string | null;
+    }
+): Promise<string> {
+    const client = await getSquareClient();
+
+    // Check if rank already has a variation ID
+    if (rank.squareSubscriptionPlanVariationId) {
+        try {
+            const existing = await client.catalogApi.retrieveCatalogObject(rank.squareSubscriptionPlanVariationId);
+            if (existing.result.object) {
+                return rank.squareSubscriptionPlanVariationId;
+            }
+        } catch {
+            console.log(`Square variation ${rank.squareSubscriptionPlanVariationId} not found, creating new one`);
+        }
+    }
+
+    const amountInCents = Math.round(rank.minAmount * 100);
+
+    // Create subscription plan variation with monthly billing
+    const response = await client.catalogApi.upsertCatalogObject({
+        idempotencyKey: `vonix-variation-${rank.id}-${Date.now()}`,
+        object: {
+            type: 'SUBSCRIPTION_PLAN_VARIATION',
+            id: `#vonix-variation-${rank.id}`,
+            subscriptionPlanVariationData: {
+                name: `${rank.name} Monthly`,
+                subscriptionPlanId: planId,
+                phases: [
+                    {
+                        cadence: 'MONTHLY',
+                        pricing: {
+                            type: 'STATIC',
+                            priceMoney: {
+                                amount: BigInt(amountInCents),
+                                currency: 'USD',
+                            },
+                        },
+                    },
+                ],
+            },
+            presentAtAllLocations: true,
+        },
+    });
+
+    if (!response.result.catalogObject?.id) {
+        throw new Error('Failed to create Square subscription plan variation');
+    }
+
+    const variationId = response.result.catalogObject.id;
+
+    // Update rank in database
+    await db
+        .update(donationRanks)
+        .set({ squareSubscriptionPlanVariationId: variationId, updatedAt: new Date() })
+        .where(eq(donationRanks.id, rank.id));
+
+    console.log(`Created Square subscription variation ${variationId} for rank ${rank.id}`);
+    return variationId;
+}
+
+/**
+ * Ensure a rank has all necessary Square subscription plan and variation
+ */
+export async function ensureRankSquareSetup(rank: {
+    id: string;
+    name: string;
+    minAmount: number;
+    squareSubscriptionPlanId?: string | null;
+    squareSubscriptionPlanVariationId?: string | null;
+}): Promise<{ planId: string; variationId: string }> {
+    // First ensure plan exists
+    const planId = await getOrCreateSubscriptionPlan(rank);
+
+    // Then ensure variation exists
+    const variationId = await getOrCreateSubscriptionPlanVariation(planId, {
+        id: rank.id,
+        name: rank.name,
+        minAmount: rank.minAmount,
+        squareSubscriptionPlanVariationId: rank.squareSubscriptionPlanVariationId,
+    });
+
+    return { planId, variationId };
+}
+
+// ===================================
+// SUBSCRIPTION MANAGEMENT
+// ===================================
+
+/**
+ * Create a subscription for a customer
+ */
+export async function createSquareSubscription({
+    customerId,
+    planVariationId,
+    cardId,
+    userId,
+    rankId,
+}: {
+    customerId: string;
+    planVariationId: string;
+    cardId: string;
+    userId: number;
+    rankId: string;
+}): Promise<string> {
+    const client = await getSquareClient();
+    const config = await loadSquareConfig();
+
+    const response = await client.subscriptionsApi.createSubscription({
+        idempotencyKey: `vonix-sub-${userId}-${rankId}-${Date.now()}`,
+        locationId: config.locationId,
+        customerId,
+        planVariationId,
+        cardId,
+        source: {
+            name: 'Vonix Network Website',
+        },
+    });
+
+    if (!response.result.subscription?.id) {
+        throw new Error('Failed to create Square subscription');
+    }
+
+    const subscriptionId = response.result.subscription.id;
+
+    // Update user with subscription info
+    await db
+        .update(users)
+        .set({
+            squareSubscriptionId: subscriptionId,
+            squareCardId: cardId,
+            subscriptionStatus: 'active',
+            updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
+
+    console.log(`Created Square subscription ${subscriptionId} for user ${userId}`);
+    return subscriptionId;
+}
+
+/**
+ * Cancel a Square subscription
+ */
+export async function cancelSquareSubscription(subscriptionId: string): Promise<void> {
+    const client = await getSquareClient();
+
+    await client.subscriptionsApi.cancelSubscription(subscriptionId);
+    console.log(`Canceled Square subscription ${subscriptionId}`);
+}
+
+/**
+ * Retrieve subscription details
+ */
+export async function getSquareSubscription(subscriptionId: string) {
+    const client = await getSquareClient();
+    const response = await client.subscriptionsApi.retrieveSubscription(subscriptionId);
+    return response.result.subscription;
 }

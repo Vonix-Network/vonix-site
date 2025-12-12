@@ -131,6 +131,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   const [selectedRank, setSelectedRank] = useState<DonationRank | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(30);
 
+  // Square subscription modal state
+  const [showSquareCardModal, setShowSquareCardModal] = useState(false);
+  const [squareCardLoading, setSquareCardLoading] = useState(false);
+
   const displayRanks = ranks.length > 0 ? ranks : defaultRanks;
 
   // Fetch payment config on mount
@@ -190,9 +194,11 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     setLoadingType('subscription');
 
     try {
-      // Square doesn't support subscriptions - show error
+      // Square subscription flow - show card entry dialog
       if (paymentConfig?.provider === 'square') {
-        setError('Square does not support subscriptions. Please use one-time purchase or contact an administrator.');
+        // Store the rank for subscription 
+        setSelectedRank(rank);
+        setShowSquareCardModal(true);
         return;
       }
 
@@ -808,6 +814,83 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 )}
                 Pay {formatCurrency(calculatePrice(selectedRank, selectedDuration))}
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Square Card Entry Modal for Subscriptions */}
+      {showSquareCardModal && selectedRank && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card variant="glass" className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">⬜</span>
+                Subscribe to {selectedRank.name}
+              </CardTitle>
+              <CardDescription>
+                Set up monthly auto-renewal for ${selectedRank.minAmount}/month
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
+                <p className="text-sm text-neon-green font-medium mb-2">
+                  🔒 Secure Square Payment
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your card will be securely stored for monthly billing. You can cancel anytime.
+                </p>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {/* Square Web Payments SDK Card Container - Would be dynamically populated */}
+              <div
+                id="square-card-container"
+                className="min-h-[100px] border border-border rounded-lg p-4 bg-background/50 flex items-center justify-center"
+              >
+                <p className="text-sm text-muted-foreground text-center">
+                  Square subscription setup requires card entry via Square&apos;s secure form.
+                  <br />
+                  <span className="text-xs">Contact administrators for subscription setup.</span>
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowSquareCardModal(false);
+                    setLoadingRankId(null);
+                    setLoadingType(null);
+                    setError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="gradient"
+                  className="flex-1"
+                  disabled={squareCardLoading}
+                  onClick={async () => {
+                    // Note: Full implementation would use Square Web Payments SDK
+                    // For now, we show a message to contact admin for subscription setup
+                    setError('Square subscriptions require manual setup. Please contact an administrator or use one-time payment.');
+                  }}
+                >
+                  {squareCardLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="w-4 h-4 mr-2" />
+                  )}
+                  Subscribe
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

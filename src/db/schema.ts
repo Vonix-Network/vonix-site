@@ -26,10 +26,16 @@ export const users = sqliteTable('users', {
   pausedAt: integer('paused_at', { mode: 'timestamp' }),
   totalDonated: real('total_donated').default(0),
 
-  // Payment Integration
+  // Payment Integration - Stripe
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
   subscriptionStatus: text('subscription_status', { enum: ['active', 'canceled', 'past_due', 'paused', 'trialing'] }),
+
+  // Payment Integration - Square
+  squareCustomerId: text('square_customer_id').unique(),
+  squareSubscriptionId: text('square_subscription_id').unique(),
+  squareCardId: text('square_card_id'), // Card on file for subscription charges
+
   donorRank: text('donor_rank'),
 
   // XP & Leveling
@@ -283,6 +289,9 @@ export const donationRanks = sqliteTable('donation_ranks', {
   stripePriceQuarterly: text('stripe_price_quarterly'),
   stripePriceSemiannual: text('stripe_price_semiannual'),
   stripePriceYearly: text('stripe_price_yearly'),
+  // Square catalog references
+  squareSubscriptionPlanId: text('square_subscription_plan_id'),
+  squareSubscriptionPlanVariationId: text('square_subscription_plan_variation_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
