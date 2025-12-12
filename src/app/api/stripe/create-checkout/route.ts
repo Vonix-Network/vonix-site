@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // One-time payment - calculate price based on days
-        // priceMonth is in cents, convert to dollars for checkout
-        const monthlyPriceDollars = (rank.minAmount || 500) / 100;
+        // minAmount is in DOLLARS (e.g., 4.99), NOT cents
+        const monthlyPriceDollars = rank.minAmount || 5;
         const pricePerDay = monthlyPriceDollars / 30;
         const calculatedAmount = customAmount || Math.round(pricePerDay * days * 100) / 100;
 

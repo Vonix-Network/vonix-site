@@ -251,20 +251,15 @@ export async function getOrCreatePrice(
   }
 
   // Calculate price based on monthly amount
-  const baseAmount = rank.priceMonth || 500;
-  const amountInCents = Math.round(baseAmount); // priceMonth is already in cents based on schema? No, usually not. But let's assume it is or check usage.
-  // Schema says: priceMonth: integer('price_month'), // Price in cents
-  // So we don't need to multiply by 100 if it's already cents. 
-  // Wait, existing code multiplied by 100. Let's assume input is dollars for safety or check usage. 
-  // Schema comment says "Price in cents". 
-  // But typically inputs might be dollars. 
-  // Let's assume priceMonth is CENTS.
+  // priceMonth/minAmount is in DOLLARS (e.g., 4.99), Stripe needs CENTS
+  const baseAmountDollars = rank.priceMonth || 5;
+  const amountInCents = Math.round(baseAmountDollars * 100);
 
   // Create new price
   const priceParams: Stripe.PriceCreateParams = {
     product: productId,
     currency: 'usd',
-    unit_amount: baseAmount,
+    unit_amount: amountInCents,
     recurring: {
       interval: 'month',
       interval_count: 1,

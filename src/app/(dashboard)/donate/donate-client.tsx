@@ -140,6 +140,14 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const squarePaymentsRef = useRef<any>(null);
 
+  // Square one-time payment modal state
+  const [showSquareOneTimeModal, setShowSquareOneTimeModal] = useState(false);
+  const [squareOrderId, setSquareOrderId] = useState<string | null>(null);
+  const [squareOneTimeLoading, setSquareOneTimeLoading] = useState(false);
+  const [squareOneTimeCardReady, setSquareOneTimeCardReady] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const squareOneTimeCardRef = useRef<any>(null);
+
   const displayRanks = ranks.length > 0 ? ranks : defaultRanks;
 
   // Fetch payment config on mount
@@ -265,6 +273,107 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     }
   }, [selectedRank]);
 
+  // Initialize Square Web Payments SDK for one-time payment modal
+  useEffect(() => {
+    if (!showSquareOneTimeModal || !paymentConfig?.applicationId) return;
+
+    const initSquare = async () => {
+      setSquareOneTimeCardReady(false);
+      setError(null);
+
+      // Load Square SDK script if not already loaded
+      if (!(window as any).Square) {
+        const script = document.createElement('script');
+        script.src = paymentConfig.mode === 'production'
+          ? 'https://web.squarecdn.com/v1/square.js'
+          : 'https://sandbox.web.squarecdn.com/v1/square.js';
+        script.async = true;
+        script.onload = () => initializeCard();
+        script.onerror = () => setError('Failed to load Square payment SDK');
+        document.body.appendChild(script);
+      } else {
+        await initializeCard();
+      }
+    };
+
+    const initializeCard = async () => {
+      try {
+        const payments = (window as any).Square.payments(
+          paymentConfig.applicationId,
+          paymentConfig.mode === 'production' ? undefined : undefined
+        );
+
+        // Destroy existing card if any
+        if (squareOneTimeCardRef.current) {
+          await squareOneTimeCardRef.current.destroy();
+        }
+
+        // Wait for container to be in DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const card = await payments.card();
+        await card.attach('#square-onetime-card-container');
+        squareOneTimeCardRef.current = card;
+        setSquareOneTimeCardReady(true);
+      } catch (err) {
+        console.error('Failed to initialize Square card:', err);
+        setError('Failed to initialize payment form. Please try again.');
+      }
+    };
+
+    initSquare();
+
+    return () => {
+      // Cleanup on unmount
+      if (squareOneTimeCardRef.current) {
+        squareOneTimeCardRef.current.destroy().catch(() => { });
+        squareOneTimeCardRef.current = null;
+      }
+    };
+  }, [showSquareOneTimeModal, paymentConfig?.applicationId, paymentConfig?.mode]);
+
+  // Handle Square one-time payment
+  const handleSquareOneTimePay = useCallback(async () => {
+    if (!squareOneTimeCardRef.current || !squareOrderId || !selectedRank) return;
+
+    setSquareOneTimeLoading(true);
+    setError(null);
+
+    try {
+      // Tokenize the card
+      const tokenResult = await squareOneTimeCardRef.current.tokenize();
+
+      if (tokenResult.status !== 'OK') {
+        const errorMessages = tokenResult.errors?.map((e: any) => e.message).join(', ');
+        throw new Error(errorMessages || 'Card tokenization failed');
+      }
+
+      // Call our pay API with the order ID and card nonce
+      const response = await fetch('/api/square/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: squareOrderId,
+          cardNonce: tokenResult.token,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process payment');
+      }
+
+      // Success! Redirect to success page
+      window.location.href = '/donate/success?provider=square&orderId=' + squareOrderId;
+    } catch (err) {
+      console.error('Square one-time payment error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSquareOneTimeLoading(false);
+    }
+  }, [squareOrderId, selectedRank]);
+
   // Calculate price for a rank and duration
   const calculatePrice = (rank: DonationRank, days: number): number => {
     const pricePerDay = rank.minAmount / 30;
@@ -351,12 +460,36 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
     try {
       const amount = calculatePrice(selectedRank, selectedDuration);
 
-      // Use appropriate endpoint based on provider
-      const endpoint = paymentConfig?.provider === 'square'
-        ? '/api/square/create-checkout'
-        : '/api/stripe/create-checkout';
+      // For Square, create order and show payment modal
+      if (paymentConfig?.provider === 'square') {
+        const response = await fetch('/api/square/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rankId: selectedRank.id,
+            days: selectedDuration,
+            amount,
+            paymentType: 'one_time',
+          }),
+        });
 
-      const response = await fetch(endpoint, {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create order');
+        }
+
+        // Store order ID and show payment modal
+        setSquareOrderId(data.orderId);
+        setShowPurchaseModal(false);
+        setShowSquareOneTimeModal(true);
+        setLoadingRankId(null);
+        setLoadingType(null);
+        return;
+      }
+
+      // For Stripe, use the checkout URL
+      const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -967,15 +1100,63 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Square One-Time Payment Modal */}
+      {showSquareOneTimeModal && selectedRank && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card variant="glass" className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-neon-cyan" />
+                Complete Your Purchase
+              </CardTitle>
+              <CardDescription>
+                {selectedRank.name} Rank - {durationOptions.find(o => o.days === selectedDuration)?.label}
+                <span className="block text-neon-cyan font-medium mt-1">
+                  ${calculatePrice(selectedRank, selectedDuration).toFixed(2)}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                <p className="text-sm text-neon-cyan font-medium mb-2">
+                  🔒 Secure Square Payment
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your payment is processed securely. Card details are never stored on our servers.
+                </p>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {/* Square Web Payments SDK Card Container */}
+              <div
+                id="square-onetime-card-container"
+                className="min-h-[100px] border border-border rounded-lg bg-background/50"
+              >
+                {!squareOneTimeCardReady && (
+                  <div className="flex items-center justify-center h-[100px]">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
-                    setShowSquareCardModal(false);
-                    setLoadingRankId(null);
-                    setLoadingType(null);
+                    setShowSquareOneTimeModal(false);
+                    setSquareOrderId(null);
                     setError(null);
                   }}
                 >
@@ -984,15 +1165,15 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 <Button
                   variant="gradient"
                   className="flex-1"
-                  disabled={squareCardLoading || !squareCardReady}
-                  onClick={handleSquareSubscribe}
+                  disabled={squareOneTimeLoading || !squareOneTimeCardReady}
+                  onClick={handleSquareOneTimePay}
                 >
-                  {squareCardLoading ? (
+                  {squareOneTimeLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <CreditCard className="w-4 h-4 mr-2" />
                   )}
-                  {squareCardReady ? 'Subscribe' : 'Loading...'}
+                  {squareOneTimeCardReady ? `Pay $${calculatePrice(selectedRank, selectedDuration).toFixed(2)}` : 'Loading...'}
                 </Button>
               </div>
             </CardContent>

@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { db } from '@/db';
-import { users, donationRanks } from '@/db/schema';
+import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getSquareClient, loadSquareConfig, isSquareConfigured } from '@/lib/square';
 import { getPaymentProvider } from '@/lib/kofi';
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
 
         const userId = parseInt(session.user.id as string);
         const body = await request.json();
-        const { rankId, amount, days, cardNonce } = body;
+        const { orderId, cardNonce } = body;
 
-        // Validate input
-        if (!rankId || !amount || !days || !cardNonce) {
+        // Validate input - orderId is now required
+        if (!orderId || !cardNonce) {
             return NextResponse.json(
-                { error: 'Missing required fields: rankId, amount, days, cardNonce' },
+                { error: 'Missing required fields: orderId, cardNonce' },
                 { status: 400 }
             );
         }
@@ -67,36 +67,56 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get rank details
-        const [rank] = await db
-            .select()
-            .from(donationRanks)
-            .where(eq(donationRanks.id, rankId))
-            .limit(1);
+        const client = await getSquareClient();
+        const config = await loadSquareConfig();
 
-        if (!rank) {
+        // Retrieve the order to get metadata (amount, rankId, days)
+        const orderResponse = await client.ordersApi.retrieveOrder(orderId);
+        const order = orderResponse.result.order;
+
+        if (!order) {
             return NextResponse.json(
-                { error: 'Rank not found' },
+                { error: 'Order not found' },
                 { status: 404 }
             );
         }
 
-        const client = await getSquareClient();
-        const config = await loadSquareConfig();
-        const amountInCents = Math.round(parseFloat(amount) * 100);
+        // Verify the order belongs to this user
+        if (order.metadata?.userId !== userId.toString()) {
+            return NextResponse.json(
+                { error: 'Order does not belong to this user' },
+                { status: 403 }
+            );
+        }
 
-        // Create payment
+        // Get order details from metadata
+        const rankId = order.metadata?.rankId;
+        const days = parseInt(order.metadata?.days || '30');
+        const rankName = order.metadata?.rankName || 'Rank';
+
+        // Get amount from order total
+        const amountInCents = Number(order.totalMoney?.amount || 0);
+
+        if (amountInCents <= 0) {
+            return NextResponse.json(
+                { error: 'Invalid order amount' },
+                { status: 400 }
+            );
+        }
+
+        // Create payment attached to the order
         const paymentResponse = await client.paymentsApi.createPayment({
             sourceId: cardNonce,
-            idempotencyKey: `vonix-payment-${userId}-${Date.now()}`,
+            idempotencyKey: `vonix-payment-${orderId}-${Date.now()}`,
             amountMoney: {
                 amount: BigInt(amountInCents),
                 currency: 'USD',
             },
+            orderId, // Attach payment to the order
             locationId: config.locationId,
-            note: `${rank.name} Rank - ${days} days`,
+            note: `${rankName} - ${days} days`,
             buyerEmailAddress: user.email || undefined,
-            referenceId: rankId,
+            referenceId: rankId || undefined,
         });
 
         if (!paymentResponse.result.payment?.id) {
@@ -104,13 +124,14 @@ export async function POST(request: NextRequest) {
         }
 
         const paymentId = paymentResponse.result.payment.id;
-        console.log(`✅ Square payment successful: ${paymentId} for user ${userId}`);
+        console.log(`✅ Square payment successful: ${paymentId} for order ${orderId}, user ${userId}`);
 
-        // The webhook will handle rank assignment
-        // For now, just return success
+        // The webhook will handle rank assignment when payment.updated event is received
+        // Return success - client will redirect to success page
         return NextResponse.json({
             success: true,
             paymentId,
+            orderId,
         });
     } catch (error) {
         console.error('Error processing Square payment:', {
@@ -127,3 +148,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+

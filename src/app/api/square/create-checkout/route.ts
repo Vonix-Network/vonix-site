@@ -9,7 +9,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users, donationRanks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { createCheckoutLink, isSquareConfigured } from '@/lib/square';
+import { isSquareConfigured } from '@/lib/square';
 import { getPaymentProvider } from '@/lib/kofi';
 
 export async function POST(request: NextRequest) {
@@ -85,31 +85,59 @@ export async function POST(request: NextRequest) {
         // Subscriptions would require Square Subscriptions API which is more complex
         if (paymentType === 'subscription') {
             return NextResponse.json(
-                { error: 'Square does not support subscriptions. Please use one-time payment or switch to Stripe for subscriptions.' },
+                { error: 'Square subscriptions require card entry. Use the subscription modal instead.' },
                 { status: 400 }
             );
         }
 
-        // Create redirect URL
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const redirectUrl = `${appUrl}/donate/success?provider=square`;
+        // Create the order in Square (for one-time payment)
+        const client = (await import('@/lib/square')).getSquareClient;
+        const squareClient = await client();
+        const config = await (await import('@/lib/square')).loadSquareConfig();
 
-        // Create Square checkout link
-        const { checkoutUrl, orderId } = await createCheckoutLink({
-            userId,
-            rankId,
-            rankName: rank.name,
-            amount: parseFloat(amount),
-            days: parseInt(days),
-            customerEmail: user.email || undefined,
-            redirectUrl,
+        const amountInCents = Math.round(parseFloat(amount) * 100);
+
+        const orderResponse = await squareClient.ordersApi.createOrder({
+            order: {
+                locationId: config.locationId,
+                lineItems: [
+                    {
+                        name: `${rank.name} Rank`,
+                        quantity: '1',
+                        basePriceMoney: {
+                            amount: BigInt(amountInCents),
+                            currency: 'USD',
+                        },
+                        note: `${days} days of ${rank.name} rank benefits`,
+                    },
+                ],
+                metadata: {
+                    userId: userId.toString(),
+                    rankId,
+                    rankName: rank.name,
+                    days: days.toString(),
+                    type: 'one_time',
+                },
+            },
+            idempotencyKey: `vonix-order-${userId}-${Date.now()}`,
         });
 
-        console.log(`Created Square checkout for user ${userId}, rank ${rankId}, order ${orderId}`);
+        if (!orderResponse.result.order?.id) {
+            throw new Error('Failed to create Square order');
+        }
 
+        const orderId = orderResponse.result.order.id;
+
+        console.log(`Created Square order ${orderId} for user ${userId}, rank ${rankId}`);
+
+        // Return order details for client-side payment form
+        // Client will show Square Web Payments SDK card form and call /api/square/pay
         return NextResponse.json({
-            url: checkoutUrl,
             orderId,
+            amount: parseFloat(amount),
+            rankName: rank.name,
+            days: parseInt(days),
+            // No URL - client handles payment modal
         });
     } catch (error) {
         console.error('Error creating Square checkout:', {
