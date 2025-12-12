@@ -1152,7 +1152,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               {/* Square Web Payments SDK Card Container */}
               <div
                 id="square-card-container"
-                className="min-h-[100px] border border-border rounded-lg bg-background/50"
+                className="min-h-[100px] border border-border rounded-lg bg-background/50 p-2"
               >
                 {!squareCardReady && (
                   <div className="flex items-center justify-center h-[100px]">
@@ -1160,6 +1160,38 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                     <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
                   </div>
                 )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowSquareCardModal(false);
+                    setError(null);
+                    setLoadingRankId(null);
+                    setLoadingType(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="gradient"
+                  className="flex-1"
+                  disabled={squareCardLoading || !squareCardReady}
+                  onClick={handleSquareSubscribe}
+                >
+                  {squareCardLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Subscribe ${selectedRank.minAmount}/month
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1201,7 +1233,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               {/* Square Web Payments SDK Card Container */}
               <div
                 id="square-onetime-card-container"
-                className="min-h-[100px] border border-border rounded-lg bg-background/50"
+                className="min-h-[100px] border border-border rounded-lg bg-background/50 p-2"
               >
                 {!squareOneTimeCardReady && (
                   <div className="flex items-center justify-center h-[100px]">
