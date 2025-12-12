@@ -6,6 +6,10 @@ import { and, or, eq } from 'drizzle-orm';
 import { notifyFriendRequest, notifyFriendAccepted } from '@/lib/notifications';
 import { isUserOnline } from '@/lib/presence';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const session = await auth();

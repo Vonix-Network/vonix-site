@@ -4,6 +4,10 @@ import { db } from '@/db';
 import { socialPosts, users } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

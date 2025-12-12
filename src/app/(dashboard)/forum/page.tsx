@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { db } from '@/db';
 import { forumCategories, forumPosts, users, donationRanks } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
+
+// Force dynamic rendering - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import {
   MessageSquare, Plus, Eye, MessageCircle,
   Pin, Lock, ChevronRight, Folder

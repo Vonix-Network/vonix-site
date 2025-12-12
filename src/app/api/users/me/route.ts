@@ -4,6 +4,10 @@ import { db } from '@/db';
 import { users, serverXp, friendships, forumPosts } from '@/db/schema';
 import { eq, or, and, count } from 'drizzle-orm';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/users/me
  * Returns the current authenticated user's data with fresh XP values

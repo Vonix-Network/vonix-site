@@ -3,6 +3,10 @@ import { db } from '@/db';
 import { donationRanks } from '@/db/schema';
 import { asc } from 'drizzle-orm';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/donation-ranks
  * Public endpoint to get all donation ranks

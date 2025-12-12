@@ -6,6 +6,10 @@ import { eq } from 'drizzle-orm';
 import { getSubscription, isStripeConfiguredSync } from '@/lib/stripe';
 import { getSquareSubscription } from '@/lib/square';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/user/subscription
  * Returns the current user's subscription status and rank information

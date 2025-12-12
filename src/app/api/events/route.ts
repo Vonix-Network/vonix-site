@@ -4,6 +4,10 @@ import { db } from '@/db';
 import { events, users } from '@/db/schema';
 import { eq, desc, gte, sql } from 'drizzle-orm';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET - List events
 export async function GET(request: NextRequest) {
   try {

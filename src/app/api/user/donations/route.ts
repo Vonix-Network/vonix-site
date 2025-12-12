@@ -10,6 +10,10 @@ import { db } from '@/db';
 import { donations } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
+// Force dynamic - always fetch fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
     try {
         const session = await auth();
