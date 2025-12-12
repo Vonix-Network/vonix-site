@@ -906,7 +906,7 @@ export default function AdminSettingsPage() {
                           {typeof window !== 'undefined' ? window.location.origin : ''}/api/square/webhook
                         </code>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Events to subscribe to: payment.completed, subscription.created, subscription.updated, invoice.payment_made
+                          Events to subscribe to: payment.updated, subscription.created, subscription.updated, invoice.payment_made
                         </p>
                       </div>
                       <div className="p-4 mt-4 rounded-lg bg-neon-green/10 border border-neon-green/30">

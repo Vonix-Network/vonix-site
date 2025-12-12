@@ -118,7 +118,10 @@ export async function POST(request: NextRequest) {
 
         // Handle different event types
         switch (event.type) {
-            case 'payment.completed':
+            case 'payment.updated':
+                await handlePaymentUpdated(event);
+                break;
+            case 'payment.completed': // Keep for backward compatibility if older API versions send it
                 await handlePaymentCompleted(event);
                 break;
             case 'subscription.created':
@@ -145,14 +148,21 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Handle payment.completed event
+ * Handle payment.updated event
  */
-async function handlePaymentCompleted(event: SquareWebhookEvent) {
+async function handlePaymentUpdated(event: SquareWebhookEvent) {
     const payment = event.data.object.payment;
     if (!payment) {
         console.error('No payment object in Square webhook');
         return;
     }
+
+    // Only process completed payments
+    if (payment.status !== 'COMPLETED') {
+        console.log(`Payment update received but status is ${payment.status}, skipping`);
+        return;
+    }
+
 
     // Check for duplicate webhook (idempotency)
     const [existingDonation] = await db
@@ -476,6 +486,17 @@ async function handleInvoicePaymentMade(event: SquareWebhookEvent) {
     // Send admin notification
     sendAdminDonationAlert(username, amount, user.donationRankId || undefined)
         .catch(err => console.error('Failed to send admin donation alert:', err));
+}
+
+/**
+ * Handle payment.completed event (backward compatibility)
+ */
+async function handlePaymentCompleted(event: SquareWebhookEvent) {
+    // Treat as updated, the logic inside checks status anyway (though completed event implies completion)
+    // We can just call handlePaymentUpdated directly or duplicate logic. 
+    // Since payment.completed implies status=COMPLETED, we can just call the new handler.
+    // However, we need to ensure the event structure is compatible. It is.
+    await handlePaymentUpdated(event);
 }
 
 /**
