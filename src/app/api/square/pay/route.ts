@@ -125,14 +125,63 @@ export async function POST(request: NextRequest) {
         }
 
         const paymentId = paymentResponse.result.payment.id;
+        const amountInDollars = amountInCents / 100;
         console.log(`✅ Square payment successful: ${paymentId} for order ${orderId}, user ${userId}`);
 
-        // The webhook will handle rank assignment when payment.updated event is received
-        // Return success - client will redirect to success page
+        // Immediately update user's rank (don't wait for webhook)
+        const now = new Date();
+        let newExpiresAt: Date;
+
+        if (user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
+            // Extend existing rank
+            newExpiresAt = new Date(user.rankExpiresAt);
+            newExpiresAt.setDate(newExpiresAt.getDate() + days);
+        } else {
+            // New rank assignment
+            newExpiresAt = new Date();
+            newExpiresAt.setDate(newExpiresAt.getDate() + days);
+        }
+
+        // Update user with rank and total donated
+        const updateData: Record<string, unknown> = {
+            totalDonated: (user.totalDonated || 0) + amountInDollars,
+            rankExpiresAt: newExpiresAt,
+            updatedAt: new Date(),
+        };
+
+        // Only update rank if it's a real rank (not 'one-time' tip)
+        if (rankId && rankId !== 'one-time') {
+            updateData.donationRankId = rankId;
+        }
+
+        await db
+            .update(users)
+            .set(updateData)
+            .where(eq(users.id, userId));
+
+        // Record donation in database
+        const { donations } = await import('@/db/schema');
+        await db.insert(donations).values({
+            userId,
+            amount: amountInDollars,
+            currency: 'USD',
+            method: 'square',
+            paymentId: `square_${paymentId}`,
+            rankId: rankId && rankId !== 'one-time' ? rankId : null,
+            days,
+            paymentType: 'one_time',
+            status: 'completed',
+            message: `Order: ${orderId}`,
+        });
+
+        console.log(`✅ Square rank updated: user ${userId}, rank ${rankId}, expires ${newExpiresAt.toISOString()}`);
+
         return NextResponse.json({
             success: true,
             paymentId,
             orderId,
+            rankUpdated: true,
+            expiresAt: newExpiresAt.toISOString(),
         });
     } catch (error) {
         console.error('Error processing Square payment:', {
