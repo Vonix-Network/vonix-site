@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // Allow scripts from Stripe and Square CDNs
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://web.squarecdn.com https://sandbox.web.squarecdn.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://web.squarecdn.com https://sandbox.web.squarecdn.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
               // Allow connections to Stripe and Square APIs
