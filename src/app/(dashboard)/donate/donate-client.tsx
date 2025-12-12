@@ -227,17 +227,14 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         const card = await payments.card({
           style: {
             '.input-container': {
-              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
               borderRadius: '6px',
             },
             input: {
               color: '#ffffff',
               backgroundColor: 'transparent',
             },
-            '.message-text': {
-              color: '#ffffff',
-            },
-            '.placeholder': {
+            'input::placeholder': {
               color: '#a1a1aa',
             },
           },
@@ -360,17 +357,14 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         const card = await payments.card({
           style: {
             '.input-container': {
-              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
               borderRadius: '6px',
             },
             input: {
               color: '#ffffff',
               backgroundColor: 'transparent',
             },
-            '.message-text': {
-              color: '#ffffff',
-            },
-            '.placeholder': {
+            'input::placeholder': {
               color: '#a1a1aa',
             },
           },
