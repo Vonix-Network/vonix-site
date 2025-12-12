@@ -4,7 +4,6 @@ import { db } from '@/db';
 import { siteSettings } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 
-// All Discord-related setting keys
 const ALL_DISCORD_SETTINGS = [
     'discord_chat_enabled',
     'discord_chat_channel_name',
@@ -14,6 +13,9 @@ const ALL_DISCORD_SETTINGS = [
     // Second channel for Minecraft server embeds (Viscord)
     'discord_viscord_channel_id',
     'discord_viscord_channel_name',
+    // Donation events webhook
+    'discord_donation_webhook_url',
+    'discord_donation_webhook_avatar_url',
 ];
 
 // Public settings that can be returned to any user
@@ -57,6 +59,9 @@ export async function GET(request: NextRequest) {
                 // Viscord (Minecraft server embeds) channel
                 viscordChannelId: settingsMap['discord_viscord_channel_id'] || '',
                 viscordChannelName: settingsMap['discord_viscord_channel_name'] || '',
+                // Donation webhook
+                donationWebhookUrl: settingsMap['discord_donation_webhook_url'] || '',
+                donationWebhookAvatarUrl: settingsMap['discord_donation_webhook_avatar_url'] || '',
             });
         }
 
@@ -140,6 +145,23 @@ export async function PATCH(request: NextRequest) {
                 key: 'discord_viscord_channel_name',
                 value: body.viscordChannelName,
                 description: 'Discord channel name for Minecraft server embeds display',
+            });
+        }
+
+        // Donation webhook settings
+        if (typeof body.donationWebhookUrl === 'string') {
+            updates.push({
+                key: 'discord_donation_webhook_url',
+                value: body.donationWebhookUrl,
+                description: 'Discord webhook URL for donation announcements',
+            });
+        }
+
+        if (typeof body.donationWebhookAvatarUrl === 'string') {
+            updates.push({
+                key: 'discord_donation_webhook_avatar_url',
+                value: body.donationWebhookAvatarUrl,
+                description: 'Custom avatar URL for donation webhook',
             });
         }
 

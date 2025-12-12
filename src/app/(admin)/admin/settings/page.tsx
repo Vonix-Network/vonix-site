@@ -151,6 +151,9 @@ export default function AdminSettingsPage() {
     // Viscord (Minecraft server embeds) channel
     viscordChannelId: '',
     viscordChannelName: '',
+    // Donation events webhook (optional)
+    donationWebhookUrl: '',
+    donationWebhookAvatarUrl: '',
   });
   const [discordLoading, setDiscordLoading] = useState(true);
   const [discordSaving, setDiscordSaving] = useState(false);
@@ -181,6 +184,8 @@ export default function AdminSettingsPage() {
             channelName: discordData.channelName || '',
             viscordChannelId: discordData.viscordChannelId || '',
             viscordChannelName: discordData.viscordChannelName || '',
+            donationWebhookUrl: discordData.donationWebhookUrl || '',
+            donationWebhookAvatarUrl: discordData.donationWebhookAvatarUrl || '',
           });
         }
       } catch (err) {
@@ -1526,6 +1531,53 @@ export default function AdminSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Shown in the chat widget (e.g., &quot;#server-activity&quot;)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-neon-green" />
+                    Donation Events Webhook (Optional)
+                  </CardTitle>
+                  <CardDescription>
+                    Send detailed donation announcements to a Discord channel
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
+                    <p className="text-sm text-neon-green font-medium">
+                      💰 Optional: Announce donations to Discord
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When configured, successful donations will send a rich embed to this webhook with the donor&apos;s Minecraft avatar and donation details.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Donation Webhook URL</label>
+                    <Input
+                      type="password"
+                      value={discordSettings.donationWebhookUrl}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, donationWebhookUrl: e.target.value })}
+                      placeholder="https://discord.com/api/webhooks/..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Create a webhook in your donation announcements channel: Server Settings → Integrations → Webhooks
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Webhook Avatar URL (Optional)</label>
+                    <Input
+                      value={discordSettings.donationWebhookAvatarUrl}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, donationWebhookAvatarUrl: e.target.value })}
+                      placeholder="https://example.com/bot-avatar.png"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Custom avatar for the webhook bot. Leave empty to use the default webhook avatar.
                     </p>
                   </div>
                 </CardContent>

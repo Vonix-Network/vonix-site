@@ -176,6 +176,40 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ Square rank updated: user ${userId}, rank ${rankId}, expires ${newExpiresAt.toISOString()}`);
 
+        // Send Discord donation notification (non-blocking)
+        try {
+            const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+            sendDonationDiscordNotification({
+                username: user.username,
+                minecraftUsername: user.minecraftUsername,
+                amount: amountInDollars,
+                currency: 'USD',
+                rankName: rankName,
+                days,
+                paymentType: 'one_time',
+            }).catch(err => console.error('Discord notification error:', err));
+        } catch (e) {
+            console.error('Failed to load Discord notification module:', e);
+        }
+
+        // Send email receipt (non-blocking)
+        try {
+            if (user.email) {
+                const { sendDonationReceiptEmail } = await import('@/lib/email');
+                sendDonationReceiptEmail({
+                    to: user.email,
+                    username: user.username,
+                    amount: amountInDollars,
+                    rankName: rankName,
+                    days,
+                    paymentId,
+                    orderId,
+                }).catch(err => console.error('Email receipt error:', err));
+            }
+        } catch (e) {
+            console.error('Failed to load email module:', e);
+        }
+
         return NextResponse.json({
             success: true,
             paymentId,

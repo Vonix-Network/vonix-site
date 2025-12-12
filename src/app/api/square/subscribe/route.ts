@@ -164,6 +164,39 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ Square subscription ${subscriptionId} created for user ${userId}, rank ${rank.name}`);
 
+        // Send Discord donation notification (non-blocking)
+        try {
+            const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+            sendDonationDiscordNotification({
+                username: user.username,
+                minecraftUsername: user.minecraftUsername,
+                amount: rank.minAmount,
+                currency: 'USD',
+                rankName: rank.name,
+                days: 30,
+                paymentType: 'subscription',
+            }).catch((err: Error) => console.error('Discord notification error:', err));
+        } catch (e) {
+            console.error('Failed to load Discord notification module:', e);
+        }
+
+        // Send email receipt (non-blocking)
+        try {
+            if (user.email) {
+                const { sendDonationReceiptEmail } = await import('@/lib/email');
+                sendDonationReceiptEmail({
+                    to: user.email,
+                    username: user.username,
+                    amount: rank.minAmount,
+                    rankName: rank.name,
+                    days: 30,
+                    paymentId: subscriptionId,
+                }).catch((err: Error) => console.error('Email receipt error:', err));
+            }
+        } catch (e) {
+            console.error('Failed to load email module:', e);
+        }
+
         return NextResponse.json({
             success: true,
             subscriptionId,
