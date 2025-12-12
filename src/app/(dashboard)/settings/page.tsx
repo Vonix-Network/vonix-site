@@ -33,9 +33,11 @@ interface SubscriptionData {
   expiresAt: string | null;
   isExpired: boolean;
   hasSubscription: boolean;
+  subscriptionProvider: 'stripe' | 'square' | null;
   subscriptionStatus: string | null;
   totalDonated: number;
   stripeStatus: string | null;
+  squareStatus: string | null;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
 }
@@ -43,7 +45,7 @@ interface SubscriptionData {
 export default function SettingsPage() {
   const { data: session, update } = useSession();
   const user = session?.user as any;
-  
+
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -110,19 +112,44 @@ export default function SettingsPage() {
   };
 
   const handleManageSubscription = async () => {
+    if (!subscription?.subscriptionProvider) return;
+
     setManagingSubscription(true);
     try {
-      const res = await fetch('/api/stripe/portal', {
-        method: 'POST',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        window.location.href = data.url;
-      } else {
-        console.error('Failed to create portal session');
+      if (subscription.subscriptionProvider === 'stripe') {
+        // Redirect to Stripe portal
+        const res = await fetch('/api/stripe/portal', {
+          method: 'POST',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          window.location.href = data.url;
+        } else {
+          console.error('Failed to create portal session');
+        }
+      } else if (subscription.subscriptionProvider === 'square') {
+        // Cancel Square subscription directly
+        if (!confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period.')) {
+          setManagingSubscription(false);
+          return;
+        }
+
+        const res = await fetch('/api/square/cancel-subscription', {
+          method: 'POST',
+        });
+
+        if (res.ok) {
+          alert('Subscription canceled successfully.');
+          // Refresh subscription data
+          await fetchSubscription();
+        } else {
+          const data = await res.json();
+          alert(`Failed to cancel subscription: ${data.error || 'Unknown error'}`);
+        }
       }
     } catch (err) {
-      console.error('Error opening portal:', err);
+      console.error('Error managing subscription:', err);
+      alert('An error occurred. Please try again.');
     } finally {
       setManagingSubscription(false);
     }
@@ -239,11 +266,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
-                        : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
+                      ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
+                      : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <tab.icon className="w-5 h-5" />
                     {tab.label}
@@ -269,12 +295,12 @@ export default function SettingsPage() {
                 {/* Avatar Section */}
                 <div className="flex items-center gap-6">
                   <Avatar className="w-20 h-20" glow>
-                    <AvatarImage 
+                    <AvatarImage
                       src={getUserAvatarUrl(
                         user?.minecraftUsername || user?.username || '',
                         profile.avatar || (user as any)?.avatar
-                      )} 
-                      alt={user?.username} 
+                      )}
+                      alt={user?.username}
                     />
                     <AvatarFallback className="text-xl">
                       {getInitials(user?.username || 'U')}
@@ -472,7 +498,9 @@ export default function SettingsPage() {
                           </Button>
 
                           <p className="text-xs text-muted-foreground">
-                            You can cancel auto-renewal, update payment method, or view billing history through the Stripe portal.
+                            {subscription.subscriptionProvider === 'stripe'
+                              ? 'You can cancel auto-renewal, update payment method, or view billing history through the Stripe portal.'
+                              : 'Click to cancel your Square subscription. You will retain access until the end of your billing period.'}
                           </p>
                         </div>
                       ) : (
@@ -532,7 +560,7 @@ export default function SettingsPage() {
                     <Key className="w-4 h-4" />
                     Change Password
                   </h3>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Current Password</label>
                     <div className="relative">
@@ -606,28 +634,26 @@ export default function SettingsPage() {
                   friendRequests: 'Friend Requests',
                   serverUpdates: 'Server Updates',
                 }).map(([key, label]) => (
-                  <div 
+                  <div
                     key={key}
                     className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
                   >
                     <span className="font-medium">{label}</span>
                     <button
-                      onClick={() => setNotifications({ 
-                        ...notifications, 
-                        [key]: !notifications[key as keyof typeof notifications] 
+                      onClick={() => setNotifications({
+                        ...notifications,
+                        [key]: !notifications[key as keyof typeof notifications]
                       })}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${
-                        notifications[key as keyof typeof notifications]
-                          ? 'bg-neon-cyan'
-                          : 'bg-secondary'
-                      }`}
-                    >
-                      <span 
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                          notifications[key as keyof typeof notifications]
-                            ? 'translate-x-7'
-                            : 'translate-x-1'
+                      className={`w-12 h-6 rounded-full transition-colors relative ${notifications[key as keyof typeof notifications]
+                        ? 'bg-neon-cyan'
+                        : 'bg-secondary'
                         }`}
+                    >
+                      <span
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${notifications[key as keyof typeof notifications]
+                          ? 'translate-x-7'
+                          : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -652,17 +678,15 @@ export default function SettingsPage() {
                     {['dark', 'light', 'system'].map((theme) => (
                       <button
                         key={theme}
-                        className={`p-4 rounded-lg border-2 transition-colors ${
-                          theme === 'dark'
-                            ? 'border-neon-cyan bg-neon-cyan/10'
-                            : 'border-border hover:border-neon-cyan/50'
-                        }`}
+                        className={`p-4 rounded-lg border-2 transition-colors ${theme === 'dark'
+                          ? 'border-neon-cyan bg-neon-cyan/10'
+                          : 'border-border hover:border-neon-cyan/50'
+                          }`}
                       >
-                        <div className={`w-full h-12 rounded mb-2 ${
-                          theme === 'dark' ? 'bg-gray-900' : 
-                          theme === 'light' ? 'bg-gray-100' : 
-                          'bg-gradient-to-r from-gray-900 to-gray-100'
-                        }`} />
+                        <div className={`w-full h-12 rounded mb-2 ${theme === 'dark' ? 'bg-gray-900' :
+                          theme === 'light' ? 'bg-gray-100' :
+                            'bg-gradient-to-r from-gray-900 to-gray-100'
+                          }`} />
                         <span className="text-sm capitalize">{theme}</span>
                       </button>
                     ))}
@@ -674,8 +698,8 @@ export default function SettingsPage() {
 
           {/* Save Button */}
           <div className="mt-6 flex justify-end">
-            <Button 
-              variant="gradient" 
+            <Button
+              variant="gradient"
               onClick={handleSave}
               disabled={isSaving}
             >

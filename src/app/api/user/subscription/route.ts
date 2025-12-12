@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { users, donationRanks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getSubscription, isStripeConfiguredSync } from '@/lib/stripe';
+import { getSquareSubscription } from '@/lib/square';
 
 /**
  * GET /api/user/subscription
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
         donationRankId: users.donationRankId,
         rankExpiresAt: users.rankExpiresAt,
         stripeSubscriptionId: users.stripeSubscriptionId,
+        squareSubscriptionId: users.squareSubscriptionId,
         subscriptionStatus: users.subscriptionStatus,
         totalDonated: users.totalDonated,
       })
@@ -55,13 +57,32 @@ export async function GET(request: NextRequest) {
       rank = foundRank;
     }
 
-    // Get subscription status from Stripe if available
+    // Determine subscription provider and get details
+    let subscriptionProvider: 'stripe' | 'square' | null = null;
     let stripeSubscription = null;
+    let squareSubscription = null;
+    let cancelAtPeriodEnd = false;
+    let currentPeriodEnd = null;
+
     if (user.stripeSubscriptionId && isStripeConfiguredSync()) {
+      subscriptionProvider = 'stripe';
       try {
         stripeSubscription = await getSubscription(user.stripeSubscriptionId);
+        cancelAtPeriodEnd = stripeSubscription?.cancel_at_period_end || false;
+        currentPeriodEnd = stripeSubscription
+          ? new Date((stripeSubscription as any).current_period_end * 1000).toISOString()
+          : null;
       } catch (err) {
         console.error('Error fetching Stripe subscription:', err);
+      }
+    } else if (user.squareSubscriptionId) {
+      subscriptionProvider = 'square';
+      try {
+        squareSubscription = await getSquareSubscription(user.squareSubscriptionId);
+        // Square doesn't have cancel_at_period_end, just status
+        cancelAtPeriodEnd = squareSubscription?.status === 'CANCELED';
+      } catch (err) {
+        console.error('Error fetching Square subscription:', err);
       }
     }
 
@@ -70,14 +91,14 @@ export async function GET(request: NextRequest) {
       rank: rank ? { id: rank.id, name: rank.name, color: rank.color } : null,
       expiresAt: user.rankExpiresAt?.toISOString() || null,
       isExpired: user.rankExpiresAt ? new Date(user.rankExpiresAt) < new Date() : true,
-      hasSubscription: !!user.stripeSubscriptionId,
+      hasSubscription: !!(user.stripeSubscriptionId || user.squareSubscriptionId),
+      subscriptionProvider,
       subscriptionStatus: user.subscriptionStatus,
       totalDonated: user.totalDonated || 0,
       stripeStatus: stripeSubscription?.status || null,
-      cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
-      currentPeriodEnd: stripeSubscription
-        ? new Date((stripeSubscription as any).current_period_end * 1000).toISOString()
-        : null,
+      squareStatus: squareSubscription?.status || null,
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
     });
   } catch (error) {
     console.error('Error fetching subscription:', error);
