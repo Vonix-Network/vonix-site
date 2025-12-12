@@ -224,7 +224,24 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         // Wait for container to be in DOM
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const card = await payments.card();
+        const card = await payments.card({
+          style: {
+            '.input-container': {
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+            },
+            input: {
+              color: '#ffffff',
+              backgroundColor: 'transparent',
+            },
+            '.message-text': {
+              color: '#ffffff',
+            },
+            '.placeholder': {
+              color: '#a1a1aa',
+            },
+          },
+        });
         await card.attach('#square-card-container');
         squareCardRef.current = card;
         setSquareCardReady(true);
@@ -340,7 +357,24 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         // Wait for container to be in DOM
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const card = await payments.card();
+        const card = await payments.card({
+          style: {
+            '.input-container': {
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+            },
+            input: {
+              color: '#ffffff',
+              backgroundColor: 'transparent',
+            },
+            '.message-text': {
+              color: '#ffffff',
+            },
+            '.placeholder': {
+              color: '#a1a1aa',
+            },
+          },
+        });
         await card.attach('#square-onetime-card-container');
         squareOneTimeCardRef.current = card;
         setSquareOneTimeCardReady(true);
@@ -1152,10 +1186,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               {/* Square Web Payments SDK Card Container */}
               <div
                 id="square-card-container"
-                className="min-h-[100px] border border-border rounded-lg bg-background/50 p-2"
+                className="min-h-[100px]"
               >
                 {!squareCardReady && (
-                  <div className="flex items-center justify-center h-[100px]">
+                  <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
                   </div>
@@ -1233,10 +1267,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               {/* Square Web Payments SDK Card Container */}
               <div
                 id="square-onetime-card-container"
-                className="min-h-[100px] border border-border rounded-lg bg-background/50 p-2"
+                className="min-h-[100px]"
               >
                 {!squareOneTimeCardReady && (
-                  <div className="flex items-center justify-center h-[100px]">
+                  <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
                   </div>
