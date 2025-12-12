@@ -40,13 +40,15 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+              // Allow scripts from Stripe and Square CDNs
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://web.squarecdn.com https://sandbox.web.squarecdn.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.stripe.com wss: https:",
-              // Allow iframes from self, Stripe, and any https source (for BlueMap, Dynmap, etc)
-              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https:",
+              // Allow connections to Stripe and Square APIs
+              "connect-src 'self' https://api.stripe.com https://pci-connect.squareup.com https://connect.squareup.com https://connect.squareupsandbox.com wss: https:",
+              // Allow iframes from self, Stripe, Square, and any https source (for BlueMap, Dynmap, etc)
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://web.squarecdn.com https://sandbox.web.squarecdn.com https:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
