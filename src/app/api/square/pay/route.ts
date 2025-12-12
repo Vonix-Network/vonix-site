@@ -11,6 +11,7 @@ import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getSquareClient, loadSquareConfig, isSquareConfigured } from '@/lib/square';
 import { getPaymentProvider } from '@/lib/kofi';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
     try {
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
         // Create payment attached to the order
         const paymentResponse = await client.paymentsApi.createPayment({
             sourceId: cardNonce,
-            idempotencyKey: `vonix-payment-${orderId}-${Date.now()}`,
+            idempotencyKey: `pay-${crypto.randomUUID()}`,
             amountMoney: {
                 amount: BigInt(amountInCents),
                 currency: 'USD',

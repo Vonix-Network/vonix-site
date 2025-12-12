@@ -232,10 +232,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             },
             input: {
               color: '#ffffff',
-              backgroundColor: 'transparent',
+              backgroundColor: '#1a1a1a',
             },
             'input::placeholder': {
-              color: '#a1a1aa',
+              color: '#888888',
             },
           },
         });
@@ -362,10 +362,10 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             },
             input: {
               color: '#ffffff',
-              backgroundColor: 'transparent',
+              backgroundColor: '#1a1a1a',
             },
             'input::placeholder': {
-              color: '#a1a1aa',
+              color: '#888888',
             },
           },
         });

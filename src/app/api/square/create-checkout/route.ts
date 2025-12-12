@@ -11,6 +11,7 @@ import { users, donationRanks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { isSquareConfigured } from '@/lib/square';
 import { getPaymentProvider } from '@/lib/kofi';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
     try {
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
                     type: 'one_time',
                 },
             },
-            idempotencyKey: `vonix-order-${userId}-${Date.now()}`,
+            idempotencyKey: `ord-${crypto.randomUUID()}`,
         });
 
         if (!orderResponse.result.order?.id) {

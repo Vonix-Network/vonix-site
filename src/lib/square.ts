@@ -130,6 +130,17 @@ export function getSquareClientSync(): Client {
 }
 
 /**
+ * Generate a short idempotency key that fits Square's 45-char limit
+ * Format: prefix-uuid (e.g., "ord-a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+ */
+function generateIdempotencyKey(prefix: string): string {
+    const uuid = crypto.randomUUID();
+    // Keep prefix short (max 4 chars) + hyphen + 36 char UUID = 41 chars max
+    const shortPrefix = prefix.substring(0, 4);
+    return `${shortPrefix}-${uuid}`;
+}
+
+/**
  * Check if Square is properly configured
  */
 export async function isSquareConfigured(): Promise<boolean> {
@@ -282,7 +293,7 @@ export async function createCheckoutLink({
                 type: 'one_time',
             },
         },
-        idempotencyKey: `vonix-order-${userId}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('ord'),
     });
 
     if (!orderResponse.result.order?.id) {
@@ -337,7 +348,7 @@ export async function getOrCreateSquareCustomer(
 
     // Create new Square customer
     const response = await client.customersApi.createCustomer({
-        idempotencyKey: `vonix-customer-${userId}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('cust'),
         emailAddress: email,
         referenceId: userId.toString(),
         givenName: displayName || user?.username || undefined,
@@ -367,7 +378,7 @@ export async function saveCardOnFile(
     const client = await getSquareClient();
 
     const response = await client.cardsApi.createCard({
-        idempotencyKey: `vonix-card-${customerId}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('card'),
         sourceId,
         card: {
             customerId,
@@ -409,7 +420,7 @@ export async function getOrCreateSubscriptionPlan(rank: {
 
     // Create new subscription plan in Square Catalog
     const response = await client.catalogApi.upsertCatalogObject({
-        idempotencyKey: `vonix-plan-${rank.id}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('plan'),
         object: {
             type: 'SUBSCRIPTION_PLAN',
             id: `#vonix-plan-${rank.id}`,
@@ -468,7 +479,7 @@ export async function getOrCreateSubscriptionPlanVariation(
 
     // Create subscription plan variation with monthly billing
     const response = await client.catalogApi.upsertCatalogObject({
-        idempotencyKey: `vonix-variation-${rank.id}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('var'),
         object: {
             type: 'SUBSCRIPTION_PLAN_VARIATION',
             id: `#vonix-variation-${rank.id}`,
@@ -556,7 +567,7 @@ export async function createSquareSubscription({
     const config = await loadSquareConfig();
 
     const response = await client.subscriptionsApi.createSubscription({
-        idempotencyKey: `vonix-sub-${userId}-${rankId}-${Date.now()}`,
+        idempotencyKey: generateIdempotencyKey('sub'),
         locationId: config.locationId,
         customerId,
         planVariationId,
