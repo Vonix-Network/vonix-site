@@ -76,20 +76,19 @@ export function Navbar() {
 
         {/* Right side - Menu + Auth */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Menu Launcher Button */}
-          <button
-            onClick={() => setLauncherOpen(true)}
-            className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
-            title="Menu"
-          >
-            <Grid3X3 className="w-5 h-5" />
-          </button>
-
           {status === 'loading' ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : session?.user ? (
             <>
               <NotificationBell />
+              {/* Menu Launcher Button */}
+              <button
+                onClick={() => setLauncherOpen(true)}
+                className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
+                title="Menu"
+              >
+                <Grid3X3 className="w-5 h-5" />
+              </button>
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -170,6 +169,14 @@ export function Navbar() {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              {/* Menu Launcher Button for non-logged-in users */}
+              <button
+                onClick={() => setLauncherOpen(true)}
+                className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
+                title="Menu"
+              >
+                <Grid3X3 className="w-5 h-5" />
+              </button>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/login">
                   <LogIn className="w-4 h-4 mr-2" />
