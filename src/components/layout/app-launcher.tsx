@@ -180,14 +180,14 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
                         />
                     </div>
 
-                    {/* Category tabs - centered */}
-                    <div className="flex justify-center gap-2 mt-6 overflow-x-auto pb-2 scrollbar-hide">
+                    {/* Category tabs - scrollable on mobile, centered on desktop */}
+                    <div className="flex flex-wrap justify-center gap-2 mt-6 px-4 sm:px-0">
                         {availableCategories.map((cat) => (
                             <button
                                 key={cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
                                 className={cn(
-                                    'px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all',
+                                    'px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex-shrink-0',
                                     activeCategory === cat.id
                                         ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
                                         : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent'

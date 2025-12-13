@@ -77,10 +77,10 @@ export function Navbar() {
         {/* Menu Launcher Button */}
         <button
           onClick={() => setLauncherOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-white/5 border border-white/10 hover:border-white/20"
+          className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
+          title="Menu"
         >
-          <Grid3X3 className="w-4 h-4" />
-          <span className="hidden sm:inline">Menu</span>
+          <Grid3X3 className="w-5 h-5" />
         </button>
 
         {/* Right side - Auth */}
