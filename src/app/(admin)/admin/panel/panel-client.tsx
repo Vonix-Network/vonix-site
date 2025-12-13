@@ -271,7 +271,9 @@ export default function ServerPanelPage() {
     }, []);
 
     const scrollToBottom = useCallback(() => {
-        consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (consoleContainerRef.current) {
+            consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
+        }
         setHasNewLogs(false);
         setIsAtBottom(true);
         isAtBottomRef.current = true;
@@ -280,7 +282,7 @@ export default function ServerPanelPage() {
     // Auto-scroll when new logs arrive (only if user is at bottom)
     useEffect(() => {
         if (isAtBottom && consoleContainerRef.current) {
-            consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
         }
     }, [consoleLines, isAtBottom]);
 
