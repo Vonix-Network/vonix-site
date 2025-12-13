@@ -2,15 +2,15 @@
  * Ko-Fi Webhook Handler
  * 
  * Receives donation notifications from Ko-Fi and processes them
- * similar to how Stripe donations are handled.
+ * using the unified donation processing system.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users, donations, donationRanks } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { sendAdminDonationAlert } from '@/lib/email';
+import { eq } from 'drizzle-orm';
 import { verifyKofiToken, getPaymentProvider } from '@/lib/kofi';
+import { processDonation, findBestRankForAmount } from '@/lib/donations';
 
 /**
  * Ko-Fi webhook payload structure
@@ -30,12 +30,12 @@ interface KofiWebhookData {
     is_subscription_payment: boolean;
     is_first_subscription_payment: boolean;
     kofi_transaction_id: string;
+    tier_name: string | null;
     shop_items: Array<{
         direct_link_code: string;
         variation_name: string;
         quantity: number;
     }> | null;
-    tier_name: string | null;
     shipping: {
         full_name: string;
         street_address: string;
@@ -51,31 +51,70 @@ interface KofiWebhookData {
 }
 
 /**
- * Find the best matching rank for a given donation amount
+ * Try to find a user based on Ko-Fi data (message, from_name, email)
  */
-async function findBestRankForAmount(amount: number): Promise<{
-    id: string;
-    name: string;
-    minAmount: number;
-} | null> {
-    // Get all ranks ordered by min amount descending (highest first)
-    const ranks = await db
-        .select({
-            id: donationRanks.id,
-            name: donationRanks.name,
-            minAmount: donationRanks.minAmount,
-        })
-        .from(donationRanks)
-        .orderBy(desc(donationRanks.minAmount));
+async function findUserFromKofiData(data: KofiWebhookData): Promise<{
+    userId?: number;
+    minecraftUsername?: string;
+}> {
+    // Strategy 1: Check if message contains a Minecraft username
+    if (data.message) {
+        const potentialUsername = data.message.trim().split(/\s+/)[0];
+        if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
+            const [user] = await db
+                .select({ id: users.id, minecraftUsername: users.minecraftUsername })
+                .from(users)
+                .where(eq(users.minecraftUsername, potentialUsername))
+                .limit(1);
 
-    // Find the highest rank that the donation amount qualifies for
-    for (const rank of ranks) {
-        if (amount >= rank.minAmount) {
-            return rank;
+            if (user) {
+                return { userId: user.id, minecraftUsername: user.minecraftUsername || undefined };
+            }
+
+            // Try website username
+            const [userByName] = await db
+                .select({ id: users.id, minecraftUsername: users.minecraftUsername })
+                .from(users)
+                .where(eq(users.username, potentialUsername))
+                .limit(1);
+
+            if (userByName) {
+                return { userId: userByName.id, minecraftUsername: userByName.minecraftUsername || undefined };
+            }
         }
     }
 
-    return null;
+    // Strategy 2: Check from_name
+    if (data.from_name) {
+        const potentialUsername = data.from_name.trim().split(/\s+/)[0];
+        if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
+            const [user] = await db
+                .select({ id: users.id, minecraftUsername: users.minecraftUsername })
+                .from(users)
+                .where(eq(users.minecraftUsername, potentialUsername))
+                .limit(1);
+
+            if (user) {
+                return { userId: user.id, minecraftUsername: user.minecraftUsername || undefined };
+            }
+        }
+    }
+
+    // Strategy 3: Check by email
+    if (data.email) {
+        const [user] = await db
+            .select({ id: users.id, minecraftUsername: users.minecraftUsername })
+            .from(users)
+            .where(eq(users.email, data.email))
+            .limit(1);
+
+        if (user) {
+            return { userId: user.id, minecraftUsername: user.minecraftUsername || undefined };
+        }
+    }
+
+    // No user found - treat as guest
+    return {};
 }
 
 /**
@@ -88,10 +127,7 @@ export async function POST(request: NextRequest) {
         const paymentProvider = await getPaymentProvider();
         if (paymentProvider !== 'kofi') {
             console.log('Ko-Fi webhook received but payment provider is not set to Ko-Fi');
-            return NextResponse.json(
-                { error: 'Ko-Fi payments not enabled' },
-                { status: 503 }
-            );
+            return NextResponse.json({ error: 'Ko-Fi payments not enabled' }, { status: 503 });
         }
 
         // Ko-Fi sends data as form-urlencoded
@@ -99,33 +135,21 @@ export async function POST(request: NextRequest) {
         const dataString = formData.get('data') as string;
 
         if (!dataString) {
-            console.error('No data field in Ko-Fi webhook');
-            return NextResponse.json(
-                { error: 'Invalid request: missing data field' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Invalid request: missing data field' }, { status: 400 });
         }
 
         // Parse the JSON data
         let data: KofiWebhookData;
         try {
             data = JSON.parse(dataString);
-        } catch (e) {
-            console.error('Failed to parse Ko-Fi webhook data:', e);
-            return NextResponse.json(
-                { error: 'Invalid JSON in data field' },
-                { status: 400 }
-            );
+        } catch {
+            return NextResponse.json({ error: 'Invalid JSON in data field' }, { status: 400 });
         }
 
         // Verify the token
         const isValid = await verifyKofiToken(data.verification_token);
         if (!isValid) {
-            console.error('Invalid Ko-Fi verification token');
-            return NextResponse.json(
-                { error: 'Invalid verification token' },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: 'Invalid verification token' }, { status: 401 });
         }
 
         console.log('Ko-Fi webhook received:', {
@@ -142,11 +166,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ received: true, processed: false });
         }
 
-        // Check for duplicate webhook (idempotency)
+        // Check for duplicate (idempotency)
+        const transactionId = `kofi_${data.kofi_transaction_id}`;
         const [existingDonation] = await db
-            .select()
+            .select({ id: donations.id })
             .from(donations)
-            .where(eq(donations.paymentId, `kofi_${data.kofi_transaction_id}`))
+            .where(eq(donations.paymentId, transactionId))
             .limit(1);
 
         if (existingDonation) {
@@ -157,248 +182,65 @@ export async function POST(request: NextRequest) {
         // Parse amount
         const amount = parseFloat(data.amount);
         if (isNaN(amount) || amount <= 0) {
-            console.error('Invalid amount in Ko-Fi webhook:', data.amount);
-            return NextResponse.json(
-                { error: 'Invalid amount' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        // Determine Rank
-        let rankId: string | null = null;
-        let rankDays = 30; // Default to 30 days for Ko-Fi donations
-
-        // Priority 1: Use tier_name if present (for Memberships)
+        // Determine rank from tier_name if present (Ko-Fi Memberships)
+        let rankId: string | undefined;
         if (data.tier_name) {
-            rankId = data.tier_name.toLowerCase();
-            // Verify if this rank exists in our DB to be safe, otherwise fallback to amount matching
+            const tierRankId = data.tier_name.toLowerCase();
             const [rankExists] = await db
-                .select()
+                .select({ id: donationRanks.id })
                 .from(donationRanks)
-                .where(eq(donationRanks.id, rankId))
+                .where(eq(donationRanks.id, tierRankId))
                 .limit(1);
 
-            if (!rankExists) {
-                console.warn(`Ko-Fi tier name '${data.tier_name}' does not match any rank ID. Falling back to amount matching.`);
-                rankId = null;
-            } else {
+            if (rankExists) {
+                rankId = tierRankId;
                 console.log(`Matched Ko-Fi tier '${data.tier_name}' to rank '${rankId}'`);
             }
         }
 
-        // Priority 2: Find the best rank based on donation amount if no tier matched
-        if (!rankId) {
-            const matchedRank = await findBestRankForAmount(amount);
-            if (matchedRank) {
-                rankId = matchedRank.id;
-                // Calculate days based on amount vs monthly min amount
-                // If they donated more than the minimum, give proportional time
-                if (matchedRank.minAmount > 0) {
-                    rankDays = Math.floor((amount / matchedRank.minAmount) * 30);
-                    rankDays = Math.max(rankDays, 7); // Minimum 7 days
-                    rankDays = Math.min(rankDays, 365); // Maximum 1 year
-                }
-                console.log(`Matched Ko-Fi donation to rank: ${matchedRank.name} for ${rankDays} days`);
-            }
+        // Find user
+        const userInfo = await findUserFromKofiData(data);
+        const isGuest = !userInfo.userId;
+
+        // Determine payment type
+        let paymentType: 'one_time' | 'subscription' | 'subscription_renewal' = 'one_time';
+        if (data.is_subscription_payment) {
+            paymentType = data.is_first_subscription_payment ? 'subscription' : 'subscription_renewal';
         }
 
-        // Try to find user
-        let userId: number | null = null;
-        let username = data.from_name;
-        let foundUser: typeof users.$inferSelect | undefined;
-
-        // Strategy 1: Check if message contains a valid Minecraft username
-        if (data.message) {
-            // Clean message, look for single word that looks like a username
-            const potentialUsername = data.message.trim().split(/\s+/)[0];
-            // Basic regex for MC username (3-16 chars, letters, numbers, underscores)
-            if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
-                // Try to find user by username or minecraftUsername
-                const [userByMc] = await db
-                    .select()
-                    .from(users)
-                    .where(eq(users.minecraftUsername, potentialUsername))
-                    .limit(1);
-
-                if (userByMc) {
-                    foundUser = userByMc;
-                    console.log(`Found user by Minecraft username in message: ${potentialUsername}`);
-                } else {
-                    // Try regular username check too
-                    const [userByName] = await db
-                        .select()
-                        .from(users)
-                        .where(eq(users.username, potentialUsername))
-                        .limit(1);
-
-                    if (userByName) {
-                        foundUser = userByName;
-                        console.log(`Found user by website username in message: ${potentialUsername}`);
-                    }
-                }
-            }
-        }
-
-        // Strategy 2: Fallback to Display Name (from_name)
-        if (!foundUser && data.from_name) {
-            // Clean display name, similar logic
-            const potentialUsername = data.from_name.trim().split(/\s+/)[0];
-            if (/^[a-zA-Z0-9_]{3,16}$/.test(potentialUsername)) {
-                // Try to find user by username or minecraftUsername
-                const [userByMc] = await db
-                    .select()
-                    .from(users)
-                    .where(eq(users.minecraftUsername, potentialUsername))
-                    .limit(1);
-
-                if (userByMc) {
-                    foundUser = userByMc;
-                    console.log(`Found user by Minecraft username in display name: ${potentialUsername}`);
-                } else {
-                    // Try regular username check too
-                    const [userByName] = await db
-                        .select()
-                        .from(users)
-                        .where(eq(users.username, potentialUsername))
-                        .limit(1);
-
-                    if (userByName) {
-                        foundUser = userByName;
-                        console.log(`Found user by website username in display name: ${potentialUsername}`);
-                    }
-                }
-            }
-        }
-
-        // Strategy 3: Fallback to Email lookup
-        if (!foundUser && data.email) {
-            const [userByEmail] = await db
-                .select()
-                .from(users)
-                .where(eq(users.email, data.email))
-                .limit(1);
-
-            if (userByEmail) {
-                foundUser = userByEmail;
-                console.log(`Found user by email: ${data.email}`);
-            }
-        }
-
-        if (foundUser) {
-            userId = foundUser.id;
-            username = foundUser.minecraftUsername || foundUser.username;
-
-            // Calculate new expiration date
-            const now = new Date();
-            let newExpiresAt: Date;
-
-            if (foundUser.rankExpiresAt && new Date(foundUser.rankExpiresAt) > now) {
-                // Extend existing rank
-                newExpiresAt = new Date(foundUser.rankExpiresAt);
-                newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
-            } else {
-                // New rank assignment
-                newExpiresAt = new Date();
-                newExpiresAt.setDate(newExpiresAt.getDate() + rankDays);
-            }
-
-            // Update user with rank and total donated
-            const updateData: Record<string, any> = {
-                totalDonated: (foundUser.totalDonated || 0) + amount,
-                updatedAt: new Date(),
-            };
-
-            if (rankId) {
-                updateData.donationRankId = rankId;
-                updateData.rankExpiresAt = newExpiresAt;
-            }
-
-            await db
-                .update(users)
-                .set(updateData)
-                .where(eq(users.id, foundUser.id));
-
-            if (rankId) {
-                console.log(`✅ Assigned rank ${rankId} to user ${username} until ${newExpiresAt.toISOString()}`);
-            }
-        }
-
-        // Create donation record
-        const receiptNumber = `VN-KO-${Date.now()}-${data.kofi_transaction_id.slice(-6)}`;
-
-        await db.insert(donations).values({
-            userId,
+        // Process the donation (Ko-Fi uses findBestRankForAmount since rankId may not be set)
+        const result = await processDonation({
+            userId: userInfo.userId,
+            guestName: isGuest ? data.from_name : undefined,
+            minecraftUsername: userInfo.minecraftUsername,
+            email: data.email,
             amount,
             currency: data.currency || 'USD',
             method: 'kofi',
-            message: data.message || `Ko-Fi ${data.type} from ${data.from_name}`,
-            displayed: data.is_public,
-            receiptNumber,
-            paymentId: `kofi_${data.kofi_transaction_id}`,
-            rankId: rankId || undefined,
-            days: rankDays,
-            paymentType: 'one_time', // Ko-Fi payments are treated as one-time in our DB
-            status: 'completed',
-            createdAt: new Date(),
+            paymentType,
+            transactionId,
+            rankId, // If tier_name matched, use it; otherwise processDonation will find by amount
+            message: data.message || undefined,
         });
 
-        console.log(`✅ Ko-Fi donation processed: $${amount} from ${data.from_name}${rankId ? ` → ${rankId} rank for ${rankDays} days` : ''}`);
-
-        // Send Discord notification
-        try {
-            const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
-
-            // Get rank name for display
-            let rankName: string | null = null;
-            if (rankId) {
-                const [rank] = await db
-                    .select({ name: donationRanks.name })
-                    .from(donationRanks)
-                    .where(eq(donationRanks.id, rankId))
-                    .limit(1);
-                rankName = rank?.name || rankId;
-            }
-
-            await sendDonationDiscordNotification({
-                username: username,
-                minecraftUsername: foundUser?.minecraftUsername || undefined,
-                amount,
-                currency: data.currency || 'USD',
-                paymentType: 'one_time',
-                rankName: rankName,
-                days: rankId ? rankDays : null,
-                message: data.message || null,
-            });
-            console.log('✅ Sent Discord donation notification');
-        } catch (discordError) {
-            console.error('Failed to send Discord notification:', discordError);
+        if (result.success) {
+            console.log(`✅ Ko-Fi donation processed: $${amount} from ${data.from_name}`);
+            return NextResponse.json({ received: true, processed: true, donationId: result.donationId });
+        } else {
+            console.error('Failed to process Ko-Fi donation:', result.error);
+            return NextResponse.json({ error: result.error }, { status: 500 });
         }
-
-        // Send admin notification (async, don't wait)
-        sendAdminDonationAlert(username, amount, rankId || undefined)
-            .catch(err => console.error('Failed to send admin donation alert:', err));
-
-        return NextResponse.json({
-            received: true,
-            processed: true,
-            amount,
-            from: data.from_name,
-            rankAssigned: rankId,
-            daysGranted: rankId ? rankDays : 0,
-        });
-
-    } catch (error: any) {
-        console.error('Error processing Ko-Fi webhook:', error);
-        return NextResponse.json(
-            { error: 'Webhook processing failed' },
-            { status: 500 }
-        );
+    } catch (error) {
+        console.error('Ko-Fi webhook error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
 /**
- * GET /api/kofi/webhook
- * Health check endpoint
+ * GET /api/kofi/webhook - Health check
  */
 export async function GET() {
     return NextResponse.json({
@@ -407,4 +249,3 @@ export async function GET() {
         message: 'Ko-Fi webhook endpoint is active',
     });
 }
-

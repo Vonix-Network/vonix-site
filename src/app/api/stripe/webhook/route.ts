@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/db';
-import { users, donationRanks, donations, siteSettings } from '@/db/schema';
+import { users, siteSettings } from '@/db/schema';
 import { eq, like } from 'drizzle-orm';
-import { sendAdminDonationAlert } from '@/lib/email';
+import { processDonation } from '@/lib/donations';
 
 /**
  * Load Stripe config from database, with env vars as fallback
@@ -42,7 +42,7 @@ async function loadStripeConfig() {
 
 /**
  * POST /api/stripe/webhook
- * Handles Stripe webhook events for subscription lifecycle
+ * Handles Stripe webhook events for payments and subscriptions
  */
 export async function POST(request: NextRequest) {
   const config = await loadStripeConfig();
@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
   }
 
   const stripe = new Stripe(config.secretKey);
-
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
 
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutComplete(session, stripe);
+        await handleCheckoutComplete(session);
         break;
       }
 
@@ -117,191 +116,55 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error('Error processing webhook:', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
 
-async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: Stripe) {
+/**
+ * Handle checkout.session.completed - one-time payments via checkout
+ */
+async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   console.log('Checkout session completed:', session.id);
 
-  const userId = session.client_reference_id || session.metadata?.userId;
-
-  // For subscriptions, the invoice.payment_succeeded event will handle rank assignment
+  // For subscriptions, invoice.payment_succeeded handles it
   if (session.mode === 'subscription') {
-    console.log('Subscription checkout completed, waiting for invoice.payment_succeeded event');
+    console.log('Subscription checkout completed, waiting for invoice.payment_succeeded');
     return;
   }
 
-  // Handle one-time payments directly from checkout session
-  // This provides redundancy if payment_intent.succeeded isn't configured
+  // Handle one-time payments
   if (session.mode === 'payment' && session.payment_status === 'paid') {
-    console.log('One-time payment checkout completed, processing...');
-
     const metadata = session.metadata || {};
-    const rankId = metadata.rankId;
-    const days = parseInt(metadata.days || '0');
-    const amount = session.amount_total ? session.amount_total / 100 : 0;
     const paymentIntentId = typeof session.payment_intent === 'string'
       ? session.payment_intent
       : session.payment_intent?.id;
 
-    // Check for guest donation
-    const isGuest = metadata.isGuest === 'true' || userId === '0' || !userId;
-    const guestName = metadata.guestName || 'Anonymous';
-    const guestMinecraftUsername = metadata.guestMinecraftUsername || 'Maid';
+    const isGuest = metadata.isGuest === 'true' || !session.client_reference_id;
 
-    // Check if this payment was already processed (idempotency)
-    if (paymentIntentId) {
-      const existingDonation = await db
-        .select()
-        .from(donations)
-        .where(eq(donations.paymentId, paymentIntentId))
-        .limit(1);
-
-      if (existingDonation.length > 0) {
-        console.log('Payment already processed (from checkout.session.completed):', paymentIntentId);
-        return;
-      }
-    }
-
-    // Handle guest vs registered user
-    let user = null;
-    let donorName = guestName;
-    let donorMinecraftUsername: string | undefined = guestMinecraftUsername;
-
-    if (!isGuest && userId) {
-      // Get user for registered donations
-      const [foundUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
-        .limit(1);
-
-      if (foundUser) {
-        user = foundUser;
-        donorName = foundUser.minecraftUsername || foundUser.username;
-        donorMinecraftUsername = foundUser.minecraftUsername || undefined;
-
-        // Update user's total donated
-        if (rankId && rankId !== 'one-time' && days > 0) {
-          // Rank purchase
-          const now = new Date();
-          let expiresAt: Date;
-
-          if (user.donationRankId === rankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
-            const currentExpiry = new Date(user.rankExpiresAt);
-            expiresAt = new Date(currentExpiry);
-            expiresAt.setDate(currentExpiry.getDate() + days);
-            console.log(`Extending existing rank ${rankId} by ${days} days`);
-          } else {
-            expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + days);
-            console.log(`Assigning new rank ${rankId} for ${days} days`);
-          }
-
-          await db
-            .update(users)
-            .set({
-              donationRankId: rankId,
-              rankExpiresAt: expiresAt,
-              totalDonated: (user.totalDonated || 0) + amount,
-              updatedAt: new Date(),
-            })
-            .where(eq(users.id, parseInt(userId)));
-
-          console.log(`✅ Rank ${rankId} applied to user ${userId} via checkout.session.completed (expires: ${expiresAt.toISOString()})`);
-        } else {
-          // Pure tip
-          await db
-            .update(users)
-            .set({
-              totalDonated: (user.totalDonated || 0) + amount,
-              updatedAt: new Date(),
-            })
-            .where(eq(users.id, parseInt(userId)));
-
-          console.log(`✅ Tip of $${amount} recorded for user ${userId}`);
-        }
-      }
-    } else {
-      console.log(`✅ Guest donation of $${amount} from "${guestName}"`);
-    }
-
-    // Create donation record
-    await db.insert(donations).values({
-      userId: isGuest ? null : parseInt(userId!),
-      amount,
+    await processDonation({
+      userId: isGuest ? undefined : parseInt(session.client_reference_id || '0'),
+      guestName: isGuest ? (metadata.guestName || 'Anonymous') : undefined,
+      minecraftUsername: isGuest ? metadata.guestMinecraftUsername : undefined,
+      amount: (session.amount_total || 0) / 100,
       currency: session.currency?.toUpperCase() || 'USD',
-      status: 'completed',
-      paymentId: paymentIntentId || `checkout_${session.id}`,
-      rankId: rankId && rankId !== 'one-time' ? rankId : null,
-      days: days > 0 ? days : null,
+      method: 'stripe',
       paymentType: 'one_time',
-      minecraftUsername: isGuest ? guestMinecraftUsername : user?.minecraftUsername,
-      minecraftUuid: isGuest ? null : user?.minecraftUuid,
-      createdAt: new Date(),
+      transactionId: paymentIntentId || `checkout_${session.id}`,
+      rankId: metadata.rankId !== 'one-time' ? metadata.rankId : undefined,
+      days: parseInt(metadata.days || '0'),
     });
-
-    // Send Discord notification for this donation
-    try {
-      const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
-      await sendDonationDiscordNotification({
-        username: donorName,
-        minecraftUsername: donorMinecraftUsername,
-        amount,
-        currency: session.currency?.toUpperCase() || 'USD',
-        paymentType: 'one_time',
-        rankName: null,
-        days: null,
-        message: isGuest ? `Guest donation from ${guestName}` : null,
-      });
-      console.log('✅ Sent Discord donation notification');
-    } catch (discordError) {
-      console.error('Failed to send Discord notification:', discordError);
-    }
-
-    // Send admin donation alert
-    try {
-      const { sendAdminDonationAlert } = await import('@/lib/email');
-      await sendAdminDonationAlert(
-        donorName,
-        amount,
-        rankId && rankId !== 'one-time' ? rankId : undefined
-      );
-    } catch (emailError) {
-      console.error('Failed to send donation alert email:', emailError);
-    }
   }
 }
 
+/**
+ * Handle invoice.payment_succeeded - subscription payments
+ */
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
   const subscriptionId = (invoice as any).subscription as string;
+  if (!subscriptionId) return;
 
-  if (!subscriptionId) {
-    console.log('No subscription ID in invoice');
-    return;
-  }
-
-  // Check idempotency via stripePaymentIntentId
-  const [existingReceipt] = await db
-    .select()
-    .from(donations)
-    .where(eq(donations.paymentId, (invoice as any).payment_intent as string))
-    .limit(1);
-
-  if (existingReceipt) {
-    console.log('Invoice already processed:', invoice.id);
-    return;
-  }
-
-  // Get subscription details
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const metadata = subscription.metadata;
-
-  // If metadata isn't on subscription (sometimes it isn't propagated), try invoice line items or customer
   const userId = metadata?.userId;
   const rankId = metadata?.rankId;
   const days = Number(metadata?.days || 30);
@@ -311,130 +174,53 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
     return;
   }
 
-  const userIdNum = Number(userId);
-
-  // Get user
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userIdNum));
-
-  if (!user) {
-    console.error('User not found:', userIdNum);
-    return;
-  }
-
-  // Get rank
-  const [rank] = await db
-    .select()
-    .from(donationRanks)
-    .where(eq(donationRanks.id, rankId));
-
-  if (!rank) {
-    console.error('Rank not found:', rankId);
-    return;
-  }
-
-  // Calculate new expiry date
-  const now = new Date();
-  let expiresAt: Date;
-
-  if (user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
-    const currentExpiry = new Date(user.rankExpiresAt);
-    expiresAt = new Date(currentExpiry);
-    expiresAt.setDate(expiresAt.getDate() + days);
-    console.log(`Extending rank from ${currentExpiry.toISOString()} to ${expiresAt.toISOString()}`);
-  } else {
-    expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + days);
-    console.log(`Starting new rank, expires at ${expiresAt.toISOString()}`);
-  }
-
-  // Update user's rank and subscription info
-  // invoice.amount_paid is in cents.
-  const amountPaidCents = invoice.amount_paid || 0;
-  const amountPaidDollars = amountPaidCents / 100;
-
-  await db
-    .update(users)
-    .set({
-      donationRankId: rankId,
-      rankExpiresAt: expiresAt,
-      totalDonated: (user.totalDonated || 0) + amountPaidDollars,
-      stripeSubscriptionId: subscriptionId,
-      subscriptionStatus: 'active',
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userIdNum));
-
-  // Create donation record
   const isFirstPayment = invoice.billing_reason === 'subscription_create';
+  const paymentIntentId = (invoice as any).payment_intent as string;
 
-  await db.insert(donations).values({
-    userId: userIdNum,
-    amount: amountPaidDollars,
+  const result = await processDonation({
+    userId: parseInt(userId),
+    amount: (invoice.amount_paid || 0) / 100,
     currency: invoice.currency?.toUpperCase() || 'USD',
-    status: 'completed',
-    paymentId: (invoice as any).payment_intent as string,
-    subscriptionId: subscriptionId,
+    method: 'stripe',
     paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal',
-    rankId: rankId,
+    transactionId: paymentIntentId,
+    subscriptionId,
+    rankId,
     days,
-    message: `${rank.name} Rank - ${days} days ${isFirstPayment ? '(Subscription)' : '(Renewal)'}`,
-    receiptNumber: `VN-${Date.now()}-${userId}`,
+    invoiceId: invoice.id,
+    invoiceUrl: invoice.hosted_invoice_url || undefined,
   });
 
-  console.log(`✅ Rank extended for user ${userIdNum} until ${expiresAt}`);
-
-  // Send Discord notification
-  try {
-    const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
-    await sendDonationDiscordNotification({
-      username: user.minecraftUsername || user.username,
-      minecraftUsername: user.minecraftUsername || undefined,
-      amount: amountPaidDollars,
-      currency: invoice.currency?.toUpperCase() || 'USD',
-      paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal',
-      rankName: rank.name,
-      days: days,
-      message: null,
-    });
-    console.log('✅ Sent Discord donation notification');
-  } catch (discordError) {
-    console.error('Failed to send Discord notification:', discordError);
+  if (result.success) {
+    // Update stripe subscription ID on user
+    await db
+      .update(users)
+      .set({ stripeSubscriptionId: subscriptionId })
+      .where(eq(users.id, parseInt(userId)));
   }
-
-  // Send admin notification (async, don't wait)
-  sendAdminDonationAlert(user.username, amountPaidDollars, rank.name)
-    .catch(err => console.error('Failed to send admin donation alert:', err));
 }
 
+/**
+ * Handle invoice.payment_failed - subscription payment failures
+ */
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Stripe) {
   const subscriptionId = (invoice as any).subscription as string;
-
   if (!subscriptionId) return;
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const userId = subscription.metadata?.userId;
-
   if (!userId) return;
 
   console.log(`⚠️ Payment failed for user ${userId}, subscription ${subscriptionId}`);
 
-  // Update subscription status to past_due
   await db
     .update(users)
-    .set({
-      subscriptionStatus: 'past_due',
-      updatedAt: new Date(),
-    })
+    .set({ subscriptionStatus: 'past_due', updatedAt: new Date() })
     .where(eq(users.id, Number(userId)));
 
-  // Check attempt count - after 3 failed attempts, cancel subscription
-  const attemptCount = invoice.attempt_count || 0;
-  if (attemptCount >= 3) {
+  // Cancel after 3 failed attempts
+  if ((invoice.attempt_count || 0) >= 3) {
     console.log(`❌ Max retry attempts reached for user ${userId}, canceling subscription`);
-
     try {
       await stripe.subscriptions.cancel(subscriptionId);
     } catch (err) {
@@ -443,17 +229,15 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Strip
   }
 }
 
+/**
+ * Handle customer.subscription.deleted
+ */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
+  if (!userId) return;
 
-  if (!userId) {
-    console.log('No userId in subscription metadata');
-    return;
-  }
-
-  const canceledAt = subscription.canceled_at;
-  const endedAt = subscription.ended_at;
-  const wasImmediateCancellation = canceledAt && endedAt && (canceledAt === endedAt);
+  const wasImmediateCancellation = subscription.canceled_at && subscription.ended_at
+    && subscription.canceled_at === subscription.ended_at;
 
   if (wasImmediateCancellation) {
     await db
@@ -466,7 +250,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, Number(userId)));
-
     console.log(`✅ Rank immediately removed for user ${userId}`);
   } else {
     await db
@@ -477,19 +260,18 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, Number(userId)));
-
     console.log(`ℹ️ Subscription ended for user ${userId}, rank will expire naturally`);
   }
 }
 
+/**
+ * Handle customer.subscription.updated
+ */
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
-
   if (!userId) return;
 
-  // Update subscription status in database
   let status: 'active' | 'canceled' | 'past_due' | 'paused' | 'trialing' = 'active';
-
   if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
     status = 'canceled';
   } else if (subscription.status === 'past_due') {
@@ -502,141 +284,30 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   await db
     .update(users)
-    .set({
-      subscriptionStatus: status,
-      updatedAt: new Date(),
-    })
+    .set({ subscriptionStatus: status, updatedAt: new Date() })
     .where(eq(users.id, Number(userId)));
 }
 
+/**
+ * Handle payment_intent.succeeded - one-time payments via Elements
+ */
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const metadata = paymentIntent.metadata || {};
   const userId = metadata.userId;
-  const rankId = metadata.rankId;
-  const days = metadata.days || '0';
 
   if (!userId) {
     console.log('Missing userId in payment_intent metadata, skipping');
     return;
   }
 
-  // Check idempotency
-  const [existingReceipt] = await db
-    .select()
-    .from(donations)
-    .where(eq(donations.paymentId, paymentIntent.id))
-    .limit(1);
-
-  if (existingReceipt) {
-    console.log('Payment already processed:', paymentIntent.id);
-    return;
-  }
-
-  // Get user
-  const userIdNum = Number(userId);
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userIdNum))
-    .limit(1);
-
-  if (!user) {
-    console.error('User not found:', userId);
-    return;
-  }
-
-  const amountCents = paymentIntent.amount;
-  const amountDollars = amountCents / 100;
-  const daysNum = Number(days);
-  const isOneTimeTip = rankId === 'one-time' || !rankId || daysNum === 0;
-
-  // Get rank (if not a pure tip)
-  let rank = null;
-  if (!isOneTimeTip && rankId) {
-    const [foundRank] = await db
-      .select()
-      .from(donationRanks)
-      .where(eq(donationRanks.id, rankId))
-      .limit(1);
-    rank = foundRank;
-  }
-
-  // Update user's rank only if purchasing a rank
-  if (rank && daysNum > 0) {
-    const now = new Date();
-    let expiresAt: Date;
-
-    if (user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
-      const currentExpiry = new Date(user.rankExpiresAt);
-      expiresAt = new Date(currentExpiry);
-      expiresAt.setDate(expiresAt.getDate() + daysNum);
-    } else {
-      expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + daysNum);
-    }
-
-    await db
-      .update(users)
-      .set({
-        donationRankId: rankId,
-        rankExpiresAt: expiresAt,
-        totalDonated: (user.totalDonated || 0) + amountDollars,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userIdNum));
-
-    console.log(`✅ One-time payment processed for user ${userId}, rank ${rankId} until ${expiresAt.toISOString()}`);
-  } else {
-    // Just update total donated for tips
-    await db
-      .update(users)
-      .set({
-        totalDonated: (user.totalDonated || 0) + amountDollars,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userIdNum));
-
-    console.log(`✅ One-time tip processed for user ${userId}, amount: $${amountDollars}`);
-  }
-
-  // Create donation record
-  const donationMessage = rank
-    ? `${rank.name} Rank - ${days} days`
-    : 'One-time donation - Thank you!';
-
-  await db.insert(donations).values({
-    userId: userIdNum,
-    amount: amountDollars,
+  await processDonation({
+    userId: parseInt(userId),
+    amount: paymentIntent.amount / 100,
     currency: paymentIntent.currency?.toUpperCase() || 'USD',
-    status: 'completed',
-    paymentId: paymentIntent.id,
-    paymentType: rank ? 'one_time' : 'one_time',
-    rankId: rank ? rankId : null,
-    days: daysNum,
-    message: donationMessage,
-    receiptNumber: `VN-${Date.now()}-${userId}`,
+    method: 'stripe',
+    paymentType: 'one_time',
+    transactionId: paymentIntent.id,
+    rankId: metadata.rankId !== 'one-time' ? metadata.rankId : undefined,
+    days: parseInt(metadata.days || '0'),
   });
-
-  // Send Discord notification
-  try {
-    const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
-    await sendDonationDiscordNotification({
-      username: user.minecraftUsername || user.username,
-      minecraftUsername: user.minecraftUsername || undefined,
-      amount: amountDollars,
-      currency: paymentIntent.currency?.toUpperCase() || 'USD',
-      paymentType: 'one_time',
-      rankName: rank?.name || null,
-      days: rank ? daysNum : null,
-      message: null,
-    });
-    console.log('✅ Sent Discord donation notification');
-  } catch (discordError) {
-    console.error('Failed to send Discord notification:', discordError);
-  }
-
-  // Send admin notification (async, don't wait)
-  sendAdminDonationAlert(user.username, amountDollars, rank?.name)
-    .catch(err => console.error('Failed to send admin donation alert:', err));
 }
-
