@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Users, Search, Filter, MoreHorizontal,
   Shield, Crown, UserX, Mail, Plus, Loader2,
-  Check, X, Edit, Trash2, Ban, UserCheck, Copy
+  Check, X, Edit, Trash2, Ban, UserCheck, Copy, Key
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,15 @@ export default function AdminUsersPage() {
 
   // Donation ranks for dropdown
   const [ranks, setRanks] = useState<{ id: string; name: string; color: string }[]>([]);
+
+  // Password reset modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
+  const [passwordUsername, setPasswordUsername] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [customPassword, setCustomPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -264,6 +273,68 @@ export default function AdminUsersPage() {
     });
     setShowEditModal(true);
     setActionMenuOpen(null);
+  };
+
+  const handleGeneratePassword = async () => {
+    if (!passwordUserId) return;
+    setResettingPassword(true);
+    try {
+      const res = await fetch(`/api/admin/users/${passwordUserId}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generatePassword: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedPassword(data.generatedPassword);
+        toast.success('Password generated successfully');
+      } else {
+        toast.error(data.error || 'Failed to generate password');
+      }
+    } catch {
+      toast.error('Failed to generate password');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const handleSetCustomPassword = async () => {
+    if (!passwordUserId || !customPassword) return;
+    if (customPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const res = await fetch(`/api/admin/users/${passwordUserId}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: customPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Password set successfully');
+        setShowPasswordModal(false);
+        setCustomPassword('');
+      } else {
+        toast.error(data.error || 'Failed to set password');
+      }
+    } catch {
+      toast.error('Failed to set password');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const copyGeneratedPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedPassword);
+      setPasswordCopied(true);
+      toast.success('Password copied to clipboard');
+      setTimeout(() => setPasswordCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy password');
+    }
   };
 
   const filteredUsers = users;
@@ -475,6 +546,22 @@ export default function AdminUsersPage() {
                 <Ban className="w-4 h-4" /> Ban User
               </button>
               <button
+                className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-neon-cyan"
+                onClick={() => {
+                  const user = users.find(u => u.id === actionMenuOpen);
+                  if (user) {
+                    setPasswordUserId(user.id);
+                    setPasswordUsername(user.username);
+                    setGeneratedPassword('');
+                    setCustomPassword('');
+                    setShowPasswordModal(true);
+                    setActionMenuOpen(null);
+                  }
+                }}
+              >
+                <Key className="w-4 h-4" /> Reset Password
+              </button>
+              <button
                 className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-error"
                 onClick={() => actionMenuOpen && handleDeleteUser(actionMenuOpen)}
               >
@@ -668,6 +755,103 @@ export default function AdminUsersPage() {
                 <Button variant="gradient" onClick={handleUpdateUser} disabled={isSaving}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
                   Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card variant="glass" className="w-full max-w-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Key className="w-5 h-5 text-neon-cyan" />
+                Reset Password
+              </CardTitle>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setGeneratedPassword('');
+                  setCustomPassword('');
+                }}
+                className="p-1 hover:bg-secondary rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Reset password for <strong className="text-foreground">{passwordUsername}</strong>
+              </p>
+
+              {/* Generated Password Display */}
+              {generatedPassword && (
+                <div className="p-4 rounded-lg bg-success/10 border border-success/30 space-y-3">
+                  <p className="text-sm text-success font-medium">Generated Password:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-2 bg-background rounded font-mono text-sm break-all">
+                      {generatedPassword}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyGeneratedPassword}
+                    >
+                      {passwordCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Make sure to share this with the user securely. This won&apos;t be shown again.
+                  </p>
+                </div>
+              )}
+
+              {/* Generate Password Button */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Option 1: Generate Random Password</p>
+                <Button
+                  variant="neon"
+                  onClick={handleGeneratePassword}
+                  disabled={resettingPassword}
+                  className="w-full"
+                >
+                  {resettingPassword ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                  ) : (
+                    <><Key className="w-4 h-4 mr-2" /> Generate Secure Password</>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">OR</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Custom Password */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Option 2: Set Custom Password</p>
+                <Input
+                  type="text"
+                  placeholder="Enter new password (min 8 characters)"
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                />
+                <Button
+                  variant="neon-outline"
+                  onClick={handleSetCustomPassword}
+                  disabled={resettingPassword || customPassword.length < 8}
+                  className="w-full"
+                >
+                  {resettingPassword ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting...</>
+                  ) : (
+                    <><Check className="w-4 h-4 mr-2" /> Set Password</>
+                  )}
                 </Button>
               </div>
             </CardContent>
