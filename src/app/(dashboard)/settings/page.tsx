@@ -63,6 +63,9 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -271,6 +274,53 @@ export default function SettingsPage() {
     } catch (err) {
       console.error('Error saving settings:', err);
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    // Validation
+    if (!security.currentPassword || !security.newPassword || !security.confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+
+    if (security.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters');
+      return;
+    }
+
+    if (security.newPassword !== security.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: security.currentPassword,
+          newPassword: security.newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setPasswordSuccess(true);
+        setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => setPasswordSuccess(false), 3000);
+      } else {
+        setPasswordError(data.error || 'Failed to change password');
+      }
+    } catch (err) {
+      setPasswordError('Something went wrong');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -644,6 +694,19 @@ export default function SettingsPage() {
                     Change Password
                   </h3>
 
+                  {passwordError && (
+                    <div className="p-3 rounded-lg bg-error/10 border border-error/50 text-error text-sm">
+                      {passwordError}
+                    </div>
+                  )}
+
+                  {passwordSuccess && (
+                    <div className="p-3 rounded-lg bg-success/10 border border-success/50 text-success text-sm flex items-center gap-2">
+                      <Check className="w-4 h-4" />
+                      Password updated successfully!
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Current Password</label>
                     <div className="relative">
@@ -669,7 +732,7 @@ export default function SettingsPage() {
                       type="password"
                       value={security.newPassword}
                       onChange={(e) => setSecurity({ ...security, newPassword: e.target.value })}
-                      placeholder="Enter new password"
+                      placeholder="Enter new password (min 8 characters)"
                     />
                   </div>
 
@@ -682,6 +745,24 @@ export default function SettingsPage() {
                       placeholder="Confirm new password"
                     />
                   </div>
+
+                  <Button
+                    variant="neon"
+                    onClick={handlePasswordChange}
+                    disabled={savingPassword || !security.currentPassword || !security.newPassword || !security.confirmPassword}
+                  >
+                    {savingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="w-4 h-4 mr-2" />
+                        Update Password
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 {/* Two-Factor Auth */}
