@@ -386,6 +386,24 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, stripe: St
 
   console.log(`✅ Rank extended for user ${userIdNum} until ${expiresAt}`);
 
+  // Send Discord notification
+  try {
+    const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+    await sendDonationDiscordNotification({
+      username: user.minecraftUsername || user.username,
+      minecraftUsername: user.minecraftUsername || undefined,
+      amount: amountPaidDollars,
+      currency: invoice.currency?.toUpperCase() || 'USD',
+      paymentType: isFirstPayment ? 'subscription' : 'subscription_renewal',
+      rankName: rank.name,
+      days: days,
+      message: null,
+    });
+    console.log('✅ Sent Discord donation notification');
+  } catch (discordError) {
+    console.error('Failed to send Discord notification:', discordError);
+  }
+
   // Send admin notification (async, don't wait)
   sendAdminDonationAlert(user.username, amountPaidDollars, rank.name)
     .catch(err => console.error('Failed to send admin donation alert:', err));
@@ -598,6 +616,24 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     message: donationMessage,
     receiptNumber: `VN-${Date.now()}-${userId}`,
   });
+
+  // Send Discord notification
+  try {
+    const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+    await sendDonationDiscordNotification({
+      username: user.minecraftUsername || user.username,
+      minecraftUsername: user.minecraftUsername || undefined,
+      amount: amountDollars,
+      currency: paymentIntent.currency?.toUpperCase() || 'USD',
+      paymentType: 'one_time',
+      rankName: rank?.name || null,
+      days: rank ? daysNum : null,
+      message: null,
+    });
+    console.log('✅ Sent Discord donation notification');
+  } catch (discordError) {
+    console.error('Failed to send Discord notification:', discordError);
+  }
 
   // Send admin notification (async, don't wait)
   sendAdminDonationAlert(user.username, amountDollars, rank?.name)

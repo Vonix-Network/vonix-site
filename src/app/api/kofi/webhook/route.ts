@@ -344,6 +344,36 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ Ko-Fi donation processed: $${amount} from ${data.from_name}${rankId ? ` → ${rankId} rank for ${rankDays} days` : ''}`);
 
+        // Send Discord notification
+        try {
+            const { sendDonationDiscordNotification } = await import('@/lib/discord-notifications');
+
+            // Get rank name for display
+            let rankName: string | null = null;
+            if (rankId) {
+                const [rank] = await db
+                    .select({ name: donationRanks.name })
+                    .from(donationRanks)
+                    .where(eq(donationRanks.id, rankId))
+                    .limit(1);
+                rankName = rank?.name || rankId;
+            }
+
+            await sendDonationDiscordNotification({
+                username: username,
+                minecraftUsername: foundUser?.minecraftUsername || undefined,
+                amount,
+                currency: data.currency || 'USD',
+                paymentType: 'one_time',
+                rankName: rankName,
+                days: rankId ? rankDays : null,
+                message: data.message || null,
+            });
+            console.log('✅ Sent Discord donation notification');
+        } catch (discordError) {
+            console.error('Failed to send Discord notification:', discordError);
+        }
+
         // Send admin notification (async, don't wait)
         sendAdminDonationAlert(username, amount, rankId || undefined)
             .catch(err => console.error('Failed to send admin donation alert:', err));

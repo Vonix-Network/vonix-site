@@ -15,7 +15,7 @@ interface DonationDetails {
     currency?: string;
     rankName?: string | null;
     days?: number | null;
-    paymentType?: 'one_time' | 'subscription' | 'renewal';
+    paymentType?: 'one_time' | 'subscription' | 'renewal' | 'subscription_renewal';
     message?: string | null;
 }
 
@@ -65,7 +65,7 @@ export async function sendDonationDiscordNotification(donation: DonationDetails)
         // Build the embed
         const paymentTypeLabel = donation.paymentType === 'subscription'
             ? '📅 Monthly Subscription'
-            : donation.paymentType === 'renewal'
+            : donation.paymentType === 'renewal' || donation.paymentType === 'subscription_renewal'
                 ? '🔄 Renewal'
                 : '💎 One-Time';
 
