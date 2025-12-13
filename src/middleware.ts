@@ -14,7 +14,6 @@ const protectedRoutes = [
   '/profile',
   '/forum/new',
   '/events',
-  '/donate',
 ];
 
 // Routes that require admin access
