@@ -1,45 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import {
-  Menu,
-  X,
   Home,
-  Users,
-  MessageSquare,
-  Trophy,
-  Heart,
-  Calendar,
   Settings,
   LogOut,
   LogIn,
   UserPlus,
   Shield,
   ChevronDown,
-  HardDrive,
+  Grid3X3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn, getMinecraftAvatarUrl } from '@/lib/utils';
 import { NotificationBell } from './notification-bell';
-
-const navigation = [
-  { name: 'Home', href: '/', icon: Home },
-  { name: 'Servers', href: '/servers', icon: Users },
-  { name: 'Hosting', href: '/hosting', icon: HardDrive },
-  { name: 'Forum', href: '/forum', icon: MessageSquare },
-  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
-  { name: 'Donate', href: '/donate', icon: Heart },
-  { name: 'Events', href: '/events', icon: Calendar },
-];
+import { AppLauncher } from './app-launcher';
 
 export function Navbar() {
-  const pathname = usePathname();
   const { data: session, status } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isAdmin = session?.user && ['admin', 'superadmin'].includes((session.user as any).role);
@@ -92,27 +74,14 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2',
-                  isActive
-                    ? 'text-neon-cyan bg-neon-cyan/10 shadow-neon-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                )}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Menu Launcher Button */}
+        <button
+          onClick={() => setLauncherOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-white/5 border border-white/10 hover:border-white/20"
+        >
+          <Grid3X3 className="w-4 h-4" />
+          <span className="hidden sm:inline">Menu</span>
+        </button>
 
         {/* Right side - Auth */}
         <div className="flex items-center gap-3">
@@ -215,101 +184,11 @@ export function Navbar() {
               </Button>
             </div>
           )}
-
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
         </div>
       </nav>
 
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed top-16 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-white/10 z-50 shadow-lg">
-          <div className="container mx-auto px-4 py-4 space-y-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                    isActive
-                      ? 'text-neon-cyan bg-neon-cyan/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-
-            {/* Mobile-only auth buttons when not logged in */}
-            {!session?.user && (
-              <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
-                <Link
-                  href="/login"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <LogIn className="w-5 h-5" />
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neon-cyan hover:bg-neon-cyan/10"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <UserPlus className="w-5 h-5" />
-                  Register
-                </Link>
-              </div>
-            )}
-
-            {/* Mobile-only quick actions when logged in */}
-            {session?.user && (
-              <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Home className="w-5 h-5" />
-                  Dashboard
-                </Link>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Settings className="w-5 h-5" />
-                  Settings
-                </Link>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neon-cyan hover:bg-neon-cyan/10"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Shield className="w-5 h-5" />
-                    Admin Panel
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* App Launcher */}
+      <AppLauncher isOpen={launcherOpen} onClose={() => setLauncherOpen(false)} />
     </header>
   );
 }
