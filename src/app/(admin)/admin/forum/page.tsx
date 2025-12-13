@@ -338,17 +338,18 @@ export default function AdminForumPage() {
                   onDragLeave={handleDragLeave}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, index)}
-                  className={`flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors ${dragOverIndex === index ? 'border-2 border-neon-cyan border-dashed' : ''
+                  className={`flex flex-wrap sm:flex-nowrap items-start sm:items-center gap-3 sm:gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors ${dragOverIndex === index ? 'border-2 border-neon-cyan border-dashed' : ''
                     } ${draggedItem?.id === category.id ? 'opacity-50' : ''}`}
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
-
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-neon-cyan/20">
-                    {category.icon || '💬'}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-neon-cyan/20">
+                      {category.icon || '💬'}
+                    </div>
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{category.name}</span>
                       {category.createPermission !== 'user' && (
                         <Badge variant="warning" className="text-xs">
@@ -371,7 +372,7 @@ export default function AdminForumPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-auto sm:ml-0">
                     <Button variant="ghost" size="icon" onClick={() => openEditModal(category)}>
                       <Edit className="w-4 h-4" />
                     </Button>
