@@ -90,7 +90,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
     };
 
     return (
-        <div className="min-h-screen bg-background flex relative">
+        <div className="min-h-screen bg-background flex relative overflow-x-hidden">
             {/* Mobile Sidebar Backdrop */}
             {sidebarOpen && (
                 <div
@@ -200,7 +200,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-0 md:ml-64">
+            <main className="flex-1 ml-0 md:ml-64 max-w-full overflow-x-hidden">
                 <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
                         {/* Mobile Hamburger */}
@@ -225,7 +225,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                         </div>
                     </div>
                 </header>
-                <div className="p-4 md:p-6">
+                <div className="p-4 md:p-6 max-w-full overflow-x-auto">
                     {children}
                 </div>
             </main>
