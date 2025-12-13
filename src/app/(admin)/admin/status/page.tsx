@@ -220,7 +220,7 @@ export default function AdminStatusPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text mb-2">System Status</h1>
           <p className="text-muted-foreground">
@@ -242,7 +242,7 @@ export default function AdminStatusPage() {
         <CardContent className="py-6">
           <div className="flex items-center gap-4">
             <div className={`p-4 rounded-full ${overall.status === 'online' ? 'bg-success/20' :
-                overall.status === 'degraded' ? 'bg-warning/20' : 'bg-error/20'
+              overall.status === 'degraded' ? 'bg-warning/20' : 'bg-error/20'
               }`}>
               {overall.status === 'online' ? (
                 <Activity className="w-8 h-8 text-success" />

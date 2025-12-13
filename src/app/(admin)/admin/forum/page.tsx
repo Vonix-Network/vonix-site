@@ -247,7 +247,7 @@ export default function AdminForumPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Forum Management</h1>
           <p className="text-muted-foreground">
@@ -459,7 +459,7 @@ export default function AdminForumPage() {
 
               <div className="space-y-4 pt-4 border-t border-border">
                 <h4 className="font-medium">Permissions</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Who can view</label>
                     <select

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Calendar, Plus, Edit, Trash2, Users, MapPin, 
+import {
+  Calendar, Plus, Edit, Trash2, Users, MapPin,
   Clock, Loader2, Search, MoreHorizontal
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -58,7 +58,7 @@ export default function AdminEventsPage() {
 
   const handleCreate = async () => {
     if (!formData.title || !formData.startTime) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch('/api/events', {
@@ -81,7 +81,7 @@ export default function AdminEventsPage() {
 
   const handleUpdate = async () => {
     if (!editingEvent || !formData.title || !formData.startTime) return;
-    
+
     setIsSaving(true);
     try {
       const res = await fetch(`/api/events/${editingEvent.id}`, {
@@ -160,7 +160,7 @@ export default function AdminEventsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Events Management</h1>
           <p className="text-muted-foreground">

@@ -306,12 +306,12 @@ export default function AdminDonationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Donations</h1>
           <p className="text-muted-foreground">View and manage donation records</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="neon" onClick={() => setShowAddForm(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Donation
