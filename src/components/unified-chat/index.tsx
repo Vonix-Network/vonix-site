@@ -3,18 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { MessageCircle, X, MessageSquare, ExternalLink } from 'lucide-react';
+import { MessageCircle, X, MessageSquare, ExternalLink, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MessengerProvider } from '@/components/messenger/messenger-context';
 import { DiscordChatProvider } from '@/components/discord-chat/discord-chat-context';
 import { MessengerPanel } from './messenger-panel';
 import { DiscordPanel } from './discord-panel';
+import { SupportPanel } from './support-panel';
 
 const DISCORD_INVITE = 'https://discord.gg/TXmVwQB5p7';
 const DISCORD_COLOR = '#5865F2';
 
-type ChatMode = 'menu' | 'messenger' | 'discord';
+type ChatMode = 'menu' | 'messenger' | 'discord' | 'support';
 
 export function UnifiedChat() {
     const { data: session } = useSession();
@@ -45,6 +46,15 @@ export function UnifiedChat() {
         setChatMode('menu');
     };
 
+    const getTitle = () => {
+        switch (chatMode) {
+            case 'messenger': return 'Messenger';
+            case 'discord': return 'Discord';
+            case 'support': return 'Support';
+            default: return 'Chat';
+        }
+    };
+
     // Mobile fullscreen container
     const containerClasses = isMobile && isOpen
         ? 'fixed inset-0 z-50 bg-background flex flex-col'
@@ -73,7 +83,7 @@ export function UnifiedChat() {
                                         </Button>
                                     )}
                                     <h3 className="font-semibold gradient-text">
-                                        {chatMode === 'menu' ? 'Chat' : chatMode === 'messenger' ? 'Messenger' : 'Discord'}
+                                        {getTitle()}
                                     </h3>
                                 </div>
                                 <Button variant="ghost" size="icon" className="w-7 h-7 hover:text-error" onClick={handleClose}>
@@ -85,20 +95,43 @@ export function UnifiedChat() {
                             <div className="flex-1 overflow-hidden">
                                 {chatMode === 'menu' && (
                                     <div className="h-full flex flex-col p-4 gap-3">
+                                        {/* Support Option - Featured at top */}
+                                        <button
+                                            onClick={() => setChatMode('support')}
+                                            className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-neon-pink/15 to-neon-purple/15 border border-neon-pink/30 hover:border-neon-pink/50 transition-all group"
+                                        >
+                                            <div className="w-12 h-12 rounded-full bg-neon-pink/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <Ticket className="w-6 h-6 text-neon-pink" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="font-semibold">Get Support</p>
+                                                <p className="text-sm text-muted-foreground">We&apos;re here to help</p>
+                                            </div>
+                                        </button>
+
                                         {/* Messenger Option */}
                                         {session?.user ? (
-                                            <button
-                                                onClick={() => setChatMode('messenger')}
-                                                className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10 border border-white/10 hover:border-neon-cyan/50 transition-all group"
-                                            >
-                                                <div className="w-12 h-12 rounded-full bg-neon-cyan/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                    <MessageSquare className="w-6 h-6 text-neon-cyan" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="font-semibold">Messenger</p>
-                                                    <p className="text-sm text-muted-foreground">Chat with friends</p>
-                                                </div>
-                                            </button>
+                                            <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10 border border-white/10 hover:border-neon-cyan/50 transition-all group">
+                                                <button
+                                                    onClick={() => setChatMode('messenger')}
+                                                    className="flex items-center gap-4 flex-1"
+                                                >
+                                                    <div className="w-12 h-12 rounded-full bg-neon-cyan/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                        <MessageSquare className="w-6 h-6 text-neon-cyan" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="font-semibold">Messenger</p>
+                                                        <p className="text-sm text-muted-foreground">Chat with friends</p>
+                                                    </div>
+                                                </button>
+                                                <a
+                                                    href="/messages"
+                                                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                                    title="Open in full page"
+                                                >
+                                                    <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-neon-cyan" />
+                                                </a>
+                                            </div>
                                         ) : (
                                             <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/30 border border-white/5">
                                                 <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
@@ -146,6 +179,7 @@ export function UnifiedChat() {
 
                                 {chatMode === 'messenger' && <MessengerPanel isMobile={isMobile} />}
                                 {chatMode === 'discord' && <DiscordPanel isMobile={isMobile} />}
+                                {chatMode === 'support' && <SupportPanel isMobile={isMobile} onBack={handleBack} />}
                             </div>
                         </div>
                     )}
