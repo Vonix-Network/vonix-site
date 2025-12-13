@@ -208,7 +208,7 @@ export default async function AdminAnalyticsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
         <h1 className="text-3xl font-bold gradient-text mb-2">Analytics</h1>
         <p className="text-muted-foreground">

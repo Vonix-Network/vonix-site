@@ -90,7 +90,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
     };
 
     return (
-        <div className="min-h-screen bg-background flex relative overflow-x-hidden">
+        <div className="min-h-screen bg-background flex relative">
             {/* Mobile Sidebar Backdrop */}
             {sidebarOpen && (
                 <div
@@ -200,19 +200,19 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-0 md:ml-64 max-w-full overflow-x-hidden">
+            <main className="flex-1 ml-0 md:ml-64 min-w-0">
                 <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                         {/* Mobile Hamburger */}
                         <button
-                            className="md:hidden p-2 rounded-lg hover:bg-secondary"
+                            className="md:hidden p-2 rounded-lg hover:bg-secondary flex-shrink-0"
                             onClick={() => setSidebarOpen(true)}
                         >
                             <Menu className="w-5 h-5" />
                         </button>
                         <h2 className="font-semibold hidden sm:block">Administration</h2>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-4">
+                    <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
                         <button className="p-2 rounded-lg hover:bg-secondary transition-colors relative">
                             <Bell className="w-5 h-5" />
                             <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
@@ -225,7 +225,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                         </div>
                     </div>
                 </header>
-                <div className="p-4 md:p-6 max-w-full overflow-x-auto">
+                <div className="p-4 md:p-6 min-w-0">
                     {children}
                 </div>
             </main>
