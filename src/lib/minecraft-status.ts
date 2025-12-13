@@ -48,8 +48,9 @@ export interface ServerStatusResult {
 // Cache for server status to avoid excessive API calls
 const statusCache = new Map<string, { data: MinecraftServerStatus; timestamp: number }>();
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
-const REQUEST_TIMEOUT = 10000; // 10 second timeout
-const MAX_RETRIES = 2;
+const REQUEST_TIMEOUT = 15000; // 15 second timeout (increased for slow mcstatus.io)
+const MAX_RETRIES = 3; // 3 retries for better reliability
+const INITIAL_RETRY_DELAY = 2000; // 2 second initial delay before first retry
 
 /**
  * Fetch with timeout
@@ -107,13 +108,14 @@ export async function getServerStatus(
 
   let lastError: Error | null = null;
 
-  // Retry logic
+  // Retry logic with configurable delay
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        // Wait before retry with exponential backoff
-        await sleep(1000 * attempt);
-        console.log(`[mcstatus.io] Retry ${attempt} for ${address}:${port}`);
+        // First retry waits INITIAL_RETRY_DELAY, then exponential backoff
+        const delay = attempt === 1 ? INITIAL_RETRY_DELAY : INITIAL_RETRY_DELAY * attempt;
+        await sleep(delay);
+        console.log(`[mcstatus.io] Retry ${attempt}/${MAX_RETRIES} for ${address}:${port} (waited ${delay}ms)`);
       }
 
       const response = await fetchWithTimeout(url, {
@@ -147,10 +149,10 @@ export async function getServerStatus(
     } catch (error: any) {
       lastError = error;
 
-      // Don't retry on abort (timeout)
+      // Log timeout but continue retrying (mcstatus.io can be slow)
       if (error.name === 'AbortError') {
-        console.error(`[mcstatus.io] Timeout for ${address}:${port}`);
-        break;
+        console.warn(`[mcstatus.io] Timeout on attempt ${attempt + 1}/${MAX_RETRIES + 1} for ${address}:${port}`);
+        // Continue to next retry instead of breaking
       }
     }
   }
