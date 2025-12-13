@@ -157,11 +157,11 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
             >
                 {/* Header with search - centered content */}
                 <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-4">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold gradient-text">Menu</h2>
+                    <div className="relative flex items-center justify-center mb-6">
+                        <h2 className="text-2xl sm:text-3xl font-bold gradient-text">Navigation</h2>
                         <button
                             onClick={onClose}
-                            className="p-3 rounded-xl hover:bg-white/10 transition-colors"
+                            className="absolute right-0 p-3 rounded-xl hover:bg-white/10 transition-colors"
                         >
                             <X className="w-6 h-6" />
                         </button>
