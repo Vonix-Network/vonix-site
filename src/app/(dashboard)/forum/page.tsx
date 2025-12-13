@@ -112,7 +112,7 @@ export default async function ForumPage() {
                 Categories
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid gap-4">
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <Link key={category.id} href={`/forum/category/${category.slug}`}>
@@ -158,7 +158,7 @@ export default async function ForumPage() {
                 Recent Discussions
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="grid gap-4">
               {recentPosts.length > 0 ? (
                 recentPosts.map((post) => (
                   <Link key={post.id} href={`/forum/post/${post.id}`}>
