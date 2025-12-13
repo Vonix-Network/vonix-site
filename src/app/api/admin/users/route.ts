@@ -68,6 +68,11 @@ export async function GET(request: NextRequest) {
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
         emailVerified: users.emailVerified,
+        // Donation rank fields
+        donationRankId: users.donationRankId,
+        rankExpiresAt: users.rankExpiresAt,
+        totalDonated: users.totalDonated,
+        subscriptionStatus: users.subscriptionStatus,
       })
       .from(users)
       .where(whereClause)
