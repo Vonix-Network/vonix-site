@@ -74,17 +74,17 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Menu Launcher Button */}
-        <button
-          onClick={() => setLauncherOpen(true)}
-          className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
-          title="Menu"
-        >
-          <Grid3X3 className="w-5 h-5" />
-        </button>
+        {/* Right side - Menu + Auth */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Menu Launcher Button */}
+          <button
+            onClick={() => setLauncherOpen(true)}
+            className="p-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-neon-cyan transition-all duration-200"
+            title="Menu"
+          >
+            <Grid3X3 className="w-5 h-5" />
+          </button>
 
-        {/* Right side - Auth */}
-        <div className="flex items-center gap-3">
           {status === 'loading' ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : session?.user ? (
