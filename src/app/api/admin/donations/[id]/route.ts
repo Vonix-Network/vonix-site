@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT - Update donation (visibility, status, etc.)
+// PUT - Update donation (all editable fields)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     await requireAdmin();
@@ -55,12 +55,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const donationId = parseInt(id);
     const body = await request.json();
 
-    const { displayed, status, message } = body;
+    const {
+      displayed,
+      status,
+      message,
+      amount,
+      currency,
+      method,
+      rankId,
+      days,
+      paymentType,
+      minecraftUsername,
+    } = body;
 
     const updateData: any = {};
     if (displayed !== undefined) updateData.displayed = displayed;
     if (status !== undefined) updateData.status = status;
     if (message !== undefined) updateData.message = message;
+    if (amount !== undefined) updateData.amount = parseFloat(amount);
+    if (currency !== undefined) updateData.currency = currency;
+    if (method !== undefined) updateData.method = method;
+    if (rankId !== undefined) updateData.rankId = rankId || null;
+    if (days !== undefined) updateData.days = days ? parseInt(days) : null;
+    if (paymentType !== undefined) updateData.paymentType = paymentType;
+    if (minecraftUsername !== undefined) updateData.minecraftUsername = minecraftUsername || null;
 
     const [updated] = await db
       .update(donations)

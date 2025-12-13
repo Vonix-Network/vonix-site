@@ -27,6 +27,11 @@ interface UserData {
   createdAt: Date;
   lastLoginAt: Date | null;
   emailVerified: boolean;
+  // Rank fields
+  donationRankId: string | null;
+  rankExpiresAt: Date | null;
+  totalDonated: number;
+  subscriptionStatus: string | null;
 }
 
 interface UserStats {
@@ -75,7 +80,15 @@ export default function AdminUsersPage() {
     role: 'user',
     email: '',
     minecraftUsername: '',
+    // Rank fields
+    donationRankId: '',
+    rankExpiresAt: '',
+    totalDonated: '',
+    subscriptionStatus: '',
   });
+
+  // Donation ranks for dropdown
+  const [ranks, setRanks] = useState<{ id: string; name: string; color: string }[]>([]);
 
   // Debounce search
   useEffect(() => {
@@ -89,6 +102,11 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchStats();
+    // Fetch ranks for dropdown
+    fetch('/api/admin/donor-ranks')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setRanks(data))
+      .catch(() => setRanks([]));
   }, []);
 
   const fetchUsers = async (search = '') => {
@@ -239,6 +257,10 @@ export default function AdminUsersPage() {
       role: user.role,
       email: user.email || '',
       minecraftUsername: user.minecraftUsername || '',
+      donationRankId: user.donationRankId || '',
+      rankExpiresAt: user.rankExpiresAt ? new Date(user.rankExpiresAt).toISOString().slice(0, 16) : '',
+      totalDonated: user.totalDonated?.toString() || '0',
+      subscriptionStatus: user.subscriptionStatus || '',
     });
     setShowEditModal(true);
     setActionMenuOpen(null);
@@ -538,7 +560,7 @@ export default function AdminUsersPage() {
       {/* Edit User Modal */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Edit User: {selectedUser.username}
@@ -547,38 +569,101 @@ export default function AdminUsersPage() {
                 </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  placeholder="user@example.com"
-                />
+            <CardContent className="space-y-6">
+              {/* Basic Info Section */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Minecraft Username</label>
+                    <Input
+                      value={editForm.minecraftUsername}
+                      onChange={(e) => setEditForm({ ...editForm, minecraftUsername: e.target.value })}
+                      placeholder="Steve"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Site Role</label>
+                    <select
+                      value={editForm.role}
+                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                    >
+                      <option value="user">User</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Minecraft Username</label>
-                <Input
-                  value={editForm.minecraftUsername}
-                  onChange={(e) => setEditForm({ ...editForm, minecraftUsername: e.target.value })}
-                  placeholder="Steve"
-                />
+
+              {/* Donation Rank Section */}
+              <div className="border-t border-border pt-4">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-neon-pink" />
+                  Donation Rank Management
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Donation Rank</label>
+                    <select
+                      value={editForm.donationRankId}
+                      onChange={(e) => setEditForm({ ...editForm, donationRankId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                    >
+                      <option value="">No Rank</option>
+                      {ranks.map(rank => (
+                        <option key={rank.id} value={rank.id}>{rank.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Rank Expires At</label>
+                    <Input
+                      type="datetime-local"
+                      value={editForm.rankExpiresAt}
+                      onChange={(e) => setEditForm({ ...editForm, rankExpiresAt: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Total Donated ($)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editForm.totalDonated}
+                      onChange={(e) => setEditForm({ ...editForm, totalDonated: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Subscription Status</label>
+                    <select
+                      value={editForm.subscriptionStatus}
+                      onChange={(e) => setEditForm({ ...editForm, subscriptionStatus: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                    >
+                      <option value="">None</option>
+                      <option value="active">Active</option>
+                      <option value="past_due">Past Due</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="paused">Paused</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Role</label>
-                <select
-                  value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
-                >
-                  <option value="user">User</option>
-                  <option value="moderator">Moderator</option>
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" onClick={() => { setShowEditModal(false); setSelectedUser(null); }}>Cancel</Button>
                 <Button variant="gradient" onClick={handleUpdateUser} disabled={isSaving}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}

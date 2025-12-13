@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT /api/admin/users/[id]
- * Update user
+ * Update user (including rank management)
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
@@ -57,7 +57,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const userId = parseInt(id);
         const body = await request.json();
 
-        const { role, email, minecraftUsername, bio } = body;
+        const {
+            role,
+            email,
+            minecraftUsername,
+            bio,
+            // Rank management fields
+            donationRankId,
+            rankExpiresAt,
+            totalDonated,
+            subscriptionStatus,
+        } = body;
 
         // Prevent non-superadmins from creating superadmins
         if (role === 'superadmin' && adminUser.role !== 'superadmin') {
@@ -67,15 +77,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             );
         }
 
+        // Build update object
+        const updateData: Record<string, any> = {
+            updatedAt: new Date(),
+        };
+
+        // Basic fields
+        if (role !== undefined) updateData.role = role;
+        if (email !== undefined) updateData.email = email;
+        if (minecraftUsername !== undefined) updateData.minecraftUsername = minecraftUsername;
+        if (bio !== undefined) updateData.bio = bio;
+
+        // Rank management fields
+        if (donationRankId !== undefined) updateData.donationRankId = donationRankId || null;
+        if (rankExpiresAt !== undefined) {
+            updateData.rankExpiresAt = rankExpiresAt ? new Date(rankExpiresAt) : null;
+        }
+        if (totalDonated !== undefined) updateData.totalDonated = parseFloat(totalDonated) || 0;
+        if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus || null;
+
         const [updated] = await db
             .update(users)
-            .set({
-                role: role || undefined,
-                email: email !== undefined ? email : undefined,
-                minecraftUsername: minecraftUsername !== undefined ? minecraftUsername : undefined,
-                bio: bio !== undefined ? bio : undefined,
-                updatedAt: new Date(),
-            })
+            .set(updateData)
             .where(eq(users.id, userId))
             .returning();
 

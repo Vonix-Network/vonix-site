@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Heart, Search, Eye, EyeOff, Trash2, ExternalLink,
   DollarSign, TrendingUp, RefreshCcw, Plus, X,
-  ChevronLeft, ChevronRight, Loader2, Receipt, Save
+  ChevronLeft, ChevronRight, Loader2, Receipt, Save, Edit, Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,6 +83,22 @@ export default function AdminDonationsPage() {
   const [newDonation, setNewDonation] = useState(defaultNewDonation);
   const [isSaving, setIsSaving] = useState(false);
   const [ranks, setRanks] = useState<DonorRank[]>([]);
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    currency: 'USD',
+    message: '',
+    displayed: true,
+    rankId: '',
+    days: '',
+    paymentType: 'one_time' as string,
+    status: 'completed' as string,
+    minecraftUsername: '',
+  });
+  const [resendingDiscord, setResendingDiscord] = useState<number | null>(null);
 
   const fetchDonations = useCallback(async () => {
     setIsLoading(true);
@@ -198,6 +214,75 @@ export default function AdminDonationsPage() {
       }
     } catch (err) {
       console.error('Failed to delete donation:', err);
+    }
+  };
+
+  const openEditModal = (donation: Donation) => {
+    setEditingDonation(donation);
+    setEditForm({
+      amount: donation.amount.toString(),
+      currency: donation.currency,
+      message: donation.message || '',
+      displayed: donation.displayed,
+      rankId: donation.rankId || '',
+      days: donation.days?.toString() || '',
+      paymentType: donation.paymentType,
+      status: donation.status,
+      minecraftUsername: donation.minecraftUsername || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditDonation = async () => {
+    if (!editingDonation) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/admin/donations/${editingDonation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: editForm.amount,
+          currency: editForm.currency,
+          message: editForm.message || null,
+          displayed: editForm.displayed,
+          rankId: editForm.rankId || null,
+          days: editForm.days || null,
+          paymentType: editForm.paymentType,
+          status: editForm.status,
+          minecraftUsername: editForm.minecraftUsername || null,
+        }),
+      });
+      if (res.ok) {
+        setShowEditModal(false);
+        setEditingDonation(null);
+        fetchDonations();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update donation');
+      }
+    } catch (err) {
+      console.error('Failed to update donation:', err);
+      alert('Failed to update donation');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resendDiscord = async (id: number) => {
+    setResendingDiscord(id);
+    try {
+      const res = await fetch(`/api/admin/donations/${id}/resend-discord`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Discord notification sent!');
+      } else {
+        alert(data.error || 'Failed to send Discord notification');
+      }
+    } catch (err) {
+      console.error('Failed to resend Discord:', err);
+      alert('Failed to send Discord notification');
+    } finally {
+      setResendingDiscord(null);
     }
   };
 
@@ -548,6 +633,27 @@ export default function AdminDonationsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => openEditModal(donation)}
+                      title="Edit donation"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => resendDiscord(donation.id)}
+                      disabled={resendingDiscord === donation.id}
+                      title="Resend Discord notification"
+                    >
+                      {resendingDiscord === donation.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => toggleVisibility(donation.id, donation.displayed)}
                       title={donation.displayed ? 'Hide from public' : 'Show publicly'}
                     >
@@ -603,6 +709,134 @@ export default function AdminDonationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      {showEditModal && editingDonation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card variant="neon-glow" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Edit className="w-5 h-5" />
+                  Edit Donation #{editingDonation.id}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => setShowEditModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Minecraft Username</label>
+                  <Input
+                    value={editForm.minecraftUsername}
+                    onChange={(e) => setEditForm({ ...editForm, minecraftUsername: e.target.value })}
+                    placeholder="e.g., Steve"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Amount</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Currency</label>
+                  <select
+                    value={editForm.currency}
+                    onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Rank</label>
+                  <select
+                    value={editForm.rankId}
+                    onChange={(e) => setEditForm({ ...editForm, rankId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+                  >
+                    <option value="">No Rank</option>
+                    {ranks.map(rank => (
+                      <option key={rank.id} value={rank.id}>{rank.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Days</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={editForm.days}
+                    onChange={(e) => setEditForm({ ...editForm, days: e.target.value })}
+                    placeholder="30"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Payment Type</label>
+                  <select
+                    value={editForm.paymentType}
+                    onChange={(e) => setEditForm({ ...editForm, paymentType: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+                  >
+                    <option value="one_time">One-time</option>
+                    <option value="subscription">Subscription</option>
+                    <option value="subscription_renewal">Renewal</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+                  >
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Message</label>
+                <Input
+                  value={editForm.message}
+                  onChange={(e) => setEditForm({ ...editForm, message: e.target.value })}
+                  placeholder="Donation message"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editDisplayed"
+                  checked={editForm.displayed}
+                  onChange={(e) => setEditForm({ ...editForm, displayed: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <label htmlFor="editDisplayed" className="text-sm">Show on public donations page</label>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="neon" onClick={handleEditDonation} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  Save Changes
+                </Button>
+                <Button variant="ghost" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
