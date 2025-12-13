@@ -15,6 +15,12 @@ import {
     CheckCircle,
     Sparkles,
     Globe,
+    Cpu,
+    HardDrive,
+    Heart,
+    MapPin,
+    Package,
+    Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,58 +30,78 @@ import { Navbar } from '@/components/layout/navbar';
 const AFFILIATE_URL = 'https://ultraservers.com/aff.php?code=kJj5hk5koEMNj5Il';
 const ULTRASERVERS_LOGO = 'https://ultraservers.com/templates/ultra/img/ultraservers-icon.svg';
 
+// Real UltraServers plans - $1/GB pricing
+const plans = [
+    { ram: '4GB', vcores: 2, storage: '60GB', price: 4, popular: false },
+    { ram: '6GB', vcores: 3, storage: '90GB', price: 6, popular: false },
+    { ram: '8GB', vcores: 4, storage: '120GB', price: 8, popular: true },
+    { ram: '12GB', vcores: 5, storage: '180GB', price: 12, popular: false },
+    { ram: '16GB', vcores: 6, storage: '240GB', price: 16, popular: false },
+    { ram: '32GB', vcores: 8, storage: '480GB', price: 32, popular: false },
+];
+
 const features = [
     {
-        icon: Clock,
-        title: '99.9% Uptime Guarantee',
-        description: 'Enterprise-grade infrastructure ensures your server stays online when you need it most.',
+        icon: Cpu,
+        title: 'AMD Ryzen 9950X / 7950X3D',
+        description: 'Industry-leading gaming CPUs with massive L3 cache for optimal Minecraft performance.',
         color: 'text-neon-cyan',
         bgColor: 'bg-neon-cyan/10',
     },
     {
         icon: Shield,
-        title: 'DDoS Protection',
-        description: 'Advanced protection shields your server from attacks, keeping your players safe.',
+        title: 'Advanced DDoS Protection',
+        description: 'Enterprise-grade protection against flood attacks, TCP/UDP connection attacks, and application-layer attacks.',
         color: 'text-neon-purple',
         bgColor: 'bg-neon-purple/10',
     },
     {
         icon: Headphones,
         title: '24/7 Expert Support',
-        description: 'Knowledgeable support team ready to help you anytime, day or night.',
+        description: 'Average response time under 30 minutes. Active Discord community with real-time help.',
         color: 'text-neon-pink',
         bgColor: 'bg-neon-pink/10',
     },
     {
-        icon: Rocket,
-        title: 'High Performance',
-        description: 'Latest hardware with NVMe SSDs and high-frequency CPUs for lag-free gameplay.',
+        icon: HardDrive,
+        title: 'NVMe SSD Storage',
+        description: 'Ultra-fast NVMe drives for instant world loading and zero lag during intensive operations.',
         color: 'text-success',
         bgColor: 'bg-success/10',
     },
     {
         icon: Zap,
         title: 'Instant Setup',
-        description: 'Your server is ready within minutes. No waiting, just play.',
+        description: 'Your server is deployed within minutes. 7-day money-back guarantee if you\'re not satisfied.',
         color: 'text-neon-orange',
         bgColor: 'bg-neon-orange/10',
     },
     {
         icon: Settings,
-        title: 'Full Control Panel',
-        description: 'Easy-to-use control panel with one-click modpack installations and backups.',
+        title: 'Pterodactyl Control Panel',
+        description: 'Professional game panel with file manager, subusers, schedules, backups, and one-click modpack installs.',
         color: 'text-neon-cyan',
         bgColor: 'bg-neon-cyan/10',
     },
 ];
 
 const benefits = [
-    'Unlimited player slots available',
-    'Free subdomain included',
-    'Automatic backups',
-    'One-click modpack installer',
-    'Full FTP access',
-    'MySQL database included',
+    '15,000+ one-click modpack installs',
+    'Paper, Forge, Fabric, NeoForge, Purpur, Spigot supported',
+    'Automatic hourly off-site backups',
+    'Full FTP access & 10 MySQL databases',
+    '2 free subdomains included',
+    'Free server migration from other hosts',
+    'Geyser support for Bedrock players',
+    'Proxy servers (Velocity, BungeeCord)',
+];
+
+const locations = [
+    { name: 'Ashburn, VA', region: 'North America East' },
+    { name: 'Los Angeles, CA', region: 'North America West' },
+    { name: 'Amsterdam', region: 'Europe' },
+    { name: 'Singapore', region: 'Asia' },
+    { name: 'Sydney', region: 'Australia' },
 ];
 
 export default function HostingPage() {
@@ -103,23 +129,22 @@ export default function HostingPage() {
                 />
 
                 <div className="container relative z-10 px-4 py-20 text-center space-y-8">
-                    {/* Badge */}
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full neon-border bg-background/50 backdrop-blur-sm">
-                        <Server className="h-4 w-4 text-neon-cyan" />
-                        <span className="text-sm font-medium gradient-text">Recommended Hosting Partner</span>
+                    {/* Support Badge */}
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 border border-success/30">
+                        <Heart className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">25% of your purchase supports Vonix Network</span>
                     </div>
 
                     {/* Main Headline */}
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight">
-                        <span className="gradient-text-animated">Premium</span>
+                        <span className="gradient-text-animated">$1/GB</span>
                         <br />
-                        Server Hosting
+                        Minecraft Hosting
                     </h1>
 
                     {/* Subheadline */}
                     <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                        Powered by <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:text-neon-cyan/80 transition-colors font-semibold hover:underline">UltraServers.com</a> — The hosting provider
-                        trusted by Vonix Network for reliable, high-performance Minecraft servers.
+                        Powered by <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:text-neon-cyan/80 transition-colors font-semibold hover:underline">UltraServers.com</a> — AMD Ryzen 9950X & 7950X3D processors, NVMe storage, and 24/7 support.
                     </p>
 
                     {/* UltraServers Logo */}
@@ -140,34 +165,119 @@ export default function HostingPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <Button size="xl" variant="gradient" asChild>
                             <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer">
-                                Get Started with UltraServers
+                                Get Started from $4/mo
                                 <ExternalLink className="h-5 w-5" />
                             </a>
                         </Button>
 
                         <Button size="xl" variant="neon-outline" asChild>
-                            <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer">
-                                View Plans
+                            <a href="#pricing">
+                                View All Plans
                             </a>
                         </Button>
                     </div>
                 </div>
             </section>
 
+            {/* Pricing Section */}
+            <section id="pricing" className="relative py-24 px-4">
+                <div className="container">
+                    {/* Section Header */}
+                    <div className="text-center mb-16 space-y-4">
+                        <Badge variant="neon" className="mb-4">
+                            <Package className="h-3 w-3 mr-1" />
+                            Simple Pricing
+                        </Badge>
+                        <h2 className="text-4xl md:text-5xl font-bold">
+                            Just <span className="gradient-text">$1 per GB</span> of RAM
+                        </h2>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            CPU, storage, and RAM all scale together. No hidden fees, no add-ons needed.
+                        </p>
+                    </div>
+
+                    {/* Pricing Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {plans.map((plan, index) => (
+                            <Card
+                                key={index}
+                                variant={plan.popular ? 'neon-glow' : 'glass'}
+                                hover
+                                className="relative"
+                            >
+                                {plan.popular && (
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                        <Badge variant="gradient">Most Popular</Badge>
+                                    </div>
+                                )}
+                                <CardContent className="p-6 space-y-6">
+                                    <div className="text-center">
+                                        <div className="text-4xl font-bold gradient-text">{plan.ram}</div>
+                                        <div className="text-muted-foreground">RAM</div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Cpu className="h-4 w-4 text-neon-cyan" />
+                                            <span>{plan.vcores} vCores – Ryzen 9950X/7950X3D</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <HardDrive className="h-4 w-4 text-neon-purple" />
+                                            <span>{plan.storage} NVMe Storage</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Shield className="h-4 w-4 text-success" />
+                                            <span>DDoS Protection Included</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center pt-4 border-t border-white/10">
+                                        <div className="text-3xl font-bold">
+                                            ${plan.price}<span className="text-sm text-muted-foreground">/mo</span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        variant={plan.popular ? 'gradient' : 'neon-outline'}
+                                        className="w-full"
+                                        asChild
+                                    >
+                                        <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer">
+                                            Select Plan
+                                            <ExternalLink className="h-4 w-4 ml-2" />
+                                        </a>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Larger Plans Note */}
+                    <div className="text-center mt-8">
+                        <p className="text-muted-foreground">
+                            Need more power? Plans available up to <span className="text-neon-cyan font-semibold">64GB RAM</span> with 8 vCores and 960GB NVMe.{' '}
+                            <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer" className="text-neon-purple hover:underline">
+                                View all plans →
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             {/* Features Section */}
-            <section className="relative py-24 px-4">
+            <section className="relative py-24 px-4 bg-gradient-to-b from-background to-background/50">
                 <div className="container">
                     {/* Section Header */}
                     <div className="text-center mb-16 space-y-4">
                         <Badge variant="neon" className="mb-4">
                             <Sparkles className="h-3 w-3 mr-1" />
-                            Features
+                            Premium Features
                         </Badge>
                         <h2 className="text-4xl md:text-5xl font-bold">
-                            Why Choose <span className="gradient-text">UltraServers</span>
+                            Enterprise-Grade <span className="gradient-text">Hardware</span>
                         </h2>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                            Experience premium Minecraft hosting with enterprise-grade features
+                            UltraServers uses the latest AMD Ryzen processors optimized for Minecraft
                         </p>
                     </div>
 
@@ -196,6 +306,38 @@ export default function HostingPage() {
                 </div>
             </section>
 
+            {/* Global Locations Section */}
+            <section className="relative py-24 px-4">
+                <div className="container">
+                    <div className="text-center mb-12 space-y-4">
+                        <Badge variant="neon-purple" className="mb-4">
+                            <Globe className="h-3 w-3 mr-1" />
+                            Global Network
+                        </Badge>
+                        <h2 className="text-4xl md:text-5xl font-bold">
+                            <span className="gradient-text">5 Server Locations</span> Worldwide
+                        </h2>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            Choose the location closest to your players for the lowest latency
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-4">
+                        {locations.map((location, index) => (
+                            <Card key={index} variant="glass" className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <MapPin className="h-5 w-5 text-neon-cyan" />
+                                    <div>
+                                        <div className="font-semibold">{location.name}</div>
+                                        <div className="text-sm text-muted-foreground">{location.region}</div>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Benefits Section */}
             <section className="relative py-24 px-4">
                 <div className="container">
@@ -203,20 +345,19 @@ export default function HostingPage() {
                         {/* Left Side - Content */}
                         <div className="space-y-6">
                             <Badge variant="neon-purple" className="mb-4">
-                                <Globe className="h-3 w-3 mr-1" />
-                                Trusted Partner
+                                <Database className="h-3 w-3 mr-1" />
+                                Everything Included
                             </Badge>
 
                             <h2 className="text-4xl md:text-5xl font-bold">
-                                Why Vonix Network
+                                All Server Types
                                 <br />
-                                <span className="gradient-text">Recommends UltraServers</span>
+                                <span className="gradient-text">15,000+ Modpacks</span>
                             </h2>
 
                             <p className="text-lg text-muted-foreground">
-                                We've tested countless hosting providers, and UltraServers consistently delivers
-                                the performance, reliability, and support that serious Minecraft communities demand.
-                                That's why we trust them to host our servers and recommend them to our players.
+                                Whether you're running vanilla, Forge, Fabric, Paper, or any modpack from CurseForge,
+                                Modrinth, ATLauncher, or Feed The Beast — UltraServers has you covered with one-click installation.
                             </p>
 
                             <div className="space-y-3 pt-4">
@@ -240,29 +381,33 @@ export default function HostingPage() {
                             </div>
                         </div>
 
-                        {/* Right Side - Decorative Card */}
+                        {/* Right Side - Stats Card */}
                         <div className="relative">
                             <Card variant="neon-glow" className="p-8">
                                 <div className="space-y-6 text-center">
                                     <div className="w-24 h-24 mx-auto rounded-2xl bg-neon-rainbow flex items-center justify-center">
-                                        <Server className="w-12 h-12 text-white" />
+                                        <Heart className="w-12 h-12 text-white" />
                                     </div>
 
                                     <div>
-                                        <h3 className="text-2xl font-bold mb-2">Ready to Get Started?</h3>
+                                        <h3 className="text-2xl font-bold mb-2">Support Vonix Network</h3>
                                         <p className="text-muted-foreground">
-                                            Join thousands of server owners who trust UltraServers for their Minecraft hosting needs.
+                                            When you sign up through our link, <span className="text-success font-semibold">25% of your purchase supports Vonix Network</span> at no extra cost to you!
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-4">
+                                    <div className="grid grid-cols-3 gap-4 pt-4">
                                         <div className="p-4 rounded-xl bg-white/5">
-                                            <div className="text-3xl font-bold text-neon-cyan">99.9%</div>
-                                            <div className="text-sm text-muted-foreground">Uptime</div>
+                                            <div className="text-2xl font-bold text-neon-cyan">$1</div>
+                                            <div className="text-xs text-muted-foreground">per GB</div>
                                         </div>
                                         <div className="p-4 rounded-xl bg-white/5">
-                                            <div className="text-3xl font-bold text-neon-purple">24/7</div>
-                                            <div className="text-sm text-muted-foreground">Support</div>
+                                            <div className="text-2xl font-bold text-neon-purple">15K+</div>
+                                            <div className="text-xs text-muted-foreground">Modpacks</div>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-white/5">
+                                            <div className="text-2xl font-bold text-success">7 Day</div>
+                                            <div className="text-xs text-muted-foreground">Refund</div>
                                         </div>
                                     </div>
 
@@ -305,18 +450,17 @@ export default function HostingPage() {
                             </div>
 
                             <h2 className="text-4xl md:text-5xl font-bold">
-                                Start Your Minecraft Server Today
+                                Ready to Start Your Server?
                             </h2>
 
                             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                                Join the Vonix Network community in using UltraServers for reliable,
-                                high-performance Minecraft hosting
+                                AMD Ryzen 9950X/7950X3D • NVMe Storage • 24/7 Support • 7-Day Money-Back Guarantee
                             </p>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
                                 <Button size="xl" variant="neon" asChild>
                                     <a href={AFFILIATE_URL} target="_blank" rel="noopener noreferrer">
-                                        Get Started Now
+                                        Get Started from $4/mo
                                         <ExternalLink className="h-5 w-5" />
                                     </a>
                                 </Button>
@@ -334,10 +478,14 @@ export default function HostingPage() {
 
             {/* Footer */}
             <footer className="border-t border-white/10 py-8 px-4">
-                <div className="container text-center">
-                    <p className="text-sm text-muted-foreground">
-                        <span className="text-neon-cyan">*</span> Vonix Network is an affiliate partner of UltraServers.
-                        We may receive a commission for purchases made through our links at no extra cost to you.
+                <div className="container text-center space-y-2">
+                    <p className="text-sm text-success font-medium">
+                        <Heart className="h-4 w-4 inline mr-1" />
+                        25% of purchases through our links support Vonix Network!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        * Vonix Network is an affiliate partner of UltraServers.
+                        All prices in USD. Features and specs sourced from ultraservers.com.
                     </p>
                 </div>
             </footer>
