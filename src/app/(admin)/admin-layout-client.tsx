@@ -2,24 +2,62 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, Users, Server,
-    Heart, Settings, Shield, BarChart3, Bell, Key, Calendar, Crown, MessageSquare, Activity, Gamepad2, Menu, X
+    Heart, Settings, Shield, BarChart3, Bell, Key, Calendar, Crown, MessageSquare, Activity, Gamepad2, Menu, X,
+    ChevronDown, Ticket
 } from 'lucide-react';
 
-const adminNav = [
-    { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/users', icon: Users, label: 'Users' },
-    { href: '/admin/servers', icon: Server, label: 'Servers' },
-    { href: '/admin/forum', icon: MessageSquare, label: 'Forum' },
-    { href: '/admin/events', icon: Calendar, label: 'Events' },
-    { href: '/admin/donor-ranks', icon: Crown, label: 'Donor Ranks' },
-    { href: '/admin/donations', icon: Heart, label: 'Donations' },
-    { href: '/admin/api-keys', icon: Key, label: 'API Keys' },
-    { href: '/admin/moderation', icon: Shield, label: 'Moderation' },
-    { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
-    { href: '/admin/status', icon: Activity, label: 'Status' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings' },
+interface NavGroup {
+    label: string;
+    items: { href: string; icon: any; label: string }[];
+}
+
+const adminNavGroups: NavGroup[] = [
+    {
+        label: 'Overview',
+        items: [
+            { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+            { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+            { href: '/admin/status', icon: Activity, label: 'Status' },
+        ],
+    },
+    {
+        label: 'Community',
+        items: [
+            { href: '/admin/users', icon: Users, label: 'Users' },
+            { href: '/admin/forum', icon: MessageSquare, label: 'Forum' },
+            { href: '/admin/moderation', icon: Shield, label: 'Moderation' },
+        ],
+    },
+    {
+        label: 'Server',
+        items: [
+            { href: '/admin/servers', icon: Server, label: 'Servers' },
+            { href: '/admin/events', icon: Calendar, label: 'Events' },
+        ],
+    },
+    {
+        label: 'Revenue',
+        items: [
+            { href: '/admin/donations', icon: Heart, label: 'Donations' },
+            { href: '/admin/donor-ranks', icon: Crown, label: 'Donor Ranks' },
+        ],
+    },
+    {
+        label: 'Support',
+        items: [
+            { href: '/admin/tickets', icon: Ticket, label: 'Tickets' },
+        ],
+    },
+    {
+        label: 'System',
+        items: [
+            { href: '/admin/api-keys', icon: Key, label: 'API Keys' },
+            { href: '/admin/settings', icon: Settings, label: 'Settings' },
+        ],
+    },
 ];
 
 const superadminNav = [
@@ -36,6 +74,20 @@ interface AdminLayoutClientProps {
 
 export function AdminLayoutClient({ children, username, role, isSuperadmin }: AdminLayoutClientProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<string[]>(['Overview', 'Support']); // Default expanded
+    const pathname = usePathname();
+
+    const toggleGroup = (label: string) => {
+        setExpandedGroups(prev =>
+            prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]
+        );
+    };
+
+    const isActive = (href: string) => {
+        if (!pathname) return false;
+        if (href === '/admin') return pathname === '/admin';
+        return pathname.startsWith(href);
+    };
 
     return (
         <div className="min-h-screen bg-background flex relative">
@@ -73,23 +125,47 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                     </button>
                 </div>
 
-                <nav className="px-3 space-y-1 overflow-y-auto max-h-[calc(100vh-180px)]">
-                    {adminNav.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setSidebarOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                        >
-                            <item.icon className="w-5 h-5" />
-                            {item.label}
-                        </Link>
-                    ))}
+                <nav className="px-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+                    {adminNavGroups.map((group) => {
+                        const isExpanded = expandedGroups.includes(group.label);
+                        const hasActiveItem = group.items.some(item => isActive(item.href));
+
+                        return (
+                            <div key={group.label} className="mb-1">
+                                <button
+                                    onClick={() => toggleGroup(group.label)}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasActiveItem ? 'text-neon-cyan' : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                >
+                                    <span>{group.label}</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isExpanded && (
+                                    <div className="ml-2 space-y-0.5">
+                                        {group.items.map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => setSidebarOpen(false)}
+                                                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${isActive(item.href)
+                                                    ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
+                                                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                                                    }`}
+                                            >
+                                                <item.icon className="w-4 h-4" />
+                                                {item.label}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
 
                     {/* Superadmin-only Pterodactyl section */}
                     {isSuperadmin && (
                         <>
-                            <div className="pt-4 pb-2 px-4">
+                            <div className="pt-4 pb-2 px-3">
                                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-2">
                                     <Gamepad2 className="w-3 h-3" />
                                     Pterodactyl
@@ -100,9 +176,12 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                                     key={item.href}
                                     href={item.href}
                                     onClick={() => setSidebarOpen(false)}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                                    className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${isActive(item.href)
+                                        ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                                        }`}
                                 >
-                                    <item.icon className="w-5 h-5" />
+                                    <item.icon className="w-4 h-4" />
                                     {item.label}
                                 </Link>
                             ))}

@@ -527,4 +527,31 @@ export type ReportedContent = typeof reportedContent.$inferSelect;
 export type ServerUptimeRecord = typeof serverUptimeRecords.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
 export type DiscordMessage = typeof discordMessages.$inferSelect;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type TicketMessage = typeof ticketMessages.$inferSelect;
 
+// ===================================
+// SUPPORT TICKETS
+// ===================================
+
+export const supportTickets = sqliteTable('support_tickets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  subject: text('subject').notNull(),
+  category: text('category', { enum: ['account', 'billing', 'technical', 'general', 'other'] }).default('general').notNull(),
+  priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }).default('normal').notNull(),
+  status: text('status', { enum: ['open', 'in_progress', 'waiting', 'resolved', 'closed'] }).default('open').notNull(),
+  assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  closedAt: integer('closed_at', { mode: 'timestamp' }),
+});
+
+export const ticketMessages = sqliteTable('ticket_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  message: text('message').notNull(),
+  isStaffReply: integer('is_staff_reply', { mode: 'boolean' }).default(false).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
