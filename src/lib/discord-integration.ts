@@ -906,6 +906,7 @@ export async function setupDiscordIntegrationListeners() {
                 userId: user?.id || null,
                 discordUserId: message.author.id,
                 discordUsername: message.author.username,
+                discordAvatar: message.author.avatar,
                 message: message.content,
                 isStaffReply: isStaff,
             });

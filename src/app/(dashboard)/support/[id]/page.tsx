@@ -9,7 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime, getInitials } from '@/lib/utils';
 
 interface TicketData {
@@ -30,6 +30,7 @@ interface MessageData {
     createdAt: string;
     username: string;
     userRole: string;
+    avatarUrl: string | null;
 }
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
@@ -159,6 +160,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
                             <div key={msg.id} className={`p-4 ${msg.isStaffReply ? 'bg-neon-cyan/5' : ''}`}>
                                 <div className="flex items-start gap-3">
                                     <Avatar className="w-8 h-8">
+                                        {msg.avatarUrl && <AvatarImage src={msg.avatarUrl} alt={msg.username} />}
                                         <AvatarFallback className={msg.isStaffReply ? 'bg-neon-cyan/20 text-neon-cyan' : ''}>
                                             {msg.isStaffReply ? <Shield className="w-4 h-4" /> : getInitials(msg.username || 'U')}
                                         </AvatarFallback>

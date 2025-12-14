@@ -634,6 +634,7 @@ export const ticketMessages = sqliteTable('ticket_messages', {
   guestName: text('guest_name'), // For guest messages
   discordUserId: text('discord_user_id'), // For Discord user messages
   discordUsername: text('discord_username'),
+  discordAvatar: text('discord_avatar'), // Discord avatar hash or URL
   message: text('message').notNull(),
   isStaffReply: integer('is_staff_reply', { mode: 'boolean' }).default(false).notNull(),
   isSystemMessage: integer('is_system_message', { mode: 'boolean' }).default(false).notNull(),

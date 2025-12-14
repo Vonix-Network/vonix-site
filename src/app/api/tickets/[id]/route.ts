@@ -60,20 +60,56 @@ export async function GET(
         }
 
         // Get messages
-        const messages = await db
+        const rawMessages = await db
             .select({
                 id: ticketMessages.id,
                 message: ticketMessages.message,
                 isStaffReply: ticketMessages.isStaffReply,
                 createdAt: ticketMessages.createdAt,
                 userId: ticketMessages.userId,
-                username: users.username,
+                linkedUsername: users.username,
+                linkedAvatar: users.avatar,
+                linkedDiscordAvatar: users.discordAvatar,
+                linkedDiscordId: users.discordId,
                 userRole: users.role,
+                discordUserId: ticketMessages.discordUserId,
+                discordUsername: ticketMessages.discordUsername,
+                discordAvatar: ticketMessages.discordAvatar,
+                guestName: ticketMessages.guestName,
             })
             .from(ticketMessages)
             .leftJoin(users, eq(ticketMessages.userId, users.id))
             .where(eq(ticketMessages.ticketId, ticketId))
             .orderBy(asc(ticketMessages.createdAt));
+
+        // Helper to construct Discord avatar URL
+        const getDiscordAvatarUrl = (userId: string | null, avatarHash: string | null) => {
+            if (!userId || !avatarHash) return null;
+            return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
+        };
+
+        // Resolve username and avatar: prefer linked user, then discord, then guest
+        const messages = rawMessages.map(msg => {
+            // Resolve avatar URL
+            let avatarUrl: string | null = null;
+            if (msg.linkedAvatar) {
+                avatarUrl = msg.linkedAvatar;
+            } else if (msg.linkedDiscordId && msg.linkedDiscordAvatar) {
+                avatarUrl = getDiscordAvatarUrl(msg.linkedDiscordId, msg.linkedDiscordAvatar);
+            } else if (msg.discordUserId && msg.discordAvatar) {
+                avatarUrl = getDiscordAvatarUrl(msg.discordUserId, msg.discordAvatar);
+            }
+
+            return {
+                id: msg.id,
+                message: msg.message,
+                isStaffReply: msg.isStaffReply,
+                createdAt: msg.createdAt,
+                username: msg.linkedUsername || msg.discordUsername || msg.guestName || 'Unknown',
+                userRole: msg.userRole,
+                avatarUrl,
+            };
+        });
 
         return NextResponse.json({ ticket, messages, isStaff });
     } catch (error) {

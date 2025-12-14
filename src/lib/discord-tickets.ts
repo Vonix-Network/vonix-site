@@ -1775,6 +1775,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
             ticketId: ticket.id,
             discordUserId: message.author.id,
             discordUsername: message.author.username,
+            discordAvatar: message.author.avatar,
             message: message.content,
             isStaffReply: isUserStaff,
         });
