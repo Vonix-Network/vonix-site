@@ -10,6 +10,9 @@ const ALL_DISCORD_SETTINGS = [
     'discord_chat_webhook',
     'discord_bot_token',
     'discord_chat_channel_id',
+    // Discord integration settings (for slash commands, role management)
+    'discord_client_id',
+    'discord_guild_id',
     // Second channel for Minecraft server embeds (Viscord)
     'discord_viscord_channel_id',
     'discord_viscord_channel_name',
@@ -56,6 +59,9 @@ export async function GET(request: NextRequest) {
                 webhookUrl: settingsMap['discord_chat_webhook'] || '',
                 botToken: settingsMap['discord_bot_token'] || '',
                 channelId: settingsMap['discord_chat_channel_id'] || '',
+                // Discord integration (slash commands, role management)
+                clientId: settingsMap['discord_client_id'] || '',
+                guildId: settingsMap['discord_guild_id'] || '',
                 // Viscord (Minecraft server embeds) channel
                 viscordChannelId: settingsMap['discord_viscord_channel_id'] || '',
                 viscordChannelName: settingsMap['discord_viscord_channel_name'] || '',
@@ -128,6 +134,23 @@ export async function PATCH(request: NextRequest) {
                 key: 'discord_chat_channel_name',
                 value: body.channelName,
                 description: 'Discord channel name for display',
+            });
+        }
+
+        // Discord integration settings (for slash commands)
+        if (typeof body.clientId === 'string') {
+            updates.push({
+                key: 'discord_client_id',
+                value: body.clientId,
+                description: 'Discord Application/Client ID for slash commands',
+            });
+        }
+
+        if (typeof body.guildId === 'string') {
+            updates.push({
+                key: 'discord_guild_id',
+                value: body.guildId,
+                description: 'Discord Server/Guild ID for slash commands',
             });
         }
 

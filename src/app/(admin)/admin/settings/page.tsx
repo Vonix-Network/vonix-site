@@ -148,6 +148,9 @@ export default function AdminSettingsPage() {
     botToken: '',
     channelId: '',
     channelName: '',
+    // Discord integration (slash commands)
+    clientId: '',
+    guildId: '',
     // Viscord (Minecraft server embeds) channel
     viscordChannelId: '',
     viscordChannelName: '',
@@ -182,6 +185,8 @@ export default function AdminSettingsPage() {
             botToken: discordData.botToken || '',
             channelId: discordData.channelId || '',
             channelName: discordData.channelName || '',
+            clientId: discordData.clientId || '',
+            guildId: discordData.guildId || '',
             viscordChannelId: discordData.viscordChannelId || '',
             viscordChannelName: discordData.viscordChannelName || '',
             donationWebhookUrl: discordData.donationWebhookUrl || '',
@@ -1485,6 +1490,30 @@ export default function AdminSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Enable Developer Mode in Discord, right-click channel → Copy ID
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Client ID (Application ID)</label>
+                    <Input
+                      value={discordSettings.clientId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, clientId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required for slash commands. Get this from Discord Developer Portal → General Information → Application ID
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Guild ID (Server ID)</label>
+                    <Input
+                      value={discordSettings.guildId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, guildId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required for slash commands. Right-click your server icon → Copy ID
                     </p>
                   </div>
                 </CardContent>
