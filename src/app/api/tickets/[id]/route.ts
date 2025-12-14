@@ -31,7 +31,7 @@ export async function GET(
         }
 
         // Get ticket with creator info
-        const [ticket] = await db
+        const [ticketRaw] = await db
             .select({
                 id: supportTickets.id,
                 subject: supportTickets.subject,
@@ -42,13 +42,20 @@ export async function GET(
                 updatedAt: supportTickets.updatedAt,
                 closedAt: supportTickets.closedAt,
                 userId: supportTickets.userId,
-                username: users.username,
+                linkedUsername: users.username,
+                discordUsername: supportTickets.discordUsername,
                 assignedTo: supportTickets.assignedTo,
                 discordThreadId: supportTickets.discordThreadId,
             })
             .from(supportTickets)
             .leftJoin(users, eq(supportTickets.userId, users.id))
             .where(eq(supportTickets.id, ticketId));
+        
+        // Resolve username: prefer linked user, fallback to discordUsername
+        const ticket = ticketRaw ? {
+            ...ticketRaw,
+            username: ticketRaw.linkedUsername || ticketRaw.discordUsername || 'Unknown',
+        } : null;
 
         if (!ticket) {
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
