@@ -23,6 +23,9 @@ export async function POST(
         const { id } = await params;
         const ticketId = parseInt(id);
 
+        // Parse user ID (session stores it as string)
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
         if (isNaN(ticketId)) {
             return NextResponse.json({ error: 'Invalid ticket ID' }, { status: 400 });
         }
@@ -38,7 +41,7 @@ export async function POST(
         }
 
         // Check permission
-        if (!isStaff && ticket.userId !== user.id) {
+        if (!isStaff && ticket.userId !== userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
@@ -60,7 +63,7 @@ export async function POST(
         // Add message
         const [newMessage] = await db.insert(ticketMessages).values({
             ticketId,
-            userId: user.id,
+            userId,
             message,
             isStaffReply: isStaff,
         }).returning();

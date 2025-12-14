@@ -23,6 +23,9 @@ export async function GET(
         const { id } = await params;
         const ticketId = parseInt(id);
 
+        // Parse user ID (session stores it as string)
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
         if (isNaN(ticketId)) {
             return NextResponse.json({ error: 'Invalid ticket ID' }, { status: 400 });
         }
@@ -41,6 +44,7 @@ export async function GET(
                 userId: supportTickets.userId,
                 username: users.username,
                 assignedTo: supportTickets.assignedTo,
+                discordThreadId: supportTickets.discordThreadId,
             })
             .from(supportTickets)
             .leftJoin(users, eq(supportTickets.userId, users.id))
@@ -51,7 +55,7 @@ export async function GET(
         }
 
         // Check permission
-        if (!isStaff && ticket.userId !== user.id) {
+        if (!isStaff && ticket.userId !== userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 

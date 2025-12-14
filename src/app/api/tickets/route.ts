@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
             .orderBy(desc(supportTickets.updatedAt))
             .limit(limit);
 
+        // Parse user ID (session stores it as string)
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
         // Filter by user if not staff
         const tickets = isStaff
             ? await query
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
                 })
                 .from(supportTickets)
                 .leftJoin(users, eq(supportTickets.userId, users.id))
-                .where(eq(supportTickets.userId, user.id))
+                .where(eq(supportTickets.userId, userId))
                 .orderBy(desc(supportTickets.updatedAt))
                 .limit(limit);
 
@@ -113,9 +116,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Parse user ID (session stores it as string)
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        if (isNaN(userId)) {
+            return NextResponse.json({ error: 'Invalid user session' }, { status: 400 });
+        }
+
         // Create ticket
         const [ticket] = await db.insert(supportTickets).values({
-            userId: user.id,
+            userId,
             subject,
             category: category || 'general',
             priority: priority || 'normal',
@@ -125,7 +134,7 @@ export async function POST(request: NextRequest) {
         // Create first message
         await db.insert(ticketMessages).values({
             ticketId: ticket.id,
-            userId: user.id,
+            userId,
             message,
             isStaffReply: false,
         });
