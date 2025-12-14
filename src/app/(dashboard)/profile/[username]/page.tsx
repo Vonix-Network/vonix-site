@@ -20,6 +20,7 @@ import { RankBadge, RoleBadge, UserBadges } from '@/components/rank-badge';
 import { formatRankExpiration } from '@/lib/ranks';
 import { auth } from '../../../../../auth';
 import { ProfileFriendActions, FriendshipStatus } from '@/components/profile-friend-actions';
+import { MinecraftSkinViewer } from '@/components/minecraft-skin-viewer';
 
 // Force dynamic rendering to ensure fresh XP data
 export const dynamic = 'force-dynamic';
@@ -427,18 +428,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           {/* Minecraft Skin */}
           {user.minecraftUsername && (
-            <Card variant="glass">
-              <CardHeader>
-                <CardTitle>Minecraft Skin</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <img
-                  src={`https://mc-heads.net/body/${user.minecraftUsername}/150`}
-                  alt={`${user.minecraftUsername}'s skin`}
-                  className="mx-auto"
-                />
-              </CardContent>
-            </Card>
+            <MinecraftSkinViewer 
+              username={user.minecraftUsername} 
+              uuid={user.minecraftUuid || undefined}
+            />
           )}
         </div>
       </div>

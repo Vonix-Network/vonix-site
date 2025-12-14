@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { supportTickets, ticketMessages, guestTicketTokens, ticketCategories } from '@/db/schema';
-import { desc, eq, and, gt } from 'drizzle-orm';
+import { desc, eq, and, gt, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sendTicketAccessEmail } from '@/lib/email';
 
@@ -35,8 +35,13 @@ export async function POST(request: NextRequest) {
         const accessToken = crypto.randomBytes(32).toString('hex');
         const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+        // Get next ticket number
+        const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
+        const ticketNumber = (result[0]?.maxNum || 0) + 1;
+
         // Create ticket
         const [ticket] = await db.insert(supportTickets).values({
+            number: ticketNumber,
             userId: null, // Guest ticket
             categoryId: categoryId || null,
             subject,

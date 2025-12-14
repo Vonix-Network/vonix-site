@@ -122,8 +122,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid user session' }, { status: 400 });
         }
 
+        // Get next ticket number
+        const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
+        const ticketNumber = (result[0]?.maxNum || 0) + 1;
+
         // Create ticket
         const [ticket] = await db.insert(supportTickets).values({
+            number: ticketNumber,
             userId,
             subject,
             category: category || 'general',

@@ -548,13 +548,20 @@ export const ticketCategories = sqliteTable('ticket_categories', {
   emoji: text('emoji').default('🎫'),
   color: text('color').default('#00FFFF'),
   discordCategoryId: text('discord_category_id'), // Discord category for ticket channels
+  channelName: text('channel_name').default('ticket-{number}-{username}'), // Channel name template
   staffRoles: text('staff_roles'), // JSON array of staff role IDs
   pingRoles: text('ping_roles'), // JSON array of roles to ping on new tickets
+  requiredRoles: text('required_roles'), // JSON array of roles required to create tickets
+  blocklist: text('blocklist'), // JSON array of blocked role IDs
   openingMessage: text('opening_message'),
+  image: text('image'), // Image URL for opening embed
   requireTopic: integer('require_topic', { mode: 'boolean' }).default(false),
+  claiming: integer('claiming', { mode: 'boolean' }).default(true), // Enable ticket claiming
+  feedbackEnabled: integer('feedback_enabled', { mode: 'boolean' }).default(true),
   memberLimit: integer('member_limit').default(3), // Max open tickets per user
   totalLimit: integer('total_limit').default(50), // Max total open tickets
   cooldown: integer('cooldown'), // Cooldown in seconds between tickets
+  ratelimit: integer('ratelimit'), // Slowmode for ticket channel in seconds
   enabled: integer('enabled', { mode: 'boolean' }).default(true),
   order: integer('order').default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
@@ -581,15 +588,19 @@ export const ticketQuestions = sqliteTable('ticket_questions', {
 
 export const supportTickets = sqliteTable('support_tickets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  number: integer('number').notNull(), // Sequential ticket number
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   categoryId: integer('category_id').references(() => ticketCategories.id, { onDelete: 'set null' }),
   subject: text('subject').notNull(),
+  topic: text('topic'), // Encrypted topic/description
   category: text('category', { enum: ['account', 'billing', 'technical', 'general', 'other'] }).default('general').notNull(),
   priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }).default('normal').notNull(),
   status: text('status', { enum: ['open', 'in_progress', 'waiting', 'resolved', 'closed'] }).default('open').notNull(),
   assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
   discordThreadId: text('discord_thread_id'), // Discord forum thread ID for this ticket
   discordChannelId: text('discord_channel_id'), // Discord channel ID for this ticket
+  openingMessageId: text('opening_message_id'), // Discord message ID of opening message
+  pinnedMessageIds: text('pinned_message_ids'), // JSON array of pinned message IDs
   // Guest ticket support
   guestEmail: text('guest_email'),
   guestName: text('guest_name'),
@@ -600,11 +611,19 @@ export const supportTickets = sqliteTable('support_tickets', {
   discordUsername: text('discord_username'),
   // Ticket metadata
   claimedById: integer('claimed_by_id').references(() => users.id, { onDelete: 'set null' }),
+  claimedByDiscordId: text('claimed_by_discord_id'),
   claimedAt: integer('claimed_at', { mode: 'timestamp' }),
   firstResponseAt: integer('first_response_at', { mode: 'timestamp' }),
+  lastMessageAt: integer('last_message_at', { mode: 'timestamp' }), // For stale/auto-close detection
+  messageCount: integer('message_count').default(0),
+  // References to other tickets/messages
+  referencesTicketId: integer('references_ticket_id'), // ID of referenced ticket
+  referencesMessageId: text('references_message_id'), // Discord message ID
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   closedAt: integer('closed_at', { mode: 'timestamp' }),
+  closedById: integer('closed_by_id').references(() => users.id, { onDelete: 'set null' }),
+  closedByDiscordId: text('closed_by_discord_id'),
   closedReason: text('closed_reason'),
 });
 
@@ -639,3 +658,83 @@ export const guestTicketTokens = sqliteTable('guest_ticket_tokens', {
   usedAt: integer('used_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
+
+// ===================================
+// TICKET FEEDBACK
+// ===================================
+
+export const ticketFeedback = sqliteTable('ticket_feedback', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(), // 1-5 stars
+  comment: text('comment'), // Optional feedback comment
+  discordUserId: text('discord_user_id'),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
+// TICKET TAGS (Predefined Responses)
+// ===================================
+
+export const ticketTags = sqliteTable('ticket_tags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  content: text('content').notNull(), // The response template
+  emoji: text('emoji').default('📝'),
+  categoryId: integer('category_id').references(() => ticketCategories.id, { onDelete: 'set null' }), // Optional category restriction
+  staffOnly: integer('staff_only', { mode: 'boolean' }).default(true),
+  enabled: integer('enabled', { mode: 'boolean' }).default(true),
+  usageCount: integer('usage_count').default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
+// ARCHIVED MESSAGES (For Transcripts)
+// ===================================
+
+export const archivedMessages = sqliteTable('archived_messages', {
+  id: text('id').primaryKey(), // Discord message ID
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  authorId: text('author_id').notNull(), // Discord user ID
+  authorUsername: text('author_username').notNull(),
+  authorAvatar: text('author_avatar'),
+  content: text('content'),
+  attachments: text('attachments'), // JSON array of attachment data
+  embeds: text('embeds'), // JSON array of embed data
+  isBot: integer('is_bot', { mode: 'boolean' }).default(false),
+  isExternal: integer('is_external', { mode: 'boolean' }).default(false), // Referenced message from another channel
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+// ===================================
+// TICKET SETTINGS (Guild/Server Settings)
+// ===================================
+
+export const ticketSettings = sqliteTable('ticket_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  guildId: text('guild_id').notNull().unique(), // Discord guild ID
+  logChannelId: text('log_channel_id'), // Channel for ticket logs
+  transcriptChannelId: text('transcript_channel_id'), // Channel for transcripts
+  archiveEnabled: integer('archive_enabled', { mode: 'boolean' }).default(true),
+  dmOnClose: integer('dm_on_close', { mode: 'boolean' }).default(true),
+  dmOnOpen: integer('dm_on_open', { mode: 'boolean' }).default(false),
+  closeButton: integer('close_button', { mode: 'boolean' }).default(true),
+  claimButton: integer('claim_button', { mode: 'boolean' }).default(true),
+  autoCloseHours: integer('auto_close_hours'), // Hours before auto-closing inactive tickets
+  staleHours: integer('stale_hours'), // Hours before marking ticket as stale
+  workingHours: text('working_hours'), // JSON: {timezone, schedule}
+  primaryColor: text('primary_color').default('#00FFFF'),
+  successColor: text('success_color').default('#00FF00'),
+  errorColor: text('error_color').default('#FF0000'),
+  footer: text('footer').default('Vonix Network Support'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// Type exports for new tables
+export type TicketFeedback = typeof ticketFeedback.$inferSelect;
+export type TicketTag = typeof ticketTags.$inferSelect;
+export type ArchivedMessage = typeof archivedMessages.$inferSelect;
+export type TicketSettings = typeof ticketSettings.$inferSelect;

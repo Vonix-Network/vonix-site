@@ -7,7 +7,7 @@
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ChannelType, ForumChannel, ThreadChannel, GuildMember, EmbedBuilder, TextInputBuilder } from 'discord.js';
 import { db } from '@/db';
 import { users, donationRanks, supportTickets, ticketMessages, siteSettings, ticketCategories } from '@/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 let discordClient: Client | null = null;
 let discordRest: REST | null = null;
@@ -526,8 +526,13 @@ export async function handleTicketCommand(interaction: any): Promise<void> {
         const category = interaction.options.getString('category') || 'general';
         const priority = interaction.options.getString('priority') || 'normal';
 
+        // Get next ticket number
+        const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
+        const ticketNumber = (result[0]?.maxNum || 0) + 1;
+
         // Create ticket in database
         const [ticket] = await db.insert(supportTickets).values({
+            number: ticketNumber,
             userId: null, // Will link if user has account
             subject,
             category,
@@ -717,8 +722,13 @@ export async function handleTicketModalSubmit(interaction: any): Promise<void> {
         const subject = interaction.fields.getTextInputValue('ticket_subject');
         const description = interaction.fields.getTextInputValue('ticket_description');
 
+        // Get next ticket number
+        const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
+        const ticketNumber = (result[0]?.maxNum || 0) + 1;
+
         // Create ticket
         const [ticket] = await db.insert(supportTickets).values({
+            number: ticketNumber,
             userId: null,
             subject,
             category: 'general',
@@ -934,8 +944,13 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
             }
         }
 
+        // Get next ticket number
+        const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
+        const ticketNumber = (result[0]?.maxNum || 0) + 1;
+
         // Create ticket
         const [ticket] = await db.insert(supportTickets).values({
+            number: ticketNumber,
             userId: null,
             categoryId: categoryId ? parseInt(categoryId) : null,
             subject,
