@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, Users, Server,
     Heart, Settings, Shield, BarChart3, Bell, Key, Calendar, Crown, MessageSquare, Activity, Gamepad2, Menu, X,
-    ChevronDown, Ticket
+    ChevronDown, LifeBuoy
 } from 'lucide-react';
 
 interface NavGroup {
@@ -48,7 +48,7 @@ const adminNavGroups: NavGroup[] = [
     {
         label: 'Support',
         items: [
-            { href: '/admin/tickets', icon: Ticket, label: 'Tickets' },
+            { href: '/admin/helpdesk', icon: LifeBuoy, label: 'Help Desk' },
         ],
     },
     {
