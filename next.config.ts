@@ -99,7 +99,11 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Webpack configuration
+  // Turbopack configuration (Next.js 16 default bundler)
+  // Empty config allows Turbopack to work with legacy webpack config
+  turbopack: {},
+
+  // Webpack configuration (legacy, for compatibility)
   webpack: (config, { isServer }) => {
     // Handle node modules that need special treatment
     if (!isServer) {
