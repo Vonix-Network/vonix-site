@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatRelativeTime, getInitials } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface TicketData {
     id: number;
@@ -26,6 +26,7 @@ interface MessageData {
     isStaffReply: boolean;
     createdAt: string;
     username: string;
+    avatarUrl?: string | null;
 }
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
@@ -360,6 +361,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                 {messages.map((msg) => (
                     <div key={msg.id} className={cn('flex gap-2', msg.isStaffReply ? 'flex-row' : 'flex-row-reverse')}>
                         <Avatar className="w-7 h-7 shrink-0">
+                            {msg.avatarUrl && <AvatarImage src={msg.avatarUrl} alt={msg.username} />}
                             <AvatarFallback className={cn('text-xs', msg.isStaffReply ? 'bg-neon-cyan/20 text-neon-cyan' : 'bg-secondary')}>
                                 {msg.isStaffReply ? <Shield className="w-3 h-3" /> : getInitials(msg.username || 'U')}
                             </AvatarFallback>

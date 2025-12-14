@@ -53,12 +53,13 @@ export default function UserHelpdeskPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (status === 'unauthenticated') {
-            router.push('/login?callbackUrl=/helpdesk');
-        } else if (status === 'authenticated') {
+        // Allow guests to view the page - only fetch tickets if authenticated
+        if (status === 'authenticated') {
             fetchTickets();
+        } else if (status === 'unauthenticated') {
+            setIsLoading(false); // Stop loading for guests
         }
-    }, [status, router]);
+    }, [status]);
 
     const fetchTickets = async () => {
         try {
