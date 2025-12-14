@@ -359,10 +359,19 @@ async function isStaff(guildId: string, userId: string): Promise<boolean> {
 }
 
 async function getTicketFromChannel(channelId: string) {
-    const [ticket] = await db
+    // Check both discordChannelId (text channels) and discordThreadId (forum threads)
+    let [ticket] = await db
         .select()
         .from(supportTickets)
         .where(eq(supportTickets.discordChannelId, channelId));
+    
+    if (!ticket) {
+        [ticket] = await db
+            .select()
+            .from(supportTickets)
+            .where(eq(supportTickets.discordThreadId, channelId));
+    }
+    
     return ticket;
 }
 
@@ -1770,15 +1779,21 @@ export async function setupTicketEventHandlers(): Promise<void> {
 
         const isUserStaff = await isStaff(message.guild.id, message.author.id);
 
+        const avatarUrl = typeof message.author?.displayAvatarURL === 'function'
+            ? message.author.displayAvatarURL({ extension: 'png', size: 64 })
+            : null;
+
         // Save message to database
         await db.insert(ticketMessages).values({
             ticketId: ticket.id,
             discordUserId: message.author.id,
             discordUsername: message.author.username,
-            discordAvatar: message.author.avatar,
+            discordAvatar: avatarUrl,
             message: message.content,
             isStaffReply: isUserStaff,
         });
+
+        console.log(`📨 Ticket message synced: #${ticket.id} from ${message.author.username} (avatarUrl: ${avatarUrl || 'none'})`);
 
         // Update ticket
         const updateData: any = { updatedAt: new Date() };

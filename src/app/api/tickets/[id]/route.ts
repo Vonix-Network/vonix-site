@@ -68,6 +68,7 @@ export async function GET(
                 createdAt: ticketMessages.createdAt,
                 userId: ticketMessages.userId,
                 linkedUsername: users.username,
+                linkedMinecraftUsername: users.minecraftUsername,
                 linkedAvatar: users.avatar,
                 linkedDiscordAvatar: users.discordAvatar,
                 linkedDiscordId: users.discordId,
@@ -83,9 +84,18 @@ export async function GET(
             .orderBy(asc(ticketMessages.createdAt));
 
         // Helper to construct Discord avatar URL
-        const getDiscordAvatarUrl = (userId: string | null, avatarHash: string | null) => {
-            if (!userId || !avatarHash) return null;
-            return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
+        const getDiscordAvatarUrl = (userId: string | null, avatar: string | null) => {
+            if (!avatar) return null;
+            // If we already stored a full URL (recommended), use it directly
+            if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
+            // Otherwise assume it's an avatar hash
+            if (!userId) return null;
+            return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
+        };
+
+        const getMinecraftAvatarUrl = (name: string | null) => {
+            if (!name) return null;
+            return `https://minotar.net/avatar/${encodeURIComponent(name)}/64.png`;
         };
 
         // Resolve username and avatar: prefer linked user, then discord, then guest
@@ -98,7 +108,13 @@ export async function GET(
                 avatarUrl = getDiscordAvatarUrl(msg.linkedDiscordId, msg.linkedDiscordAvatar);
             } else if (msg.discordUserId && msg.discordAvatar) {
                 avatarUrl = getDiscordAvatarUrl(msg.discordUserId, msg.discordAvatar);
+            } else {
+                // Fallback for site users (including staff) if they haven't set a custom avatar
+                avatarUrl = getMinecraftAvatarUrl(msg.linkedMinecraftUsername || msg.linkedUsername);
             }
+
+            // Debug logging for avatar resolution (temporary)
+            console.log(`[TicketAPI] Msg #${msg.id} User: ${msg.linkedUsername || msg.discordUsername} AvatarUrl: ${avatarUrl} (LinkedAvatar: ${msg.linkedAvatar}, DiscordAvatar: ${msg.discordAvatar})`);
 
             return {
                 id: msg.id,

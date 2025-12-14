@@ -877,61 +877,8 @@ export async function setupDiscordIntegrationListeners() {
         }
     });
 
-    // Listen for messages in ticket threads
-    client.on('messageCreate', async (message: any) => {
-        if (message.author.bot) return;
-        if (!message.channel.isThread()) return;
-
-        try {
-            // Check if this is a ticket thread
-            const [ticket] = await db
-                .select()
-                .from(supportTickets)
-                .where(eq(supportTickets.discordThreadId, message.channel.id));
-
-            if (!ticket) return;
-
-            // Find user from Discord
-            const [user] = await db
-                .select()
-                .from(users)
-                .where(eq(users.discordId, message.author.id));
-
-            // Check if user is staff (by role in database or by Discord permissions)
-            const isStaff = user ? ['admin', 'superadmin', 'moderator'].includes(user.role) : false;
-
-            // Add message to database
-            await db.insert(ticketMessages).values({
-                ticketId: ticket.id,
-                userId: user?.id || null,
-                discordUserId: message.author.id,
-                discordUsername: message.author.username,
-                discordAvatar: message.author.avatar,
-                message: message.content,
-                isStaffReply: isStaff,
-            });
-
-            // Update ticket timestamp and first response
-            const updateData: any = {
-                status: isStaff ? 'waiting' : ticket.status === 'waiting' ? 'open' : ticket.status,
-                updatedAt: new Date(),
-            };
-            
-            // Track first response time
-            if (isStaff && !ticket.firstResponseAt) {
-                updateData.firstResponseAt = new Date();
-            }
-
-            await db
-                .update(supportTickets)
-                .set(updateData)
-                .where(eq(supportTickets.id, ticket.id));
-
-            console.log(`✅ Synced Discord message to ticket #${ticket.id}`);
-        } catch (error) {
-            console.error('Error syncing Discord message to ticket:', error);
-        }
-    });
+    // Note: Message sync for ticket channels is handled by discord-tickets.ts
+    // to avoid duplicate message insertion
 
     console.log('✅ Discord integration listeners setup');
 }
