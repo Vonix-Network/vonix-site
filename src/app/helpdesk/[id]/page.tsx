@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { formatRelativeTime } from '@/lib/utils';
+import { formatRelativeTime, getInitials } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface TicketMessage {
     id: number;
@@ -20,6 +21,7 @@ interface TicketMessage {
     isStaffReply: boolean;
     createdAt: string;
     username: string;
+    avatarUrl?: string | null;
 }
 
 interface TicketData {
@@ -232,10 +234,12 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                                     >
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <div className={`p-2 rounded-lg ${msg.isStaffReply ? 'bg-neon-cyan/20' : 'bg-secondary'
-                                                    }`}>
-                                                    <User className="w-4 h-4" />
-                                                </div>
+                                                <Avatar className="w-8 h-8">
+                                                    {msg.avatarUrl && <AvatarImage src={msg.avatarUrl} alt={msg.username} />}
+                                                    <AvatarFallback className={msg.isStaffReply ? 'bg-neon-cyan/20 text-neon-cyan' : 'bg-secondary'}>
+                                                        {getInitials(msg.username || 'U')}
+                                                    </AvatarFallback>
+                                                </Avatar>
                                                 <div>
                                                     <p className="font-medium">{msg.username}</p>
                                                     {msg.isStaffReply && (
