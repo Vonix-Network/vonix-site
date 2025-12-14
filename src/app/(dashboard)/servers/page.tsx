@@ -6,6 +6,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Our Servers',
   description: 'Discover the different game modes and servers available on Vonix Network. Join the adventure now!',
+  openGraph: {
+    title: 'Our Servers | Vonix Network',
+    description: 'Discover the different game modes and servers available on Vonix Network. Join the adventure now!',
+  },
 };
 
 export default function ServersPage() {

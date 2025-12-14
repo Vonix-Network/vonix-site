@@ -7,6 +7,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Community Members',
     description: 'Browse the Vonix Network player base, view stats, and find friends.',
+    openGraph: {
+        title: 'Community Members | Vonix Network',
+        description: 'Browse the Vonix Network player base, view stats, and find friends.',
+    },
 };
 
 export const dynamic = 'force-dynamic';

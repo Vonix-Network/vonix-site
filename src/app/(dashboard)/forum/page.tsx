@@ -12,6 +12,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Community Forum',
   description: 'Discuss, share, and connect with the Vonix Network community. Find guides, report bugs, and chat with other players.',
+  openGraph: {
+    title: 'Community Forum | Vonix Network',
+    description: 'Discuss, share, and connect with the Vonix Network community. Find guides, report bugs, and chat with other players.',
+  },
 };
 
 import {
