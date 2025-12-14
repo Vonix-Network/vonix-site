@@ -35,6 +35,7 @@ import { eq, and, desc, asc, inArray, sql, lt } from 'drizzle-orm';
 
 let discordClient: Client | null = null;
 let discordRest: REST | null = null;
+let ticketListenersInitialized = false;
 
 // ============================================================================
 // CONFIGURATION & SETTINGS
@@ -1493,8 +1494,17 @@ async function logTicketEvent(
 // ============================================================================
 
 export async function setupTicketEventHandlers(): Promise<void> {
+    // Prevent duplicate registration (hot reload issue)
+    if (ticketListenersInitialized) {
+        console.log('Ticket listeners already initialized, skipping...');
+        return;
+    }
+    
     const client = await getDiscordClient();
     if (!client) return;
+
+    ticketListenersInitialized = true;
+    console.log('Setting up ticket event handlers...');
 
     client.on('interactionCreate', async (interaction: any) => {
         try {

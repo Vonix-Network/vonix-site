@@ -11,6 +11,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 
 let discordClient: Client | null = null;
 let discordRest: REST | null = null;
+let listenersInitialized = false;
 
 /**
  * Get Discord settings from database
@@ -787,8 +788,17 @@ export async function handleTicketModalSubmit(interaction: any): Promise<void> {
  * Setup Discord integration event listeners
  */
 export async function setupDiscordIntegrationListeners() {
+    // Prevent duplicate registration (hot reload issue)
+    if (listenersInitialized) {
+        console.log('Discord listeners already initialized, skipping...');
+        return;
+    }
+    
     const client = await getDiscordClient();
     if (!client) return;
+
+    listenersInitialized = true;
+    console.log('Setting up Discord integration listeners...');
 
     // Handle slash commands
     client.on('interactionCreate', async (interaction: any) => {

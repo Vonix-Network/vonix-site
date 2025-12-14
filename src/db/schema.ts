@@ -588,7 +588,7 @@ export const ticketQuestions = sqliteTable('ticket_questions', {
 
 export const supportTickets = sqliteTable('support_tickets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  number: integer('number').notNull(), // Sequential ticket number
+  number: integer('number').default(0), // Sequential ticket number (nullable for migration)
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   categoryId: integer('category_id').references(() => ticketCategories.id, { onDelete: 'set null' }),
   subject: text('subject').notNull(),

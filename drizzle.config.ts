@@ -1,4 +1,8 @@
 import type { Config } from 'drizzle-kit';
+import { config } from 'dotenv';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 // Detect if using Turso (libsql:// or https://) or local SQLite (file:)
 const dbUrl = process.env.DATABASE_URL || 'file:./data/vonix.db';

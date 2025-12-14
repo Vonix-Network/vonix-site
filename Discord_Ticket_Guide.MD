@@ -468,126 +468,134 @@ Access via: **Admin Panel → Settings → Discord**
 | `src/lib/email.ts` | Email templates for guest tickets |
 | `src/db/schema.ts` | Database schema definitions |
 | `src/app/api/tickets/guest/*` | Guest ticket API routes |
-| `src/app/helpdesk/guest/*` | Guest ticket pages |
-| `src/app/(admin)/admin/settings/page.tsx` | Admin settings UI |
-
----
-
-## Verification Report: Implementation vs DiscordTicketBot
-
-### ✅ IMPLEMENTED (Matches Reference)
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| `/new` command | ✅ | Creates ticket with topic |
-| `/close` command | ✅ | Closes with reason |
-| `/claim` command | ✅ | Staff claims ticket |
-| `/release` command | ✅ | Staff releases ticket |
-| `/add` command | ✅ | Add member to ticket |
-| `/remove` command | ✅ | Remove member from ticket |
-| `/transfer` command | ✅ | Transfer ownership |
-| `/priority` command | ✅ | Set priority with emoji |
-| `/tickets` command | ✅ | List user's tickets |
-| `/transcript` command | ✅ | Export as markdown |
-| Create button | ✅ | Opens topic modal |
-| Close button | ✅ | On opening message |
-| Claim button | ✅ | On opening message |
-| Category selector | ✅ | Dropdown menu |
-| Topic modal | ✅ | For ticket creation |
-| Feedback modal | ✅ | Rating + comment |
-| Channel permissions | ✅ | Staff/user access |
-| Priority emoji in name | ✅ | 🔴🟠🔵🟢 |
-| Message syncing | ✅ | Discord ↔ Database |
-| First response tracking | ✅ | `firstResponseAt` field |
-| Status transitions | ✅ | open→waiting→closed |
-
----
-
-### ❌ MISSING FEATURES (Need Implementation)
-
-| Feature | Reference File | Description |
-|---------|---------------|-------------|
-| `/move` | `slash/move.js` | Move ticket to different category |
-| `/rename` | `slash/rename.js` | Rename ticket channel (with rate limit) |
-| `/topic` | `slash/topic.js` | Change ticket topic via modal |
-| `/tag` | `slash/tag.js` | Send predefined response templates |
-| `/force-close` | `slash/force-close.js` | Bulk close tickets by time/category |
-| `/help` | `slash/help.js` | Help command |
-| Edit button | `buttons/edit.js` | Edit topic/answers after creation |
-| Unclaim button | `buttons/unclaim.js` | Button variant of `/release` |
-| Questions modal | `modals/questions.js` | Custom questions per category |
-| Ticket cooldown | `manager.js:263` | Prevent spam ticket creation |
-| Member limit | `manager.js:247` | Max tickets per user per category |
-| Total limit | `manager.js:245` | Max open tickets per category |
-| Required roles | `manager.js:236` | Roles needed to create tickets |
-| Blocklist | `manager.js:226` | Blocked roles can't create tickets |
-| Working hours | `manager.js:749` | Notify if outside working hours |
-| Offline notification | `manager.js:791` | Notify if no staff online |
-| DM on close | `manager.js:1361` | Send closure summary to user |
-| Auto-close | `manager.js:1179` | Auto-close after timeout |
-| Stale tickets | `lib/stale.js` | Track inactive tickets |
-| Encryption | Throughout | Encrypt sensitive data (topic, answers) |
-| Tags system | Database | Predefined response templates |
-| Log channel | `lib/logging.js` | Log events to Discord channel |
-| Archived messages | `archiver.js` | Save all messages for transcripts |
-| Reference tickets | `manager.js:614` | Link to previous tickets |
-| Reference messages | `manager.js:572` | Link to Discord messages |
-| Opening message edit | Various | Update embed when topic changes |
-| Custom channel name | `manager.js:403` | Template: `{username}-{number}` |
-| Ping roles | `manager.js:546` | Ping staff on new ticket |
-
----
-
-### ⚠️ PARTIAL IMPLEMENTATIONS
-
-| Feature | Current State | Reference Behavior |
-|---------|--------------|-------------------|
-| Categories | DB schema exists, basic selector | Full CRUD with questions, limits, roles |
-| Feedback | Collects rating/comment | Stores in DB, shows in close summary |
-| Transcripts | Basic markdown export | Full HTML with attachments |
-| Claiming | Hides from staff role | Updates opening message buttons |
-| Panel command | Creates embed+button | Includes category descriptions, emojis |
-
----
-
-### Database Schema Gaps
-
-**Missing Tables:**
-- `tags` - Predefined response templates
-- `ticketFeedback` - Separate feedback storage
-- `archivedMessages` - Full message archive
-
-**Missing Fields in `supportTickets`:**
-- `openingMessageId` - To edit the opening message
-- `lastMessageAt` - For auto-close/stale detection
-- `number` - Sequential ticket number per guild
-- `topic` (encrypted) - Stored separately from subject
-
-**Missing Fields in `ticketCategories`:**
-- `channelName` - Template for channel names
-- `image` - Image for opening embed
-- `ratelimit` - Slowmode for ticket channel
-- `requiredRoles` - Roles required to create
-- `claiming` - Enable/disable claiming
-
----
-
-### Priority Fixes Needed
-
-1. **`/move` command** - Essential for multi-category support
-2. **`/rename` command** - Users expect to rename their tickets
-3. **`/topic` command** - Edit topic after creation
-4. **Edit button** - Match the reference's edit functionality
-5. **DM on close** - User notification is important UX
-6. **Opening message updates** - When claiming/editing
-7. **Ticket cooldown** - Prevent abuse
-8. **Log channel** - Admin visibility
-
----
-
-## Recommended Improvements
-
-*Space for your notes:*
+ | `src/app/helpdesk/guest/*` | Guest ticket pages |
+ | `src/app/(admin)/admin/settings/page.tsx` | Admin settings UI |
+ 
+ ---
+ 
+ ## Current Discord Ticket Setup (How it works now)
+ 
+ This project now contains a Discord ticket flow implemented in `src/lib/discord-tickets.ts` and backed by the Drizzle/SQLite schema in `src/db/schema.ts`.
+ 
+ ### Requirements / Configuration
+ 
+ Discord bot settings are stored in `siteSettings` (category `discord`). These keys must be set for the bot to run and register commands:
+ 
+ - `discord_bot_token`
+ - `discord_client_id`
+ - `discord_guild_id`
+ - `discord_ticket_category_id` (Discord Category channel ID used for ticket channels)
+ - `discord_ticket_staff_role_id` (role allowed to manage tickets)
+ - `discord_ticket_ping_role_id` (optional; pinged when a ticket is created)
+ - `discord_ticket_log_channel_id` (optional; ticket logs)
+ - `discord_ticket_transcript_channel_id` (optional)
+ 
+ ### One-time Setup (Admin)
+ 
+ **Configure category + staff role**
+ 
+ Run in Discord (Admin only):
+ 
+ - `/setup category:<categoryChannel> staff_role:<role>`
+ 
+ This writes:
+ - `discord_ticket_category_id`
+ - `discord_ticket_staff_role_id`
+ 
+ **Create the ticket panel**
+ 
+ Run in Discord (Admin only):
+ 
+ - `/panel [channel] [title] [description]`
+ 
+ This posts an embed with:
+ - a category selector (if multiple enabled categories exist)
+ - a `Create Ticket` button
+ 
+ ### Ticket creation sources
+ 
+ Users can create tickets via:
+ - `/new [topic]`
+ - Panel `Create Ticket` button (topic modal)
+ - Panel category select (topic modal + category)
+ 
+ On create:
+ - A new Discord text channel is created under `discord_ticket_category_id`
+ - Permissions are set for:
+   - the ticket creator
+   - staff role (if configured)
+ - A DB row is created in `supportTickets` with a sequential `number`
+ - The opening embed is posted with buttons (claim/close)
+ - Messages in the ticket channel are mirrored into `ticketMessages`
+ 
+ ### Commands (Current)
+ 
+ **User commands**
+ - `/new [topic]`
+ - `/close [reason]`
+ - `/tickets`
+ - `/transcript [ticket_id]`
+ - `/help`
+ 
+ **Staff commands**
+ - `/claim`
+ - `/release`
+ - `/add <member>`
+ - `/remove <member>`
+ - `/transfer <member>`
+ - `/priority <level>`
+ - `/move <category>`
+ - `/rename <name>`
+ - `/topic` (opens modal to edit topic)
+ - `/tag <tag> [for]` (predefined response)
+ - `/force-close [ticket] [time] [reason]`
+ 
+ **Autocomplete**
+ - `/move category:` autocompletes enabled categories
+ - `/tag tag:` autocompletes enabled tags
+ - `/force-close ticket:` autocompletes open tickets
+ 
+ ### Buttons and Modals
+ 
+ **Buttons**
+ - Claim: marks ticket claimed
+ - Close: triggers close flow (with feedback modal if enabled)
+ - Create Ticket (panel): opens topic modal
+ 
+ **Modals**
+ - Create ticket topic modal
+ - Edit topic modal (`/topic`) updates `supportTickets.topic` and the channel topic
+ - Feedback modal stores to `ticketFeedback` then closes ticket
+ 
+ ### Ticket numbering
+ 
+ `supportTickets.number` is required. All ticket creation paths (website, guest, Discord) generate a new `number` using `MAX(number) + 1`.
+ 
+ ### Tags and feedback
+ 
+ - Tags live in `ticket_tags` (`ticketTags` in schema). `/tag` sends the stored content and increments `usageCount`.
+ - Feedback lives in `ticket_feedback` (`ticketFeedback` in schema). The feedback modal stores `rating` and optional `comment`.
+ 
+ ---
+ 
+ ## Verification Checklist
+ 
+ - **[settings]** Confirm all required `siteSettings` keys exist (token, clientId, guildId, ticket category, staff role).
+ - **[commands]** Ensure slash commands appear in the guild (run registration on deploy/start if needed).
+ - **[panel]** Run `/panel` and confirm Create button + category select work.
+ - **[create]** Create a ticket via `/new` and via the panel; confirm:
+   - channel created under correct Discord category
+   - permissions for user + staff role
+   - DB row created with `supportTickets.number`
+ - **[topic]** Run `/topic`, submit modal, confirm channel topic + DB updated.
+ - **[tag]** Create a tag in DB and run `/tag` to confirm message sends and `usageCount` increments.
+ - **[close+feedback]** Close a ticket, submit feedback, confirm `ticket_feedback` has a row.
+ - **[transcript]** Run `/transcript` and confirm download works.
+ - **[logging]** If `discord_ticket_log_channel_id` is set, confirm log messages appear.
+ 
+ ## Recommended Improvements
+ 
+ *Space for your notes:*
 
 1. 
 
@@ -600,5 +608,3 @@ Access via: **Admin Panel → Settings → Discord**
 5. 
 
 ---
-
-*This is a temporary guide document. Delete after review.*
