@@ -6,6 +6,14 @@ import { desc, eq, sql } from 'drizzle-orm';
 // Force dynamic rendering - always fetch fresh data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Community Forum',
+  description: 'Discuss, share, and connect with the Vonix Network community. Find guides, report bugs, and chat with other players.',
+};
+
 import {
   MessageSquare, Plus, Eye, MessageCircle,
   Pin, Lock, ChevronRight, Folder

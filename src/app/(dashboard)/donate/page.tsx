@@ -3,6 +3,16 @@ import { donationRanks, donations, users } from '@/db/schema';
 import { desc, sql, eq } from 'drizzle-orm';
 import { DonatePageClient } from './donate-client';
 import { auth } from '../../../../auth';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Store & Donations',
+  description: 'Support Vonix Network and unlock exclusive ranks, perks, and cosmetics. Secure payments via Stripe.',
+  openGraph: {
+    title: 'Store & Donations | Vonix Network',
+    description: 'Support the server and get exclusive rewards!',
+  },
+};
 
 export const dynamic = 'force-dynamic';
 

@@ -17,8 +17,26 @@ import { Badge } from '@/components/ui/badge';
 import { formatRelativeTime } from '@/lib/utils';
 import { UserInfoWithRank } from '@/components/user-info-with-rank';
 
+import { Metadata } from 'next';
+
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const category = await getCategory(slug);
+
+  if (!category) {
+    return {
+      title: 'Category Not Found',
+    };
+  }
+
+  return {
+    title: category.name,
+    description: category.description || `Browse discussions in the ${category.name} category.`,
+  };
 }
 
 async function getCategory(slug: string) {

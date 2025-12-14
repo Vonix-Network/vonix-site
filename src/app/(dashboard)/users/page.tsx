@@ -2,6 +2,12 @@ import { Suspense } from 'react';
 import { db, users } from '@/db';
 import { like, or, desc, sql } from 'drizzle-orm';
 import { UsersPageClient } from './users-client';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Community Members',
+    description: 'Browse the Vonix Network player base, view stats, and find friends.',
+};
 
 export const dynamic = 'force-dynamic';
 

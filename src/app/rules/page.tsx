@@ -3,6 +3,16 @@ import { Footer } from '@/components/layout/footer';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Shield, MessageSquare, Monitor, AlertTriangle } from 'lucide-react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Server Rules',
+    description: 'Read the official rules and community guidelines for Vonix Network. Fair play and respect are our top priorities.',
+    openGraph: {
+        title: 'Server Rules | Vonix Network',
+        description: 'Community guidelines and server rules for fair play.',
+    },
+};
 
 export default function RulesPage() {
     const rulesCategories = [

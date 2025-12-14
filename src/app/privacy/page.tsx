@@ -2,6 +2,12 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Privacy Policy',
+    description: 'Your privacy matters. Learn how Vonix Network collects, uses, and protects your personal information.',
+};
 
 export default function PrivacyPage() {
     return (

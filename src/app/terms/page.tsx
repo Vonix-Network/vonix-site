@@ -2,6 +2,12 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Terms of Service',
+    description: 'Terms and conditions for using Vonix Network services, including account usage, purchases, and conduct.',
+};
 
 export default function TermsPage() {
     return (

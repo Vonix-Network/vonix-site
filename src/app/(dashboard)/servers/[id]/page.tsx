@@ -6,8 +6,24 @@ import { Users, Wifi, WifiOff, Map, ArrowLeft, Loader2 } from 'lucide-react';
 import { Suspense } from 'react';
 import { ServerUptimeGraph } from '@/components/server-uptime-graph';
 
+import { Metadata } from 'next';
+
 interface ServerDetailParams {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: ServerDetailParams): Promise<Metadata> {
+  const { id } = await params;
+  const serverId = Number.parseInt(id, 10);
+  if (Number.isNaN(serverId)) return { title: 'Server Not Found' };
+
+  const server = await getServerWithStatus(serverId);
+  if (!server) return { title: 'Server Not Found' };
+
+  return {
+    title: server.name,
+    description: server.description || `Join ${server.name} on Vonix Network. ${server.online ? 'Online now!' : 'Currently offline.'}`,
+  };
 }
 
 // Loading skeleton for the server detail page

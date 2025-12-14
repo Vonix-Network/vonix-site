@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { ServerStatusList } from '@/components/server-status';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Our Servers',
+  description: 'Discover the different game modes and servers available on Vonix Network. Join the adventure now!',
+};
 
 export default function ServersPage() {
   return (
