@@ -50,7 +50,7 @@ const launcherItems: LauncherItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, category: 'account', description: 'Your dashboard', requiresAuth: true },
     { name: 'Settings', href: '/settings', icon: Settings, category: 'account', description: 'Account settings', requiresAuth: true },
     { name: 'Donate', href: '/donate', icon: Heart, category: 'account', description: 'Support the server' },
-    { name: 'Support', href: '/support', icon: Ticket, category: 'account', description: 'Get help', requiresAuth: true },
+    { name: 'Help Desk', href: '/helpdesk', icon: LifeBuoy, category: 'account', description: 'Get support', requiresAuth: true },
 
     // Admin (requires admin role)
     { name: 'Admin Panel', href: '/admin', icon: Shield, category: 'admin', description: 'Manage the site', requiresAdmin: true },

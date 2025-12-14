@@ -112,9 +112,21 @@ export async function PUT(
             updateData.closedAt = new Date();
         }
 
-        await db.update(supportTickets)
+        const [updatedTicket] = await db.update(supportTickets)
             .set(updateData)
-            .where(eq(supportTickets.id, ticketId));
+            .where(eq(supportTickets.id, ticketId))
+            .returning();
+
+        // Close Discord thread if ticket is closed/resolved
+        if ((status === 'closed' || status === 'resolved') && updatedTicket?.discordThreadId) {
+            try {
+                const { closeTicketThread } = await import('@/lib/discord-integration');
+                await closeTicketThread(updatedTicket.discordThreadId);
+            } catch (error) {
+                console.error('Failed to close Discord thread:', error);
+                // Continue even if Discord sync fails
+            }
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {

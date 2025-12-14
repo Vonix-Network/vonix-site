@@ -74,6 +74,22 @@ export async function POST(
             })
             .where(eq(supportTickets.id, ticketId));
 
+        // Send message to Discord thread
+        if (ticket.discordThreadId) {
+            try {
+                const { sendTicketMessage } = await import('@/lib/discord-integration');
+                await sendTicketMessage(
+                    ticket.discordThreadId,
+                    message,
+                    user.username,
+                    isStaff
+                );
+            } catch (error) {
+                console.error('Failed to send message to Discord thread:', error);
+                // Continue even if Discord sync fails
+            }
+        }
+
         return NextResponse.json({ success: true, message: newMessage });
     } catch (error) {
         console.error('Error adding message:', error);

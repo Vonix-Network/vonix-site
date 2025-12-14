@@ -17,6 +17,11 @@ export const users = sqliteTable('users', {
   bio: text('bio'),
   preferredBackground: text('preferred_background'),
 
+  // Discord Integration
+  discordId: text('discord_id').unique(),
+  discordUsername: text('discord_username'),
+  discordAvatar: text('discord_avatar'),
+
   // Donation & Rank System
   donationRankId: text('donation_rank_id').references(() => donationRanks.id, { onDelete: 'set null' }),
   rankExpiresAt: integer('rank_expires_at', { mode: 'timestamp' }),
@@ -300,6 +305,8 @@ export const donationRanks = sqliteTable('donation_ranks', {
   // Square catalog references
   squareSubscriptionPlanId: text('square_subscription_plan_id'),
   squareSubscriptionPlanVariationId: text('square_subscription_plan_variation_id'),
+  // Discord role integration
+  discordRoleId: text('discord_role_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
@@ -542,6 +549,7 @@ export const supportTickets = sqliteTable('support_tickets', {
   priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }).default('normal').notNull(),
   status: text('status', { enum: ['open', 'in_progress', 'waiting', 'resolved', 'closed'] }).default('open').notNull(),
   assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  discordThreadId: text('discord_thread_id'), // Discord forum thread ID for this ticket
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   closedAt: integer('closed_at', { mode: 'timestamp' }),

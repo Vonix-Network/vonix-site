@@ -169,6 +169,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
                 // Rank purchase - extend or set new rank
                 const now = new Date();
                 let expiresAt: Date;
+                const oldRankId = user.donationRankId;
 
                 if (user.donationRankId === rankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now) {
                     // Extend existing rank
@@ -200,6 +201,18 @@ export async function processDonation(data: DonationData): Promise<DonationResul
                     .where(eq(users.id, resolvedUserId));
 
                 console.log(`✅ Rank ${rankId} applied to user ${resolvedUserId} (expires: ${expiresAt.toISOString()})`);
+
+                // Update Discord role if user has linked Discord account
+                if (oldRankId !== rankId) {
+                    try {
+                        const { updateUserDiscordRole } = await import('@/lib/discord-integration');
+                        await updateUserDiscordRole(resolvedUserId, rankId, oldRankId);
+                        console.log(`✅ Updated Discord role for user ${resolvedUserId}`);
+                    } catch (discordError) {
+                        console.error('Failed to update Discord role:', discordError);
+                        // Continue even if Discord role update fails
+                    }
+                }
             } else {
                 // Pure tip - just update total
                 await db

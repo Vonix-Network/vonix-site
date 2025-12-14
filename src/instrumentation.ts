@@ -19,6 +19,16 @@ export async function register() {
       console.error('Failed to initialize Discord bot:', err);
     });
 
+    // Initialize Discord integration (roles, tickets, slash commands)
+    console.log('🔗 Initializing Discord integration...');
+    const { initDiscordIntegration, registerSlashCommands, setupDiscordIntegrationListeners } = await import('./lib/discord-integration');
+    initDiscordIntegration().then(async () => {
+      await registerSlashCommands();
+      await setupDiscordIntegrationListeners();
+    }).catch(err => {
+      console.error('Failed to initialize Discord integration:', err);
+    });
+
     console.log('✅ Server initialization complete');
   }
 }

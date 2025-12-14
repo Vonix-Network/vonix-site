@@ -107,7 +107,7 @@ export async function upgradeRank(
     }
 
     const now = new Date();
-    
+
     // Calculate remaining days in current rank
     let convertedDays = 0;
     if (user.donationRankId && user.rankExpiresAt) {
@@ -159,7 +159,7 @@ export async function removeExpiredRanks(): Promise<{ removed: number; users: st
   try {
     const now = new Date();
     const removedUsernames: string[] = [];
-    
+
     // Find all users with expired ranks (rankExpiresAt < now)
     const expiredUsers = await db
       .select({
@@ -182,6 +182,8 @@ export async function removeExpiredRanks(): Promise<{ removed: number; users: st
 
     // Remove expired ranks
     for (const user of expiredUsers) {
+      const oldRankId = user.donationRankId;
+
       await db
         .update(users)
         .set({
@@ -190,9 +192,21 @@ export async function removeExpiredRanks(): Promise<{ removed: number; users: st
           updatedAt: new Date(),
         })
         .where(eq(users.id, user.id));
-      
+
       removedUsernames.push(user.username);
       console.log(`⏰ Removed expired rank from user ${user.username} (expired: ${user.rankExpiresAt})`);
+
+      // Remove Discord role if user has linked Discord account
+      if (oldRankId) {
+        try {
+          const { updateUserDiscordRole } = await import('@/lib/discord-integration');
+          await updateUserDiscordRole(user.id, null, oldRankId);
+          console.log(`✅ Removed Discord role for user ${user.username}`);
+        } catch (discordError) {
+          console.error('Failed to remove Discord role:', discordError);
+          // Continue even if Discord role removal fails
+        }
+      }
     }
 
     return { removed: expiredUsers.length, users: removedUsernames };
@@ -227,7 +241,7 @@ export async function getUserRankStatus(userId: number): Promise<{
 
     const now = new Date();
     const expiresAt = user.rankExpiresAt ? new Date(user.rankExpiresAt) : null;
-    
+
     if (!expiresAt || expiresAt <= now) {
       return { hasRank: false };
     }

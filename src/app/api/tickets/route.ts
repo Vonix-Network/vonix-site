@@ -130,6 +130,30 @@ export async function POST(request: NextRequest) {
             isStaffReply: false,
         });
 
+        // Create Discord thread for ticket
+        try {
+            const { createTicketThread } = await import('@/lib/discord-integration');
+            const threadId = await createTicketThread(
+                ticket.id,
+                subject,
+                user.username,
+                category || 'general',
+                priority || 'normal'
+            );
+
+            if (threadId) {
+                // Update ticket with Discord thread ID
+                await db.update(supportTickets)
+                    .set({ discordThreadId: threadId })
+                    .where(eq(supportTickets.id, ticket.id));
+
+                console.log(`✅ Created Discord thread ${threadId} for ticket #${ticket.id}`);
+            }
+        } catch (error) {
+            console.error('Failed to create Discord thread for ticket:', error);
+            // Continue even if Discord thread creation fails
+        }
+
         return NextResponse.json({ success: true, ticket });
     } catch (error) {
         console.error('Error creating ticket:', error);

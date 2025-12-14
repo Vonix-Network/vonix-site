@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Discord from 'next-auth/providers/discord';
 import bcrypt from 'bcryptjs';
 import { db } from '@/db';
 import { users } from '@/db/schema';
@@ -38,6 +39,16 @@ setInterval(() => {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
+    Discord({
+      clientId: process.env.DISCORD_CLIENT_ID || '',
+      clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
+      authorization: {
+        params: {
+          scope: 'identify guilds guilds.members.read',
+        },
+      },
+      allowDangerousEmailAccountLinking: true, // Allow linking Discord to existing accounts
+    }),
     Credentials({
       name: 'Credentials',
       credentials: {
@@ -117,6 +128,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             level: user.level || 1,
             websiteXp: user.websiteXp || 0,
             minecraftXp: user.minecraftXp || 0,
+            discordId: user.discordId || undefined,
+            discordUsername: user.discordUsername || undefined,
+            discordAvatar: user.discordAvatar || undefined,
           };
         } catch (error) {
           console.error('Authentication error:', error);
@@ -135,7 +149,57 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async signIn({ user, account, profile }) {
+      // Handle Discord OAuth linking
+      if (account?.provider === 'discord' && profile) {
+        try {
+          const discordProfile = profile as any;
+          const discordId = discordProfile.id;
+          const discordUsername = discordProfile.username;
+          const discordAvatar = discordProfile.avatar
+            ? `https://cdn.discordapp.com/avatars/${discordId}/${discordProfile.avatar}.png`
+            : null;
+
+          // Check if user exists with this Discord ID
+          let existingUser = await db.query.users.findFirst({
+            where: eq(users.discordId, discordId),
+          });
+
+          if (!existingUser && discordProfile.email) {
+            // Try to find by email for account linking
+            existingUser = await db.query.users.findFirst({
+              where: eq(users.email, discordProfile.email),
+            });
+          }
+
+          if (existingUser) {
+            // Update existing user with Discord info
+            await db
+              .update(users)
+              .set({
+                discordId,
+                discordUsername,
+                discordAvatar,
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, existingUser.id));
+
+            // Update user object for session
+            user.id = existingUser.id.toString();
+            (user as any).username = existingUser.username;
+            (user as any).role = existingUser.role;
+            (user as any).discordId = discordId;
+            (user as any).discordUsername = discordUsername;
+            (user as any).discordAvatar = discordAvatar;
+          }
+        } catch (error) {
+          console.error('Error linking Discord account:', error);
+          return false;
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, trigger, session, account, profile }) {
       if (user) {
         token.id = user.id;
         token.username = (user as any).username;
@@ -149,6 +213,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.level = (user as any).level;
         token.websiteXp = (user as any).websiteXp;
         token.minecraftXp = (user as any).minecraftXp;
+        (token as any).discordId = (user as any).discordId;
+        (token as any).discordUsername = (user as any).discordUsername;
+        (token as any).discordAvatar = (user as any).discordAvatar;
       }
 
       // When session.update() is called from the client (e.g. in /settings),
@@ -168,6 +235,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (typeof sUser.bio !== 'undefined') {
           (token as any).bio = sUser.bio;
         }
+        if (typeof sUser.discordId !== 'undefined') {
+          (token as any).discordId = sUser.discordId;
+        }
+        if (typeof sUser.discordUsername !== 'undefined') {
+          (token as any).discordUsername = sUser.discordUsername;
+        }
+        if (typeof sUser.discordAvatar !== 'undefined') {
+          (token as any).discordAvatar = sUser.discordAvatar;
+        }
       }
 
       return token;
@@ -186,6 +262,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         (session.user as any).level = token.level as number;
         (session.user as any).websiteXp = token.websiteXp as number;
         (session.user as any).minecraftXp = token.minecraftXp as number;
+        (session.user as any).discordId = (token as any).discordId as string | undefined;
+        (session.user as any).discordUsername = (token as any).discordUsername as string | undefined;
+        (session.user as any).discordAvatar = (token as any).discordAvatar as string | undefined;
       }
       return session;
     },

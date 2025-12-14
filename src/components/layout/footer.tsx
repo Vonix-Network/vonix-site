@@ -53,7 +53,7 @@ export function Footer() {
                             <li><a href="https://ultraservers.com/aff.php?code=kJj5hk5koEMNj5Il" target="_blank" rel="noopener noreferrer" className="hover:text-neon-cyan transition-colors">Server Hosting</a></li>
                             <li><Link href="/ranks" className="hover:text-neon-cyan transition-colors">Ranks</Link></li>
                             <li><Link href="/blog" className="hover:text-neon-cyan transition-colors">Blog</Link></li>
-                            <li><Link href="/support" className="hover:text-neon-cyan transition-colors">Support</Link></li>
+                            <li><Link href="/helpdesk" className="hover:text-neon-cyan transition-colors">Help Desk</Link></li>
                         </ul>
                     </div>
 
