@@ -24,6 +24,38 @@ import { ProfileFriendActions, FriendshipStatus } from '@/components/profile-fri
 // Force dynamic rendering to ensure fresh XP data
 export const dynamic = 'force-dynamic';
 
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const user = await getUser(username);
+
+  if (!user) {
+    return {
+      title: 'User Not Found',
+    };
+  }
+
+  const description = user.bio || `View ${user.username}'s profile on Vonix Network. Level ${user.level} ${user.role !== 'user' ? user.role : 'Member'}.`;
+
+  return {
+    title: user.username,
+    description: description,
+    openGraph: {
+      title: `${user.username} | Vonix Network`,
+      description: description,
+      images: [
+        {
+          url: getMinecraftAvatarUrl(user.minecraftUsername || user.username),
+          width: 64,
+          height: 64,
+          alt: user.username,
+        },
+      ],
+    },
+  };
+}
+
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
 }

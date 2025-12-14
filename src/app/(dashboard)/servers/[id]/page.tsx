@@ -23,6 +23,10 @@ export async function generateMetadata({ params }: ServerDetailParams): Promise<
   return {
     title: server.name,
     description: server.description || `Join ${server.name} on Vonix Network. ${server.online ? 'Online now!' : 'Currently offline.'}`,
+    openGraph: {
+      title: `${server.name} | Vonix Network`,
+      description: server.description || `Join ${server.name} on Vonix Network. ${server.online ? 'Online now!' : 'Currently offline.'}`,
+    },
   };
 }
 
