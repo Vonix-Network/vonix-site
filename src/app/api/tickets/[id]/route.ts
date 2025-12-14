@@ -95,7 +95,7 @@ export async function GET(
 
         const getMinecraftAvatarUrl = (name: string | null) => {
             if (!name) return null;
-            return `https://minotar.net/avatar/${encodeURIComponent(name)}/64.png`;
+            return `https://minotar.net/armor/bust/${encodeURIComponent(name)}/64.png`;
         };
 
         // Resolve username and avatar: prefer linked user, then discord, then guest
