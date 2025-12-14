@@ -75,7 +75,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             const res = await fetch(`/api/tickets/${resolvedParams.id}`);
             if (res.ok) {
                 const data = await res.json();
-                setTicket(data.ticket);
+                // API returns { ticket, messages, isStaff } - merge messages into ticket
+                setTicket({
+                    ...data.ticket,
+                    messages: data.messages || [],
+                });
+                if (data.isStaff !== undefined) {
+                    setIsStaff(data.isStaff);
+                }
             } else if (res.status === 403) {
                 router.push('/helpdesk');
             }
