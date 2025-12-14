@@ -13,6 +13,16 @@ const ALL_DISCORD_SETTINGS = [
     // Discord integration settings (for slash commands, role management)
     'discord_client_id',
     'discord_guild_id',
+    // Discord OAuth settings
+    'discord_oauth_client_id',
+    'discord_oauth_client_secret',
+    'discord_oauth_redirect_uri',
+    'discord_oauth_enabled',
+    // Ticket system settings
+    'discord_ticket_forum_id',
+    'discord_ticket_category_id',
+    'discord_ticket_staff_role_id',
+    'discord_ticket_ping_role_id',
     // Second channel for Minecraft server embeds (Viscord)
     'discord_viscord_channel_id',
     'discord_viscord_channel_name',
@@ -62,6 +72,16 @@ export async function GET(request: NextRequest) {
                 // Discord integration (slash commands, role management)
                 clientId: settingsMap['discord_client_id'] || '',
                 guildId: settingsMap['discord_guild_id'] || '',
+                // OAuth settings
+                oauthClientId: settingsMap['discord_oauth_client_id'] || '',
+                oauthClientSecret: settingsMap['discord_oauth_client_secret'] || '',
+                oauthRedirectUri: settingsMap['discord_oauth_redirect_uri'] || '',
+                oauthEnabled: settingsMap['discord_oauth_enabled'] === 'true',
+                // Ticket system settings
+                ticketForumId: settingsMap['discord_ticket_forum_id'] || '',
+                ticketCategoryId: settingsMap['discord_ticket_category_id'] || '',
+                ticketStaffRoleId: settingsMap['discord_ticket_staff_role_id'] || '',
+                ticketPingRoleId: settingsMap['discord_ticket_ping_role_id'] || '',
                 // Viscord (Minecraft server embeds) channel
                 viscordChannelId: settingsMap['discord_viscord_channel_id'] || '',
                 viscordChannelName: settingsMap['discord_viscord_channel_name'] || '',
@@ -185,6 +205,72 @@ export async function PATCH(request: NextRequest) {
                 key: 'discord_donation_webhook_avatar_url',
                 value: body.donationWebhookAvatarUrl,
                 description: 'Custom avatar URL for donation webhook',
+            });
+        }
+
+        // OAuth settings
+        if (typeof body.oauthClientId === 'string') {
+            updates.push({
+                key: 'discord_oauth_client_id',
+                value: body.oauthClientId,
+                description: 'Discord OAuth Client ID',
+            });
+        }
+
+        if (typeof body.oauthClientSecret === 'string') {
+            updates.push({
+                key: 'discord_oauth_client_secret',
+                value: body.oauthClientSecret,
+                description: 'Discord OAuth Client Secret',
+            });
+        }
+
+        if (typeof body.oauthRedirectUri === 'string') {
+            updates.push({
+                key: 'discord_oauth_redirect_uri',
+                value: body.oauthRedirectUri,
+                description: 'Discord OAuth Redirect URI',
+            });
+        }
+
+        if (typeof body.oauthEnabled === 'boolean') {
+            updates.push({
+                key: 'discord_oauth_enabled',
+                value: body.oauthEnabled.toString(),
+                description: 'Whether Discord OAuth login is enabled',
+            });
+        }
+
+        // Ticket system settings
+        if (typeof body.ticketForumId === 'string') {
+            updates.push({
+                key: 'discord_ticket_forum_id',
+                value: body.ticketForumId,
+                description: 'Discord forum channel ID for ticket threads',
+            });
+        }
+
+        if (typeof body.ticketCategoryId === 'string') {
+            updates.push({
+                key: 'discord_ticket_category_id',
+                value: body.ticketCategoryId,
+                description: 'Discord category ID for ticket channels',
+            });
+        }
+
+        if (typeof body.ticketStaffRoleId === 'string') {
+            updates.push({
+                key: 'discord_ticket_staff_role_id',
+                value: body.ticketStaffRoleId,
+                description: 'Discord role ID for ticket staff',
+            });
+        }
+
+        if (typeof body.ticketPingRoleId === 'string') {
+            updates.push({
+                key: 'discord_ticket_ping_role_id',
+                value: body.ticketPingRoleId,
+                description: 'Discord role ID to ping on new tickets',
             });
         }
 

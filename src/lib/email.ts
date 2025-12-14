@@ -623,6 +623,132 @@ export async function sendDonationReceiptEmail(options: {
   }
 }
 
+// =============================================================================
+// TICKET ACCESS EMAIL
+// =============================================================================
+
+/**
+ * Ticket access email template (for guests)
+ */
+export function getTicketAccessEmailTemplate(
+  name: string,
+  ticketId: number,
+  accessToken: string
+): EmailTemplate {
+  const accessUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vonix.network'}/helpdesk/guest?token=${accessToken}`;
+  
+  const content = `
+    <h2 style="color: #00ffff; font-size: 20px; margin: 0 0 16px 0;">
+      🎫 Your Support Ticket Has Been Created
+    </h2>
+    <p style="color: #a0a0a0; font-size: 14px; line-height: 1.6;">
+      Hey <strong style="color: #00ffff;">${name}</strong>, your support ticket #${ticketId} has been created successfully!
+    </p>
+    <div style="background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 8px; padding: 20px; margin: 24px 0;">
+      <p style="color: #ffffff; font-size: 14px; margin: 0 0 16px 0;">
+        Use the button below to access your ticket and view responses from our support team:
+      </p>
+      <div style="text-align: center;">
+        <a href="${accessUrl}" style="display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #00ffff 0%, #8b5cf6 100%); color: #000; font-weight: 600; text-decoration: none; border-radius: 8px; font-size: 16px;">
+          View Your Ticket
+        </a>
+      </div>
+    </div>
+    <p style="color: #666; font-size: 12px; line-height: 1.6;">
+      <strong>Important:</strong> This link is valid for 7 days. Keep this email safe - you'll need it to access your ticket.
+    </p>
+    <p style="color: #666; font-size: 12px; line-height: 1.6;">
+      If the button doesn't work, copy and paste this URL into your browser:<br>
+      <a href="${accessUrl}" style="color: #00ffff; word-break: break-all;">${accessUrl}</a>
+    </p>
+  `;
+
+  return {
+    subject: `🎫 Your Support Ticket #${ticketId} - Vonix Network`,
+    html: getBaseEmailTemplate(content, 'Support Ticket Access'),
+    text: `Your support ticket #${ticketId} has been created. Access it here: ${accessUrl}`,
+  };
+}
+
+/**
+ * Send ticket access email to guest
+ */
+export async function sendTicketAccessEmail(
+  email: string,
+  name: string,
+  ticketId: number,
+  accessToken: string
+): Promise<boolean> {
+  try {
+    const template = getTicketAccessEmailTemplate(name, ticketId, accessToken);
+    return await sendEmail(email, template);
+  } catch (error) {
+    console.error('Error sending ticket access email:', error);
+    return false;
+  }
+}
+
+/**
+ * Ticket reply notification email template (for guests)
+ */
+export function getTicketReplyEmailTemplate(
+  name: string,
+  ticketId: number,
+  accessToken: string,
+  staffName: string,
+  replyPreview: string
+): EmailTemplate {
+  const accessUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vonix.network'}/helpdesk/guest?token=${accessToken}`;
+  
+  const content = `
+    <h2 style="color: #00ffff; font-size: 20px; margin: 0 0 16px 0;">
+      💬 New Reply on Your Ticket #${ticketId}
+    </h2>
+    <p style="color: #a0a0a0; font-size: 14px; line-height: 1.6;">
+      Hey <strong style="color: #00ffff;">${name}</strong>, our support team has responded to your ticket!
+    </p>
+    <div style="background: rgba(139, 92, 246, 0.1); border-left: 3px solid #8b5cf6; padding: 16px; margin: 20px 0;">
+      <p style="color: #8b5cf6; font-size: 12px; margin: 0 0 8px 0; font-weight: 600;">
+        ${staffName} replied:
+      </p>
+      <p style="color: #ffffff; font-size: 14px; margin: 0; line-height: 1.6;">
+        ${replyPreview.substring(0, 300)}${replyPreview.length > 300 ? '...' : ''}
+      </p>
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${accessUrl}" style="display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #00ffff 0%, #8b5cf6 100%); color: #000; font-weight: 600; text-decoration: none; border-radius: 8px;">
+        View Full Conversation
+      </a>
+    </div>
+  `;
+
+  return {
+    subject: `💬 New Reply on Ticket #${ticketId} - Vonix Network`,
+    html: getBaseEmailTemplate(content, 'Ticket Reply'),
+    text: `${staffName} replied to your ticket #${ticketId}. View the conversation: ${accessUrl}`,
+  };
+}
+
+/**
+ * Send ticket reply notification to guest
+ */
+export async function sendTicketReplyEmail(
+  email: string,
+  name: string,
+  ticketId: number,
+  accessToken: string,
+  staffName: string,
+  replyPreview: string
+): Promise<boolean> {
+  try {
+    const template = getTicketReplyEmailTemplate(name, ticketId, accessToken, staffName, replyPreview);
+    return await sendEmail(email, template);
+  } catch (error) {
+    console.error('Error sending ticket reply email:', error);
+    return false;
+  }
+}
+
 // Export for use in API routes
 export default {
   sendEmail,
@@ -632,8 +758,12 @@ export default {
   sendAdminNewUserAlert,
   sendUserNotificationEmail,
   sendDonationReceiptEmail,
+  sendTicketAccessEmail,
+  sendTicketReplyEmail,
   getNewMessageEmailTemplate,
   getForumReplyEmailTemplate,
   getFriendRequestEmailTemplate,
   getDonationReceiptEmailTemplate,
+  getTicketAccessEmailTemplate,
+  getTicketReplyEmailTemplate,
 };

@@ -538,28 +538,104 @@ export type SupportTicket = typeof supportTickets.$inferSelect;
 export type TicketMessage = typeof ticketMessages.$inferSelect;
 
 // ===================================
+// TICKET CATEGORIES/DEPARTMENTS
+// ===================================
+
+export const ticketCategories = sqliteTable('ticket_categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  description: text('description'),
+  emoji: text('emoji').default('🎫'),
+  color: text('color').default('#00FFFF'),
+  discordCategoryId: text('discord_category_id'), // Discord category for ticket channels
+  staffRoles: text('staff_roles'), // JSON array of staff role IDs
+  pingRoles: text('ping_roles'), // JSON array of roles to ping on new tickets
+  openingMessage: text('opening_message'),
+  requireTopic: integer('require_topic', { mode: 'boolean' }).default(false),
+  memberLimit: integer('member_limit').default(3), // Max open tickets per user
+  totalLimit: integer('total_limit').default(50), // Max total open tickets
+  cooldown: integer('cooldown'), // Cooldown in seconds between tickets
+  enabled: integer('enabled', { mode: 'boolean' }).default(true),
+  order: integer('order').default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+export const ticketQuestions = sqliteTable('ticket_questions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  categoryId: integer('category_id').notNull().references(() => ticketCategories.id, { onDelete: 'cascade' }),
+  label: text('label').notNull(),
+  placeholder: text('placeholder'),
+  type: text('type', { enum: ['text', 'textarea', 'select'] }).default('text').notNull(),
+  options: text('options'), // JSON array for select options
+  required: integer('required', { mode: 'boolean' }).default(true),
+  minLength: integer('min_length').default(0),
+  maxLength: integer('max_length').default(1000),
+  order: integer('order').default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+// ===================================
 // SUPPORT TICKETS
 // ===================================
 
 export const supportTickets = sqliteTable('support_tickets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  categoryId: integer('category_id').references(() => ticketCategories.id, { onDelete: 'set null' }),
   subject: text('subject').notNull(),
   category: text('category', { enum: ['account', 'billing', 'technical', 'general', 'other'] }).default('general').notNull(),
   priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }).default('normal').notNull(),
   status: text('status', { enum: ['open', 'in_progress', 'waiting', 'resolved', 'closed'] }).default('open').notNull(),
   assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
   discordThreadId: text('discord_thread_id'), // Discord forum thread ID for this ticket
+  discordChannelId: text('discord_channel_id'), // Discord channel ID for this ticket
+  // Guest ticket support
+  guestEmail: text('guest_email'),
+  guestName: text('guest_name'),
+  guestAccessToken: text('guest_access_token'), // Token for guest to access their ticket
+  guestAccessTokenExpires: integer('guest_access_token_expires', { mode: 'timestamp' }),
+  // Discord user ticket support
+  discordUserId: text('discord_user_id'),
+  discordUsername: text('discord_username'),
+  // Ticket metadata
+  claimedById: integer('claimed_by_id').references(() => users.id, { onDelete: 'set null' }),
+  claimedAt: integer('claimed_at', { mode: 'timestamp' }),
+  firstResponseAt: integer('first_response_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
   closedAt: integer('closed_at', { mode: 'timestamp' }),
+  closedReason: text('closed_reason'),
 });
 
 export const ticketMessages = sqliteTable('ticket_messages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  guestName: text('guest_name'), // For guest messages
+  discordUserId: text('discord_user_id'), // For Discord user messages
+  discordUsername: text('discord_username'),
   message: text('message').notNull(),
   isStaffReply: integer('is_staff_reply', { mode: 'boolean' }).default(false).notNull(),
+  isSystemMessage: integer('is_system_message', { mode: 'boolean' }).default(false).notNull(),
+  attachments: text('attachments'), // JSON array of attachment URLs
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+export const ticketAnswers = sqliteTable('ticket_answers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  questionId: integer('question_id').notNull().references(() => ticketQuestions.id, { onDelete: 'cascade' }),
+  answer: text('answer'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+});
+
+export const guestTicketTokens = sqliteTable('guest_ticket_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  token: text('token').notNull().unique(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  usedAt: integer('used_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });

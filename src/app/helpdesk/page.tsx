@@ -106,12 +106,20 @@ export default function UserHelpdeskPage() {
                         <p className="text-lg text-muted-foreground mb-8">
                             Need assistance? We're here to help. Create a support ticket and our team will get back to you as soon as possible.
                         </p>
-                        <Link href="/helpdesk/new">
-                            <Button variant="neon" size="lg" className="gap-2 text-lg px-8">
-                                <Plus className="w-5 h-5" />
-                                Create New Ticket
-                            </Button>
-                        </Link>
+                        <div className="flex flex-wrap gap-4 justify-center">
+                            <Link href="/helpdesk/new">
+                                <Button variant="neon" size="lg" className="gap-2 text-lg px-8">
+                                    <Plus className="w-5 h-5" />
+                                    Create New Ticket
+                                </Button>
+                            </Link>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-4">
+                            Don't have an account?{' '}
+                            <Link href="/helpdesk/guest/new" className="text-neon-cyan hover:underline">
+                                Create a guest ticket
+                            </Link>
+                        </p>
                     </div>
                 </div>
             </div>

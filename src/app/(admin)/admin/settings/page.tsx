@@ -151,6 +151,16 @@ export default function AdminSettingsPage() {
     // Discord integration (slash commands)
     clientId: '',
     guildId: '',
+    // Discord OAuth settings
+    oauthClientId: '',
+    oauthClientSecret: '',
+    oauthRedirectUri: '',
+    oauthEnabled: false,
+    // Ticket system settings
+    ticketForumId: '',
+    ticketCategoryId: '',
+    ticketStaffRoleId: '',
+    ticketPingRoleId: '',
     // Viscord (Minecraft server embeds) channel
     viscordChannelId: '',
     viscordChannelName: '',
@@ -187,6 +197,14 @@ export default function AdminSettingsPage() {
             channelName: discordData.channelName || '',
             clientId: discordData.clientId || '',
             guildId: discordData.guildId || '',
+            oauthClientId: discordData.oauthClientId || '',
+            oauthClientSecret: discordData.oauthClientSecret || '',
+            oauthRedirectUri: discordData.oauthRedirectUri || '',
+            oauthEnabled: discordData.oauthEnabled || false,
+            ticketForumId: discordData.ticketForumId || '',
+            ticketCategoryId: discordData.ticketCategoryId || '',
+            ticketStaffRoleId: discordData.ticketStaffRoleId || '',
+            ticketPingRoleId: discordData.ticketPingRoleId || '',
             viscordChannelId: discordData.viscordChannelId || '',
             viscordChannelName: discordData.viscordChannelName || '',
             donationWebhookUrl: discordData.donationWebhookUrl || '',
@@ -1514,6 +1532,157 @@ export default function AdminSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Required for slash commands. Right-click your server icon → Copy ID
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="w-5 h-5" style={{ color: '#5865F2' }} />
+                    Discord OAuth2 Login
+                  </CardTitle>
+                  <CardDescription>
+                    Allow users to sign in with their Discord account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ToggleCard
+                    checked={discordSettings.oauthEnabled}
+                    onChange={(val) => setDiscordSettings({ ...discordSettings, oauthEnabled: val })}
+                    label="Enable Discord OAuth Login"
+                    description="Allow users to link their Discord account and sign in with Discord"
+                  />
+
+                  {discordSettings.oauthEnabled && (
+                    <>
+                      <div className="p-4 rounded-lg border" style={{ background: 'rgba(88, 101, 242, 0.1)', borderColor: 'rgba(88, 101, 242, 0.3)' }}>
+                        <p className="text-sm font-medium" style={{ color: '#5865F2' }}>
+                          🔗 Discord OAuth is enabled
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Users can link their Discord account and use it to sign in
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">OAuth Client ID</label>
+                        <Input
+                          value={discordSettings.oauthClientId}
+                          onChange={(e) => setDiscordSettings({ ...discordSettings, oauthClientId: e.target.value })}
+                          placeholder="123456789012345678"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Discord Developer Portal → OAuth2 → Client ID
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">OAuth Client Secret</label>
+                        <Input
+                          type="password"
+                          value={discordSettings.oauthClientSecret}
+                          onChange={(e) => setDiscordSettings({ ...discordSettings, oauthClientSecret: e.target.value })}
+                          placeholder="Your OAuth client secret"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Discord Developer Portal → OAuth2 → Client Secret (Reset to reveal)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">OAuth Redirect URI</label>
+                        <Input
+                          value={discordSettings.oauthRedirectUri || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/auth/callback/discord`}
+                          onChange={(e) => setDiscordSettings({ ...discordSettings, oauthRedirectUri: e.target.value })}
+                          placeholder="https://yourdomain.com/api/auth/callback/discord"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Add this URL to Discord Developer Portal → OAuth2 → Redirects
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-secondary/50">
+                        <h4 className="font-medium mb-2">Setup Instructions</h4>
+                        <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                          <li>Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">Discord Developer Portal</a></li>
+                          <li>Select your application (or create one)</li>
+                          <li>Go to OAuth2 → General</li>
+                          <li>Copy the Client ID and Client Secret</li>
+                          <li>Add the Redirect URI shown above to the Redirects list</li>
+                        </ol>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-neon-cyan" />
+                    Discord Ticket System
+                  </CardTitle>
+                  <CardDescription>
+                    Configure Discord channels and roles for the ticket system
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                    <p className="text-sm text-neon-cyan font-medium">
+                      🎫 Discord Ticket Integration
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Website tickets will create Discord threads. Use /ticketcreator in Discord to create a ticket panel.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Ticket Forum Channel ID</label>
+                    <Input
+                      value={discordSettings.ticketForumId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, ticketForumId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Forum channel where ticket threads will be created
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Ticket Category ID (for Discord channels)</label>
+                    <Input
+                      value={discordSettings.ticketCategoryId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, ticketCategoryId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Discord category where ticket channels will be created (alternative to forum)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Staff Role ID</label>
+                    <Input
+                      value={discordSettings.ticketStaffRoleId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, ticketStaffRoleId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Role that can view and respond to tickets
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Ping Role ID (Optional)</label>
+                    <Input
+                      value={discordSettings.ticketPingRoleId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, ticketPingRoleId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Role to ping when a new ticket is created (leave empty to not ping)
                     </p>
                   </div>
                 </CardContent>
