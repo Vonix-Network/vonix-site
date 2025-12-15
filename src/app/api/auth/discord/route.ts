@@ -41,7 +41,9 @@ export async function GET(request: Request) {
         // Get proper origin from headers (handles reverse proxy)
         const headersList = await headers();
         const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
-        const proto = headersList.get('x-forwarded-proto') || 'https';
+        // Force HTTPS for production - Discord requires exact redirect_uri match
+        // The x-forwarded-proto header may return 'http' depending on proxy config
+        const proto = host.includes('localhost') ? 'http' : 'https';
         const origin = `${proto}://${host}`;
 
         // Build redirect URI with fixed path
@@ -54,6 +56,17 @@ export async function GET(request: Request) {
         discordAuthUrl.searchParams.set('response_type', 'code');
         discordAuthUrl.searchParams.set('scope', 'identify guilds guilds.members.read');
         discordAuthUrl.searchParams.set('state', state);
+
+        // Debug mode - return JSON instead of redirecting
+        if (searchParams.get('debug') === '1') {
+            return NextResponse.json({
+                redirectUri,
+                origin,
+                host,
+                proto,
+                discordAuthUrl: discordAuthUrl.toString(),
+            });
+        }
 
         return NextResponse.redirect(discordAuthUrl.toString());
     } catch (error) {
