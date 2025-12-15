@@ -44,13 +44,14 @@ export async function GET(
                 userId: supportTickets.userId,
                 linkedUsername: users.username,
                 discordUsername: supportTickets.discordUsername,
+                discordUserId: supportTickets.discordUserId,
                 assignedTo: supportTickets.assignedTo,
                 discordThreadId: supportTickets.discordThreadId,
             })
             .from(supportTickets)
             .leftJoin(users, eq(supportTickets.userId, users.id))
             .where(eq(supportTickets.id, ticketId));
-        
+
         // Resolve username: prefer linked user, fallback to discordUsername
         const ticket = ticketRaw ? {
             ...ticketRaw,
@@ -61,8 +62,11 @@ export async function GET(
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
         }
 
-        // Check permission
-        if (!isStaff && ticket.userId !== userId) {
+        // Check permission - allow if userId matches OR discordUserId matches user's linked Discord
+        const userDiscordId = user.discordId;
+        const isOwner = ticket.userId === userId || (userDiscordId && ticket.discordUserId === userDiscordId);
+
+        if (!isStaff && !isOwner) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 

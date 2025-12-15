@@ -40,8 +40,11 @@ export async function POST(
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
         }
 
-        // Check permission
-        if (!isStaff && ticket.userId !== userId) {
+        // Check permission - allow if userId matches OR discordUserId matches user's linked Discord
+        const userDiscordId = user.discordId;
+        const isOwner = ticket.userId === userId || (userDiscordId && ticket.discordUserId === userDiscordId);
+
+        if (!isStaff && !isOwner) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 

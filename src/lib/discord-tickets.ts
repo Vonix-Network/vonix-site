@@ -364,14 +364,14 @@ async function getTicketFromChannel(channelId: string) {
         .select()
         .from(supportTickets)
         .where(eq(supportTickets.discordChannelId, channelId));
-    
+
     if (!ticket) {
         [ticket] = await db
             .select()
             .from(supportTickets)
             .where(eq(supportTickets.discordThreadId, channelId));
     }
-    
+
     return ticket;
 }
 
@@ -452,7 +452,7 @@ export async function createTicket(
 
     // Create ticket channel
     const channelName = `ticket-${ticketNumber}-${member.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    
+
     try {
         const channel = await guild.channels.create({
             name: channelName,
@@ -489,10 +489,20 @@ export async function createTicket(
             reason: `Ticket created by ${member.user.tag}`,
         });
 
+        // Look up website user by Discord ID to link the ticket
+        let websiteUserId: number | null = null;
+        const linkedUser = await db.query.users.findFirst({
+            where: eq(users.discordId, interaction.user.id),
+        });
+        if (linkedUser) {
+            websiteUserId = linkedUser.id;
+            console.log(`[Discord Tickets] Linked ticket to website user: ${linkedUser.username} (ID: ${linkedUser.id})`);
+        }
+
         // Create ticket in database
         const [ticket] = await db.insert(supportTickets).values({
             number: ticketNumber,
-            userId: null,
+            userId: websiteUserId, // Link to website user if Discord is connected
             categoryId: categoryId || null,
             subject: topic || `Ticket #${ticketNumber}`,
             topic: topic || null,
@@ -563,13 +573,13 @@ export async function createTicket(
         });
 
         // Pin the opening message
-        await openingMessage.pin().catch(() => {});
+        await openingMessage.pin().catch(() => { });
 
         // Clean up system messages
         const messages = await channel.messages.fetch({ limit: 5 });
         for (const msg of messages.values()) {
             if (msg.system) {
-                await msg.delete().catch(() => {});
+                await msg.delete().catch(() => { });
             }
         }
 
@@ -603,7 +613,7 @@ export async function createTicket(
 
 export async function claimTicket(interaction: any): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -670,7 +680,7 @@ export async function claimTicket(interaction: any): Promise<void> {
 
 export async function releaseTicket(interaction: any): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -722,7 +732,7 @@ export async function releaseTicket(interaction: any): Promise<void> {
 
 export async function closeTicket(interaction: any, reason?: string): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -813,7 +823,7 @@ async function finallyCloseTicket(interaction: any, ticketId: number, reason?: s
 
     // Wait 5 seconds then delete channel
     await new Promise(resolve => setTimeout(resolve, 5000));
-    
+
     try {
         await interaction.channel.delete(`Ticket closed by ${interaction.user.tag}`);
     } catch (error) {
@@ -825,7 +835,7 @@ async function finallyCloseTicket(interaction: any, ticketId: number, reason?: s
 
 export async function addMemberToTicket(interaction: any, member: any): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -865,7 +875,7 @@ export async function addMemberToTicket(interaction: any, member: any): Promise<
 
 export async function removeMemberFromTicket(interaction: any, member: any): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -907,7 +917,7 @@ export async function removeMemberFromTicket(interaction: any, member: any): Pro
 
 export async function transferTicket(interaction: any, newOwner: any): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -962,7 +972,7 @@ export async function transferTicket(interaction: any, newOwner: any): Promise<v
 
 export async function setTicketPriority(interaction: any, priority: string): Promise<void> {
     const ticket = await getTicketFromChannel(interaction.channel.id);
-    
+
     if (!ticket) {
         await interaction.reply({
             content: '❌ This is not a ticket channel.',
@@ -995,7 +1005,7 @@ export async function setTicketPriority(interaction: any, priority: string): Pro
     // Remove old priority emoji if present
     channelName = channelName.replace(/^[🔴🟠🔵🟢]/, '');
     channelName = emoji + channelName;
-    
+
     await interaction.channel.setName(channelName);
 
     await interaction.editReply({
@@ -1036,7 +1046,7 @@ export async function listTickets(interaction: any): Promise<void> {
         return;
     }
 
-    const ticketList = tickets.map(t => 
+    const ticketList = tickets.map(t =>
         `${getStatusEmoji(t.status)} **#${t.id}** - ${t.subject}\n` +
         `   ${getPriorityEmoji(t.priority)} ${t.priority} | <t:${Math.floor(new Date(t.createdAt).getTime() / 1000)}:R>`
     ).join('\n\n');
@@ -1108,7 +1118,7 @@ export async function getTranscript(interaction: any, ticketId?: string): Promis
 
     // Send as file attachment
     const buffer = Buffer.from(transcript, 'utf-8');
-    
+
     await interaction.editReply({
         content: `📜 Transcript for Ticket #${ticket.id}`,
         files: [{
@@ -1147,7 +1157,7 @@ async function moveTicket(interaction: any, categoryId: number): Promise<void> {
 
     // Move channel to new Discord category if configured
     if (newCategory.discordCategoryId) {
-        await interaction.channel.setParent(newCategory.discordCategoryId, { lockPermissions: false }).catch(() => {});
+        await interaction.channel.setParent(newCategory.discordCategoryId, { lockPermissions: false }).catch(() => { });
     }
 
     const [oldCategory] = oldCategoryId ? await db.select().from(ticketCategories).where(eq(ticketCategories.id, oldCategoryId)) : [{ name: 'Unknown' }];
@@ -1262,7 +1272,7 @@ async function forceCloseTickets(interaction: any): Promise<void> {
             try {
                 const channel = await discordClient.channels.fetch(ticket.discordChannelId);
                 if (channel) await (channel as TextChannel).delete('Force closed');
-            } catch {}
+            } catch { }
         }
 
         await interaction.editReply({ content: `✅ Ticket #${ticket.number} force closed.` });
@@ -1305,7 +1315,7 @@ async function forceCloseTickets(interaction: any): Promise<void> {
                 try {
                     const channel = await discordClient.channels.fetch(ticket.discordChannelId);
                     if (channel) await (channel as TextChannel).delete('Force closed - inactive');
-                } catch {}
+                } catch { }
             }
         }
 
@@ -1332,7 +1342,7 @@ async function forceCloseTickets(interaction: any): Promise<void> {
     await logTicketEvent('force_close', ticket.id, interaction.user.id, reason);
 
     setTimeout(async () => {
-        try { await interaction.channel.delete('Force closed'); } catch {}
+        try { await interaction.channel.delete('Force closed'); } catch { }
     }, 3000);
 }
 
@@ -1400,7 +1410,7 @@ export async function createTicketPanel(
         .setColor(0x00FFFF)
         .setTitle(title || '🎫 Support Tickets')
         .setDescription(
-            description || 
+            description ||
             'Need help? Click the button below to create a support ticket.\n\n' +
             'Our support team will assist you as soon as possible.'
         )
@@ -1408,7 +1418,7 @@ export async function createTicketPanel(
         .setTimestamp();
 
     if (categories.length > 0) {
-        const categoryList = categories.map(c => 
+        const categoryList = categories.map(c =>
             `${c.emoji || '🎫'} **${c.name}**${c.description ? ` - ${c.description}` : ''}`
         ).join('\n');
         embed.addFields({ name: 'Categories', value: categoryList });
@@ -1508,7 +1518,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
         console.log('Ticket listeners already initialized, skipping...');
         return;
     }
-    
+
     const client = await getDiscordClient();
     if (!client) return;
 
@@ -1562,7 +1572,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                         // Handle setup command
                         const category = interaction.options.getChannel('category');
                         const staffRole = interaction.options.getRole('staff_role');
-                        
+
                         if (category) {
                             await db.insert(siteSettings).values({
                                 key: 'discord_ticket_category_id',
@@ -1575,7 +1585,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                                 set: { value: category.id, updatedAt: new Date() },
                             });
                         }
-                        
+
                         if (staffRole) {
                             await db.insert(siteSettings).values({
                                 key: 'discord_ticket_staff_role_id',
@@ -1588,7 +1598,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                                 set: { value: staffRole.id, updatedAt: new Date() },
                             });
                         }
-                        
+
                         await interaction.reply({
                             content: '✅ Ticket system configured!' +
                                 (category ? `\n📁 Category: ${category}` : '') +
@@ -1637,7 +1647,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
             // Button interactions
             if (interaction.isButton()) {
                 const customId = interaction.customId;
-                
+
                 // Handle ticket_create button
                 if (customId === 'ticket_create') {
                     // Show topic modal
@@ -1662,7 +1672,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                 // Handle JSON customId buttons
                 try {
                     const data = JSON.parse(customId);
-                    
+
                     if (data.action === 'claim') {
                         await claimTicket(interaction);
                     } else if (data.action === 'close') {
@@ -1680,7 +1690,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
             if (interaction.isStringSelectMenu()) {
                 if (interaction.customId === 'ticket_category_select') {
                     const categoryId = parseInt(interaction.values[0]);
-                    
+
                     // Show topic modal with category
                     const modal = new ModalBuilder()
                         .setCustomId(JSON.stringify({ action: 'create_with_category', categoryId }))
@@ -1704,7 +1714,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
             // Modal submissions
             if (interaction.isModalSubmit()) {
                 const customId = interaction.customId;
-                
+
                 if (customId === 'ticket_create_modal') {
                     const topic = interaction.fields.getTextInputValue('topic');
                     await createTicket(interaction, topic);
@@ -1713,7 +1723,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
 
                 try {
                     const data = JSON.parse(customId);
-                    
+
                     if (data.action === 'create_with_category') {
                         const topic = interaction.fields.getTextInputValue('topic');
                         await createTicket(interaction, topic, data.categoryId);
@@ -1721,7 +1731,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                         // Handle feedback submission then close
                         const rating = parseInt(interaction.fields.getTextInputValue('rating')) || 0;
                         const comment = interaction.fields.getTextInputValue('comment');
-                        
+
                         // Store feedback
                         if (rating >= 1 && rating <= 5) {
                             await db.insert(ticketFeedback).values({
@@ -1731,7 +1741,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                                 discordUserId: interaction.user.id,
                             });
                         }
-                        
+
                         await finallyCloseTicket(interaction, data.ticketId, data.reason);
                     } else if (data.action === 'edit_topic') {
                         // Handle topic edit
@@ -1739,13 +1749,13 @@ export async function setupTicketEventHandlers(): Promise<void> {
                         await db.update(supportTickets)
                             .set({ topic: newTopic, subject: newTopic, updatedAt: new Date() })
                             .where(eq(supportTickets.id, data.ticketId));
-                        
+
                         // Update channel topic
                         const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, data.ticketId));
                         if (ticket?.discordChannelId) {
-                            await interaction.channel.setTopic(`<@${ticket.discordUserId}> | ${newTopic}`).catch(() => {});
+                            await interaction.channel.setTopic(`<@${ticket.discordUserId}> | ${newTopic}`).catch(() => { });
                         }
-                        
+
                         await interaction.reply({
                             embeds: [new EmbedBuilder().setColor(0x00FF00).setDescription('✅ Topic updated.')],
                             flags: MessageFlags.Ephemeral,
@@ -1765,7 +1775,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                 } else {
                     await interaction.reply({ content: errorMsg, flags: MessageFlags.Ephemeral });
                 }
-            } catch {}
+            } catch { }
         }
     });
 
@@ -1797,11 +1807,11 @@ export async function setupTicketEventHandlers(): Promise<void> {
 
         // Update ticket
         const updateData: any = { updatedAt: new Date() };
-        
+
         if (isUserStaff && !ticket.firstResponseAt) {
             updateData.firstResponseAt = new Date();
         }
-        
+
         if (isUserStaff && ticket.status === 'open') {
             updateData.status = 'waiting';
         } else if (!isUserStaff && ticket.status === 'waiting') {

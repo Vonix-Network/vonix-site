@@ -43,10 +43,24 @@ export async function GET(request: NextRequest) {
         // Parse user ID (session stores it as string)
         const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
 
+        // Get user's Discord ID for matching Discord-created tickets
+        const userDiscordId = user.discordId;
+
         // Filter by user if not staff
-        const tickets = isStaff
-            ? await query
-            : await db
+        // Include tickets where:
+        // 1. userId matches (created on website)
+        // 2. discordUserId matches (created on Discord)
+        let tickets;
+        if (isStaff) {
+            tickets = await query;
+        } else {
+            // Build OR condition for userId OR discordUserId
+            const conditions = [eq(supportTickets.userId, userId)];
+            if (userDiscordId) {
+                conditions.push(eq(supportTickets.discordUserId, userDiscordId));
+            }
+
+            tickets = await db
                 .select({
                     id: supportTickets.id,
                     subject: supportTickets.subject,
@@ -58,12 +72,16 @@ export async function GET(request: NextRequest) {
                     userId: supportTickets.userId,
                     username: users.username,
                     assignedTo: supportTickets.assignedTo,
+                    discordUserId: supportTickets.discordUserId,
+                    discordUsername: supportTickets.discordUsername,
+                    discordChannelId: supportTickets.discordChannelId,
                 })
                 .from(supportTickets)
                 .leftJoin(users, eq(supportTickets.userId, users.id))
-                .where(eq(supportTickets.userId, userId))
+                .where(sql`${supportTickets.userId} = ${userId}${userDiscordId ? sql` OR ${supportTickets.discordUserId} = ${userDiscordId}` : sql``}`)
                 .orderBy(desc(supportTickets.updatedAt))
                 .limit(limit);
+        }
 
         // Get counts for staff
         let counts = null;
