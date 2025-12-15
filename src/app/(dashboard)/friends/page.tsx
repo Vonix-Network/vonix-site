@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Users, User, UserPlus, Search, MessageSquare, 
+import {
+  Users, User, UserPlus, Search, MessageSquare,
   Check, X, Clock, MoreHorizontal
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ interface FriendSearchResult {
 type Tab = 'friends' | 'pending' | 'search';
 
 export default function FriendsPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('friends');
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +50,13 @@ export default function FriendsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<FriendSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?callbackUrl=/friends');
+    }
+  }, [status, router]);
 
   const reloadFriends = async () => {
     try {
@@ -134,11 +141,10 @@ export default function FriendsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as Tab)}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-              activeTab === tab.id
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === tab.id
                 ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
                 : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             {tab.label}
             {tab.count !== null && (
@@ -172,16 +178,16 @@ export default function FriendsPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {onlineFriends.map((friend) => (
-                  <div 
+                  <div
                     key={friend.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar>
-                          <AvatarImage 
-                            src={getMinecraftAvatarUrl(friend.minecraftUsername || friend.username)} 
-                            alt={friend.username} 
+                          <AvatarImage
+                            src={getMinecraftAvatarUrl(friend.minecraftUsername || friend.username)}
+                            alt={friend.username}
                           />
                           <AvatarFallback>
                             {getInitials(friend.username)}
@@ -223,15 +229,15 @@ export default function FriendsPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {offlineFriends.map((friend) => (
-                  <div 
+                  <div
                     key={friend.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors opacity-75"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage 
-                          src={getMinecraftAvatarUrl(friend.minecraftUsername || friend.username)} 
-                          alt={friend.username} 
+                        <AvatarImage
+                          src={getMinecraftAvatarUrl(friend.minecraftUsername || friend.username)}
+                          alt={friend.username}
                         />
                         <AvatarFallback>
                           {getInitials(friend.username)}
@@ -287,15 +293,15 @@ export default function FriendsPage() {
           <CardContent className="space-y-2">
             {pendingRequests.length > 0 ? (
               pendingRequests.map((request) => (
-                <div 
+                <div
                   key={request.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage 
-                        src={getMinecraftAvatarUrl(request.minecraftUsername || request.username)} 
-                        alt={request.username} 
+                      <AvatarImage
+                        src={getMinecraftAvatarUrl(request.minecraftUsername || request.username)}
+                        alt={request.username}
                       />
                       <AvatarFallback>
                         {getInitials(request.username)}

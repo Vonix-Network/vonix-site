@@ -30,7 +30,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const user = session?.user as any;
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -44,6 +44,13 @@ export default function MessagesPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const myId = user?.id ? parseInt(user.id as string) : 0;
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?callbackUrl=/messages');
+    }
+  }, [status, router]);
 
   // Track if we need to auto-select first conversation
   const [needsAutoSelect, setNeedsAutoSelect] = useState(false);

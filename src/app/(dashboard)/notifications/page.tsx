@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Bell, Check, Trash2, Settings, MessageSquare,
@@ -40,10 +41,18 @@ const getNotificationIcon = (type: string) => {
 };
 
 export default function NotificationsPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?callbackUrl=/notifications');
+    }
+  }, [status, router]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

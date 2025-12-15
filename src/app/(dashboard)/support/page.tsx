@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
     Ticket, Plus, MessageCircle, Clock, CheckCircle,
@@ -38,8 +40,17 @@ const priorityConfig: Record<string, string> = {
 };
 
 export default function SupportPage() {
+    const { status } = useSession();
+    const router = useRouter();
     const [tickets, setTickets] = useState<TicketData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Redirect to login if not authenticated
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login?callbackUrl=/support');
+        }
+    }, [status, router]);
 
     useEffect(() => {
         fetchTickets();

@@ -160,6 +160,17 @@ export async function PATCH(request: Request) {
             updateData.minecraftUsername = body.minecraftUsername;
         }
 
+        // Discord unlinking (allow setting to null)
+        if ('discordId' in body) {
+            updateData.discordId = body.discordId;
+        }
+        if ('discordUsername' in body) {
+            updateData.discordUsername = body.discordUsername;
+        }
+        if ('discordAvatar' in body) {
+            updateData.discordAvatar = body.discordAvatar;
+        }
+
         // Update user
         if (Object.keys(updateData).length > 0) {
             updateData.updatedAt = new Date();

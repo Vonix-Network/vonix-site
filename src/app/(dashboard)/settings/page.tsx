@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
   User, Shield, Bell, Palette, Key, CreditCard, Gamepad2,
   Save, Loader2, Eye, EyeOff, Check, Crown, ExternalLink, AlertTriangle, Calendar, History, Link2, Unlink
@@ -45,13 +46,21 @@ interface SubscriptionData {
 }
 
 export default function SettingsPage() {
-  const { data: session, update } = useSession();
+  const { data: session, update, status } = useSession();
+  const router = useRouter();
   const user = session?.user as any;
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?callbackUrl=/settings');
+    }
+  }, [status, router]);
 
   // Form states
   const [profile, setProfile] = useState({
@@ -815,10 +824,39 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     {user?.discordId ? (
-                      <Badge variant="outline" style={{ borderColor: '#5865F2', color: '#5865F2' }}>
-                        <Link2 className="w-3 h-3 mr-1" />
-                        Linked
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" style={{ borderColor: '#5865F2', color: '#5865F2' }}>
+                          <Link2 className="w-3 h-3 mr-1" />
+                          Linked
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            if (!confirm('Are you sure you want to unlink your Discord account?')) return;
+                            try {
+                              const res = await fetch('/api/users/me', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  discordId: null,
+                                  discordUsername: null,
+                                  discordAvatar: null,
+                                }),
+                              });
+                              if (res.ok) {
+                                window.location.reload();
+                              }
+                            } catch (err) {
+                              console.error('Failed to unlink Discord:', err);
+                            }
+                          }}
+                          className="text-error hover:text-error/80"
+                        >
+                          <Unlink className="w-4 h-4 mr-1" />
+                          Unlink
+                        </Button>
+                      </div>
                     ) : (
                       <Button
                         variant="outline"
