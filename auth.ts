@@ -138,6 +138,62 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
+    // Discord ID login - for users logging in via linked Discord
+    Credentials({
+      id: 'discord-id',
+      name: 'Discord ID',
+      credentials: {
+        discordId: { label: 'Discord ID', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.discordId) {
+          return null;
+        }
+
+        try {
+          // Find user by Discord ID
+          const user = await db.query.users.findFirst({
+            where: eq(users.discordId, credentials.discordId as string),
+          });
+
+          if (!user) {
+            console.log('[Discord ID Auth] No user found with discordId:', credentials.discordId);
+            return null;
+          }
+
+          console.log('[Discord ID Auth] Found user:', { userId: user.id, username: user.username });
+
+          // Update last login
+          await db
+            .update(users)
+            .set({
+              lastLoginAt: new Date(),
+            })
+            .where(eq(users.id, user.id));
+
+          return {
+            id: user.id.toString(),
+            username: user.username,
+            name: user.username,
+            email: user.email || undefined,
+            role: user.role,
+            minecraftUsername: user.minecraftUsername || undefined,
+            minecraftUuid: user.minecraftUuid || undefined,
+            avatar: user.avatar || undefined,
+            xp: user.xp || 0,
+            level: user.level || 1,
+            websiteXp: user.websiteXp || 0,
+            minecraftXp: user.minecraftXp || 0,
+            discordId: user.discordId || undefined,
+            discordUsername: user.discordUsername || undefined,
+            discordAvatar: user.discordAvatar || undefined,
+          };
+        } catch (error) {
+          console.error('[Discord ID Auth] Error:', error);
+          return null;
+        }
+      },
+    }),
   ],
   session: {
     strategy: 'jwt',
