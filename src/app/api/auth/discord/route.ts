@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { db } from '@/db';
 import { siteSettings } from '@/db/schema';
 import { inArray } from 'drizzle-orm';
@@ -37,8 +38,14 @@ export async function GET(request: Request) {
             return NextResponse.redirect(new URL('/login?error=Discord%20not%20configured', request.url));
         }
 
-        // Build the Discord authorization URL
-        const redirectUri = new URL('/api/auth/discord/callback', request.url).toString();
+        // Get proper origin from headers (handles reverse proxy)
+        const headersList = await headers();
+        const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
+        const proto = headersList.get('x-forwarded-proto') || 'https';
+        const origin = `${proto}://${host}`;
+
+        // Build redirect URI with fixed path
+        const redirectUri = `${origin}/api/auth/discord/callback`;
         const state = Buffer.from(JSON.stringify({ callbackUrl })).toString('base64');
 
         const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize');
