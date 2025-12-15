@@ -113,10 +113,17 @@ export async function GET(request: Request) {
 
         // Check if current user is logged in (linking flow)
         const session = await auth();
+        console.log('[Discord Callback] Session check:', {
+            hasSession: !!session,
+            userId: session?.user?.id,
+            discordId,
+            discordUsername
+        });
 
         if (session?.user?.id) {
             // User is logged in - link Discord to their account
             const userId = parseInt(session.user.id);
+            console.log('[Discord Callback] Linking Discord to user:', userId);
 
             // Check if this Discord is already linked to another account
             const existingUser = await db.query.users.findFirst({
@@ -137,9 +144,11 @@ export async function GET(request: Request) {
                 })
                 .where(eq(users.id, userId));
 
+            console.log('[Discord Callback] Successfully linked Discord to user:', { userId, discordId, discordUsername });
             return NextResponse.redirect(new URL('/settings?success=Discord%20linked%20successfully', origin));
         } else {
             // User is not logged in - check if they have an account linked to this Discord
+            console.log('[Discord Callback] No session found - treating as login flow, checking for existing user with discordId:', discordId);
             const existingUser = await db.query.users.findFirst({
                 where: eq(users.discordId, discordId),
             });
