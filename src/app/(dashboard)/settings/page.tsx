@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   User, Shield, Bell, Palette, Key, CreditCard, Gamepad2,
   Save, Loader2, Eye, EyeOff, Check, Crown, ExternalLink, AlertTriangle, Calendar, History, Link2, Unlink
@@ -48,12 +48,65 @@ interface SubscriptionData {
 export default function SettingsPage() {
   const { data: session, update, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = session?.user as any;
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [discordMessage, setDiscordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Handle Discord OAuth callback success/error
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const success = searchParams.get('success');
+    const error = searchParams.get('error');
+
+    if (success) {
+      setDiscordMessage({ type: 'success', text: decodeURIComponent(success) });
+      setActiveTab('security'); // Switch to security tab where Discord is shown
+
+      // Fetch fresh user data and update session
+      const refreshUserData = async () => {
+        try {
+          const res = await fetch('/api/users/me');
+          if (res.ok) {
+            const userData = await res.json();
+            // Update session with new Discord info
+            if (session) {
+              await update({
+                ...session,
+                user: {
+                  ...(session.user as any),
+                  discordId: userData.discordId,
+                  discordUsername: userData.discordUsername,
+                  discordAvatar: userData.discordAvatar,
+                },
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Failed to refresh user data:', err);
+        }
+      };
+      refreshUserData();
+
+      // Clear URL params after a moment
+      setTimeout(() => {
+        router.replace('/settings', { scroll: false });
+      }, 100);
+    }
+
+    if (error) {
+      setDiscordMessage({ type: 'error', text: decodeURIComponent(error) });
+      setActiveTab('security');
+      setTimeout(() => {
+        router.replace('/settings', { scroll: false });
+      }, 100);
+    }
+  }, [searchParams, session, update, router]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -800,6 +853,23 @@ export default function SettingsPage() {
                     <Button variant="neon-outline">Enable 2FA</Button>
                   </div>
                 </div>
+
+                {/* Discord OAuth Status Message */}
+                {discordMessage && (
+                  <div className={`p-4 rounded-lg border ${discordMessage.type === 'success'
+                      ? 'bg-success/10 border-success/50 text-success'
+                      : 'bg-error/10 border-error/50 text-error'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      {discordMessage.type === 'success' ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5" />
+                      )}
+                      <span className="font-medium">{discordMessage.text}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Discord Account Linking */}
                 <div className="p-4 rounded-lg border" style={{ background: 'rgba(88, 101, 242, 0.1)', borderColor: 'rgba(88, 101, 242, 0.3)' }}>
