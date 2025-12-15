@@ -19,7 +19,7 @@ export async function GET(request: Request) {
             .select()
             .from(siteSettings)
             .where(inArray(siteSettings.key, [
-                'discord_client_id',
+                'discord_oauth_client_id',
                 'discord_oauth_enabled',
             ]));
 
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
             settings.map(s => [s.key, s.value])
         );
 
-        const clientId = settingsMap['discord_client_id'];
+        const clientId = settingsMap['discord_oauth_client_id'];
         const oauthEnabled = settingsMap['discord_oauth_enabled'] === 'true';
 
         if (!oauthEnabled) {

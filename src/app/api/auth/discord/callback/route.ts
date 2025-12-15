@@ -51,18 +51,19 @@ export async function GET(request: Request) {
             .select()
             .from(siteSettings)
             .where(inArray(siteSettings.key, [
-                'discord_client_id',
-                'discord_client_secret',
+                'discord_oauth_client_id',
+                'discord_oauth_client_secret',
             ]));
 
         const settingsMap = Object.fromEntries(
             settings.map(s => [s.key, s.value])
         );
 
-        const clientId = settingsMap['discord_client_id'];
-        const clientSecret = settingsMap['discord_client_secret'];
+        const clientId = settingsMap['discord_oauth_client_id'];
+        const clientSecret = settingsMap['discord_oauth_client_secret'];
 
         if (!clientId || !clientSecret) {
+            console.error('[Discord Callback] Missing credentials:', { hasClientId: !!clientId, hasClientSecret: !!clientSecret });
             return NextResponse.redirect(new URL('/login?error=Discord%20not%20configured', origin));
         }
 
