@@ -1640,9 +1640,9 @@ export default function AdminSettingsPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">OAuth Redirect URI</label>
                         <Input
-                          value={discordSettings.oauthRedirectUri || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/auth/callback/discord`}
+                          value={discordSettings.oauthRedirectUri || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/auth/discord/callback`}
                           onChange={(e) => setDiscordSettings({ ...discordSettings, oauthRedirectUri: e.target.value })}
-                          placeholder="https://yourdomain.com/api/auth/callback/discord"
+                          placeholder="https://yourdomain.com/api/auth/discord/callback"
                         />
                         <p className="text-xs text-muted-foreground">
                           Add this URL to Discord Developer Portal → OAuth2 → Redirects
