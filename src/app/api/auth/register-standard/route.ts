@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { username, email, password } = body;
+        const { username, email, password, minecraftUsername, avatar } = body;
 
         // Validate required fields
         if (!username || !password) {
@@ -85,6 +85,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Validate Minecraft username format if provided
+        if (minecraftUsername) {
+            if (minecraftUsername.length < 3 || minecraftUsername.length > 16) {
+                return NextResponse.json(
+                    { error: 'Minecraft username must be between 3 and 16 characters' },
+                    { status: 400 }
+                );
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(minecraftUsername)) {
+                return NextResponse.json(
+                    { error: 'Minecraft username can only contain letters, numbers, and underscores' },
+                    { status: 400 }
+                );
+            }
+        }
+
         // Validate password strength
         const passwordChecks = {
             length: password.length >= 8,
@@ -106,6 +123,14 @@ export async function POST(request: NextRequest) {
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return NextResponse.json(
                 { error: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
+        // Validate avatar URL format if provided
+        if (avatar && !avatar.startsWith('https://')) {
+            return NextResponse.json(
+                { error: 'Avatar URL must be a valid HTTPS URL' },
                 { status: 400 }
             );
         }
@@ -139,12 +164,18 @@ export async function POST(request: NextRequest) {
         // Hash password with high cost factor for security
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Determine minecraftUsername for the user
+        // If provided, use it. Otherwise, leave null (profile will use default "Maid" skin)
+        const finalMinecraftUsername = minecraftUsername?.trim() || null;
+
         // Create new user
         const [newUser] = await db.insert(users).values({
             username: username.trim(),
             email: email || null,
             password: hashedPassword,
             role: 'user',
+            minecraftUsername: finalMinecraftUsername,
+            avatar: avatar?.trim() || null,
         }).returning();
 
         console.log(`[Register-Standard] Successfully created new user: ${newUser.username} (ID: ${newUser.id})`);

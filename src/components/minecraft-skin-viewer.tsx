@@ -13,66 +13,85 @@ import { Button } from '@/components/ui/button';
 interface MinecraftSkinViewerProps {
   username: string;
   uuid?: string;
+  // Initial settings from database (user's saved preferences)
+  initialAnimation?: 'walking' | 'running' | 'idle' | 'none';
+  initialAutoRotate?: boolean;
+  initialRotateSpeed?: number;
+  initialZoom?: number;
+  initialAnimationSpeed?: number;
+  initialShowNameTag?: boolean;
 }
 
 type AnimationType = 'walking' | 'running' | 'idle' | 'none';
 
-export function MinecraftSkinViewer({ username, uuid }: MinecraftSkinViewerProps) {
+export function MinecraftSkinViewer({
+  username,
+  uuid,
+  initialAnimation = 'walking',
+  initialAutoRotate = true,
+  initialRotateSpeed = 0.5,
+  initialZoom = 0.9,
+  initialAnimationSpeed = 1,
+  initialShowNameTag = false,
+}: MinecraftSkinViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  
-  // Settings state with defaults
-  const [animation, setAnimation] = useState<AnimationType>('walking');
-  const [autoRotate, setAutoRotate] = useState(true);
-  const [rotateSpeed, setRotateSpeed] = useState(0.5);
-  const [zoom, setZoom] = useState(0.9);
-  const [showNameTag, setShowNameTag] = useState(false);
+
+  // Settings state - initialized from props (user's saved preferences)
+  const [animation, setAnimation] = useState<AnimationType>(initialAnimation);
+  const [autoRotate, setAutoRotate] = useState(initialAutoRotate);
+  const [rotateSpeed, setRotateSpeed] = useState(initialRotateSpeed);
+  const [zoom, setZoom] = useState(initialZoom);
+  const [showNameTag, setShowNameTag] = useState(initialShowNameTag);
   const [enableZoom, setEnableZoom] = useState(true);
   const [enableRotate, setEnableRotate] = useState(true);
-  const [animationSpeed, setAnimationSpeed] = useState(1);
+  const [animationSpeed, setAnimationSpeed] = useState(initialAnimationSpeed);
 
   // Initialize viewer
   useEffect(() => {
     let skin3d: any;
-    
+
     const initViewer = async () => {
       if (!containerRef.current) return;
-      
+
       try {
         skin3d = await import('skin3d');
-        
+
         // Clear any existing content
         containerRef.current.innerHTML = '';
-        
-        // Create canvas element
+
+        // Create a canvas element - skin3d.View expects a canvas for WebGL
         const canvas = document.createElement('canvas');
+        canvas.width = 280;
+        canvas.height = 400;
+        canvas.style.display = 'block';
+        canvas.style.margin = '0 auto';
         containerRef.current.appendChild(canvas);
-        
-        // Skin URL using Crafatar for UUID or mc-heads for username
-        const skinUrl = uuid 
-          ? `https://crafatar.com/skins/${uuid}`
-          : `https://mc-heads.net/skin/${username}`;
-        
-        // Create viewer
-        const viewer = new skin3d.SkinViewer({
+
+        // Skin URL using Minotar (CORS-friendly) for WebGL textures
+        // Both UUID and username routes work with Minotar
+        const skinUrl = uuid
+          ? `https://minotar.net/skin/${uuid}`
+          : `https://minotar.net/skin/${username}`;
+
+        // Create viewer using skin3d.View with canvas element
+        const viewer = new skin3d.View({
           canvas: canvas,
           width: 280,
           height: 400,
           skin: skinUrl,
         });
-        
+
         // Set default settings
         viewer.autoRotate = true;
-        viewer.autoRotateSpeed = 0.5;
-        viewer.zoom = 0.9;
         viewer.animation = new skin3d.WalkingAnimation();
-        
+
         // Store reference
         viewerRef.current = viewer;
         setIsLoaded(true);
-        
+
       } catch (error) {
         console.error('Failed to initialize skin viewer:', error);
         // Fallback to static image
@@ -87,9 +106,9 @@ export function MinecraftSkinViewer({ username, uuid }: MinecraftSkinViewerProps
         }
       }
     };
-    
+
     initViewer();
-    
+
     return () => {
       if (viewerRef.current) {
         viewerRef.current.dispose?.();
@@ -100,10 +119,10 @@ export function MinecraftSkinViewer({ username, uuid }: MinecraftSkinViewerProps
   // Update animation
   useEffect(() => {
     if (!viewerRef.current || !isLoaded) return;
-    
+
     const loadAnimation = async () => {
       const skin3d = await import('skin3d');
-      
+
       switch (animation) {
         case 'walking':
           viewerRef.current.animation = new skin3d.WalkingAnimation();
@@ -118,12 +137,12 @@ export function MinecraftSkinViewer({ username, uuid }: MinecraftSkinViewerProps
           viewerRef.current.animation = null;
           break;
       }
-      
+
       if (viewerRef.current.animation) {
         viewerRef.current.animation.speed = animationSpeed;
       }
     };
-    
+
     loadAnimation();
   }, [animation, isLoaded]);
 
@@ -181,11 +200,11 @@ export function MinecraftSkinViewer({ username, uuid }: MinecraftSkinViewerProps
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 3D Viewer Container */}
-        <div 
-          ref={containerRef} 
+        <div
+          ref={containerRef}
           className="flex items-center justify-center min-h-[400px] bg-background/50 rounded-lg"
         />
-        
+
         {/* Customization Settings */}
         <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
           <CollapsibleContent className="space-y-4 pt-4 border-t border-border/50">

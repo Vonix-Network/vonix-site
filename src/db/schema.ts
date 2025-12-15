@@ -17,6 +17,14 @@ export const users = sqliteTable('users', {
   bio: text('bio'),
   preferredBackground: text('preferred_background'),
 
+  // Avatar/Skin Viewer Settings
+  avatarAnimation: text('avatar_animation').default('walking'), // walking, running, idle, none
+  avatarAutoRotate: integer('avatar_auto_rotate', { mode: 'boolean' }).default(true),
+  avatarRotateSpeed: real('avatar_rotate_speed').default(0.5),
+  avatarZoom: real('avatar_zoom').default(0.9),
+  avatarAnimationSpeed: real('avatar_animation_speed').default(1),
+  avatarShowNameTag: integer('avatar_show_name_tag', { mode: 'boolean' }).default(false),
+
   // Discord Integration
   discordId: text('discord_id').unique(),
   discordUsername: text('discord_username'),

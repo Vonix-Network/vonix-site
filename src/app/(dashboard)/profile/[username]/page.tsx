@@ -82,6 +82,13 @@ async function getUser(username: string) {
         title: users.title,
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
+        // Avatar settings
+        avatarAnimation: users.avatarAnimation,
+        avatarAutoRotate: users.avatarAutoRotate,
+        avatarRotateSpeed: users.avatarRotateSpeed,
+        avatarZoom: users.avatarZoom,
+        avatarAnimationSpeed: users.avatarAnimationSpeed,
+        avatarShowNameTag: users.avatarShowNameTag,
         // Join with donation ranks
         rankName: donationRanks.name,
         rankColor: donationRanks.color,
@@ -428,9 +435,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           {/* Minecraft Skin */}
           {user.minecraftUsername && (
-            <MinecraftSkinViewer 
-              username={user.minecraftUsername} 
+            <MinecraftSkinViewer
+              username={user.minecraftUsername}
               uuid={user.minecraftUuid || undefined}
+              initialAnimation={(user.avatarAnimation as 'walking' | 'running' | 'idle' | 'none') || 'walking'}
+              initialAutoRotate={user.avatarAutoRotate ?? true}
+              initialRotateSpeed={user.avatarRotateSpeed ?? 0.5}
+              initialZoom={user.avatarZoom ?? 0.9}
+              initialAnimationSpeed={user.avatarAnimationSpeed ?? 1}
+              initialShowNameTag={user.avatarShowNameTag ?? false}
             />
           )}
         </div>

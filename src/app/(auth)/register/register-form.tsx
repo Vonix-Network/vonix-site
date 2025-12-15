@@ -43,6 +43,8 @@ export function RegisterForm() {
     const [standardFormData, setStandardFormData] = useState({
         username: '',
         email: '',
+        minecraftUsername: '', // Optional - for Minecraft skin
+        avatar: '', // Optional - custom avatar URL
         password: '',
         confirmPassword: '',
     });
@@ -575,6 +577,44 @@ export function RegisterForm() {
                                     />
                                     <p className="text-xs text-muted-foreground">Used for password recovery and notifications</p>
                                 </div>
+
+                                {/* Minecraft Username (Optional) */}
+                                <div className="space-y-2">
+                                    <label htmlFor="minecraftUsername" className="text-sm font-medium flex items-center gap-2">
+                                        <Gamepad2 className="w-4 h-4 text-neon-cyan" />
+                                        Minecraft Username (Optional)
+                                    </label>
+                                    <Input
+                                        id="minecraftUsername"
+                                        name="minecraftUsername"
+                                        type="text"
+                                        placeholder="Your Minecraft username"
+                                        value={standardFormData.minecraftUsername}
+                                        onChange={handleStandardChange}
+                                        disabled={isLoading}
+                                        maxLength={16}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Your profile will display your Minecraft skin if provided</p>
+                                </div>
+
+                                {/* Custom Avatar URL (Optional) - only show if no Minecraft username */}
+                                {!standardFormData.minecraftUsername && (
+                                    <div className="space-y-2">
+                                        <label htmlFor="avatar" className="text-sm font-medium">
+                                            Custom Avatar URL (Optional)
+                                        </label>
+                                        <Input
+                                            id="avatar"
+                                            name="avatar"
+                                            type="url"
+                                            placeholder="https://example.com/avatar.png"
+                                            value={standardFormData.avatar}
+                                            onChange={handleStandardChange}
+                                            disabled={isLoading}
+                                        />
+                                        <p className="text-xs text-muted-foreground">Direct URL to an image for your profile avatar</p>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <label htmlFor="standardPassword" className="text-sm font-medium">

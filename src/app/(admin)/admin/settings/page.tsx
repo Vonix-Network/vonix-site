@@ -156,6 +156,8 @@ export default function AdminSettingsPage() {
     oauthClientSecret: '',
     oauthRedirectUri: '',
     oauthEnabled: false,
+    oauthRegistrationEnabled: false, // Whether OAuth can register new users
+    registerRoleId: '', // Role to assign when user registers via Discord
     // Ticket system settings
     ticketForumId: '',
     ticketCategoryId: '',
@@ -201,6 +203,8 @@ export default function AdminSettingsPage() {
             oauthClientSecret: discordData.oauthClientSecret || '',
             oauthRedirectUri: discordData.oauthRedirectUri || '',
             oauthEnabled: discordData.oauthEnabled || false,
+            oauthRegistrationEnabled: discordData.oauthRegistrationEnabled || false,
+            registerRoleId: discordData.registerRoleId || '',
             ticketForumId: discordData.ticketForumId || '',
             ticketCategoryId: discordData.ticketCategoryId || '',
             ticketStaffRoleId: discordData.ticketStaffRoleId || '',
@@ -1563,6 +1567,48 @@ export default function AdminSettingsPage() {
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Users can link their Discord account and use it to sign in
+                        </p>
+                      </div>
+
+                      {/* Registration toggle */}
+                      <ToggleCard
+                        checked={discordSettings.oauthRegistrationEnabled}
+                        onChange={(val) => setDiscordSettings({ ...discordSettings, oauthRegistrationEnabled: val })}
+                        label="Allow Discord OAuth Registration"
+                        description="When enabled, new users can register via Discord (they'll be asked for their Minecraft username). When disabled, only existing linked accounts can login via Discord."
+                      />
+
+                      {!discordSettings.oauthRegistrationEnabled && (
+                        <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            ℹ️ Registration via Discord is disabled
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            If &quot;Require Registration Code&quot; is disabled in Security settings, users can still register via Discord. Otherwise, they must register through the Minecraft server first.
+                          </p>
+                        </div>
+                      )}
+
+                      {discordSettings.oauthRegistrationEnabled && (
+                        <div className="p-4 rounded-lg bg-success/10 border border-success/30">
+                          <p className="text-sm font-medium text-success">
+                            ✓ Discord Registration is enabled
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            New users can register via Discord and will be asked for their Minecraft username during registration.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Register Role ID (Optional)</label>
+                        <Input
+                          value={discordSettings.registerRoleId}
+                          onChange={(e) => setDiscordSettings({ ...discordSettings, registerRoleId: e.target.value })}
+                          placeholder="123456789012345678"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Discord role to assign when a user registers via Discord OAuth. Right-click a role in Discord → Copy ID.
                         </p>
                       </div>
 

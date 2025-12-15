@@ -18,6 +18,8 @@ const ALL_DISCORD_SETTINGS = [
     'discord_oauth_client_secret',
     'discord_oauth_redirect_uri',
     'discord_oauth_enabled',
+    'discord_oauth_registration_enabled', // Whether Discord OAuth can be used to register new users
+    'discord_register_role_id', // Role ID to assign when user registers via Discord
     // Ticket system settings
     'discord_ticket_forum_id',
     'discord_ticket_category_id',
@@ -77,6 +79,8 @@ export async function GET(request: NextRequest) {
                 oauthClientSecret: settingsMap['discord_oauth_client_secret'] || '',
                 oauthRedirectUri: settingsMap['discord_oauth_redirect_uri'] || '',
                 oauthEnabled: settingsMap['discord_oauth_enabled'] === 'true',
+                oauthRegistrationEnabled: settingsMap['discord_oauth_registration_enabled'] === 'true',
+                registerRoleId: settingsMap['discord_register_role_id'] || '',
                 // Ticket system settings
                 ticketForumId: settingsMap['discord_ticket_forum_id'] || '',
                 ticketCategoryId: settingsMap['discord_ticket_category_id'] || '',
@@ -238,6 +242,22 @@ export async function PATCH(request: NextRequest) {
                 key: 'discord_oauth_enabled',
                 value: body.oauthEnabled.toString(),
                 description: 'Whether Discord OAuth login is enabled',
+            });
+        }
+
+        if (typeof body.oauthRegistrationEnabled === 'boolean') {
+            updates.push({
+                key: 'discord_oauth_registration_enabled',
+                value: body.oauthRegistrationEnabled.toString(),
+                description: 'Whether Discord OAuth can be used to register new users (vs only login/linking)',
+            });
+        }
+
+        if (typeof body.registerRoleId === 'string') {
+            updates.push({
+                key: 'discord_register_role_id',
+                value: body.registerRoleId,
+                description: 'Discord role ID to assign when user registers via Discord',
             });
         }
 

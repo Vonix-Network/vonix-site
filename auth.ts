@@ -3,7 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Discord from 'next-auth/providers/discord';
 import bcrypt from 'bcryptjs';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, siteSettings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Rate limiting map for login attempts
@@ -160,6 +160,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             ? `https://cdn.discordapp.com/avatars/${discordId}/${discordProfile.avatar}.png`
             : null;
 
+          // Check Discord OAuth settings
+          const [oauthEnabledSetting] = await db
+            .select()
+            .from(siteSettings)
+            .where(eq(siteSettings.key, 'discord_oauth_enabled'));
+
+          const oauthEnabled = oauthEnabledSetting?.value === 'true';
+
+          if (!oauthEnabled) {
+            console.log('Discord OAuth is disabled');
+            return '/login?error=Discord login is disabled';
+          }
+
           // Check if user exists with this Discord ID
           let existingUser = await db.query.users.findFirst({
             where: eq(users.discordId, discordId),
@@ -188,9 +201,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             user.id = existingUser.id.toString();
             (user as any).username = existingUser.username;
             (user as any).role = existingUser.role;
+            (user as any).minecraftUsername = existingUser.minecraftUsername;
+            (user as any).minecraftUuid = existingUser.minecraftUuid;
+            (user as any).avatar = existingUser.avatar;
+            (user as any).xp = existingUser.xp;
+            (user as any).level = existingUser.level;
+            (user as any).websiteXp = existingUser.websiteXp;
+            (user as any).minecraftXp = existingUser.minecraftXp;
             (user as any).discordId = discordId;
             (user as any).discordUsername = discordUsername;
             (user as any).discordAvatar = discordAvatar;
+          } else {
+            // No existing user found - check if registration via Discord is allowed
+            const [registrationEnabledSetting] = await db
+              .select()
+              .from(siteSettings)
+              .where(eq(siteSettings.key, 'discord_oauth_registration_enabled'));
+
+            const registrationEnabled = registrationEnabledSetting?.value === 'true';
+
+            if (!registrationEnabled) {
+              // Check if regular registration (non-game-code) is enabled
+              const [requireCodeSetting] = await db
+                .select()
+                .from(siteSettings)
+                .where(eq(siteSettings.key, 'require_registration_code'));
+
+              const requiresGameCode = requireCodeSetting?.value !== 'false';
+
+              if (requiresGameCode) {
+                console.log('Discord OAuth registration is disabled and game code is required');
+                return '/login?error=Discord registration is disabled. Please register through the Minecraft server first, then link your Discord in settings.';
+              }
+            }
+
+            // Registration is enabled - redirect to complete registration page
+            // Store Discord info in a URL param (encoded) for the registration page
+            const discordData = encodeURIComponent(JSON.stringify({
+              discordId,
+              discordUsername,
+              discordAvatar,
+              email: discordProfile.email || '',
+            }));
+
+            console.log('Redirecting to Discord registration completion page');
+            return `/register/discord?data=${discordData}`;
           }
         } catch (error) {
           console.error('Error linking Discord account:', error);

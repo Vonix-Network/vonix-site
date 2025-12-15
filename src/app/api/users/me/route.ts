@@ -108,3 +108,74 @@ export async function GET() {
     }
 }
 
+/**
+ * PATCH /api/users/me
+ * Updates the current authenticated user's settings (avatar settings, profile info)
+ */
+export async function PATCH(request: Request) {
+    try {
+        const session = await auth();
+
+        if (!session?.user?.id) {
+            return NextResponse.json(
+                { error: 'Not authenticated' },
+                { status: 401 }
+            );
+        }
+
+        const userId = parseInt(session.user.id);
+        const body = await request.json();
+
+        // Build update object for allowed fields
+        const updateData: Record<string, unknown> = {};
+
+        // Avatar settings
+        if (body.avatarAnimation !== undefined) {
+            updateData.avatarAnimation = body.avatarAnimation;
+        }
+        if (body.avatarAutoRotate !== undefined) {
+            updateData.avatarAutoRotate = body.avatarAutoRotate;
+        }
+        if (body.avatarRotateSpeed !== undefined) {
+            updateData.avatarRotateSpeed = body.avatarRotateSpeed;
+        }
+        if (body.avatarZoom !== undefined) {
+            updateData.avatarZoom = body.avatarZoom;
+        }
+        if (body.avatarAnimationSpeed !== undefined) {
+            updateData.avatarAnimationSpeed = body.avatarAnimationSpeed;
+        }
+        if (body.avatarShowNameTag !== undefined) {
+            updateData.avatarShowNameTag = body.avatarShowNameTag;
+        }
+
+        // Profile settings
+        if (body.bio !== undefined) {
+            updateData.bio = body.bio;
+        }
+        if (body.avatar !== undefined) {
+            updateData.avatar = body.avatar;
+        }
+        if (body.minecraftUsername !== undefined) {
+            updateData.minecraftUsername = body.minecraftUsername;
+        }
+
+        // Update user
+        if (Object.keys(updateData).length > 0) {
+            updateData.updatedAt = new Date();
+
+            await db.update(users)
+                .set(updateData)
+                .where(eq(users.id, userId));
+        }
+
+        return NextResponse.json({ success: true });
+
+    } catch (error) {
+        console.error('Error updating user data:', error);
+        return NextResponse.json(
+            { error: 'Failed to update user data' },
+            { status: 500 }
+        );
+    }
+}
