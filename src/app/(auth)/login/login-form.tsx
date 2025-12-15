@@ -91,7 +91,7 @@ export function LoginForm() {
         setIsDiscordLoading(true);
         setErrorMessage('');
         try {
-            await signIn('discord', { callbackUrl });
+            window.location.href = `/api/auth/discord?callbackUrl=${encodeURIComponent(callbackUrl)}`;
         } catch (error) {
             setErrorMessage('Failed to initiate Discord login');
             setIsDiscordLoading(false);

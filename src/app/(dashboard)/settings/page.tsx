@@ -861,7 +861,7 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => signIn('discord', { callbackUrl: '/settings' })}
+                        onClick={() => window.location.href = '/api/auth/discord?callbackUrl=/settings'}
                         style={{ borderColor: '#5865F2', color: '#5865F2' }}
                       >
                         <Link2 className="w-4 h-4 mr-2" />
