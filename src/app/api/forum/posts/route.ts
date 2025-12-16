@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { forumPosts, forumCategories, users } from '@/db/schema';
 import { desc, eq, and } from 'drizzle-orm';
+import { sanitizeForDb, sanitizeContent } from '@/lib/sanitize';
 
 // Force dynamic - always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -68,7 +69,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, categoryId } = body;
+
+    // Sanitize inputs
+    const title = sanitizeForDb(body.title, 200, false);
+    const content = sanitizeContent(body.content, 10000);
+    const categoryId = body.categoryId;
 
     if (!title || !content || !categoryId) {
       return NextResponse.json(
@@ -106,8 +111,8 @@ export async function POST(request: NextRequest) {
     const userId = parseInt(session.user.id as string);
 
     const [newPost] = await db.insert(forumPosts).values({
-      title: title.trim(),
-      content: content.trim(),
+      title,
+      content,
       categoryId,
       authorId: userId,
     }).returning();

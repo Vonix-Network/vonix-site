@@ -3,6 +3,7 @@ import { auth } from '../../../../../../auth';
 import { db } from '@/db';
 import { supportTickets, ticketMessages } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { sanitizeContent } from '@/lib/sanitize';
 
 /**
  * POST /api/tickets/[id]/messages
@@ -57,7 +58,9 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { message } = body;
+
+        // Sanitize message
+        const message = sanitizeContent(body.message, 5000);
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });

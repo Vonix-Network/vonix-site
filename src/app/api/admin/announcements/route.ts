@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { announcements, notifications, users } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { sanitizeForDb, sanitizeContent, sanitizeEnum } from '@/lib/sanitize';
 
 async function requireAdmin() {
     const session = await auth();
@@ -57,7 +58,13 @@ export async function POST(request: NextRequest) {
         const adminUser = await requireAdmin();
         const body = await request.json();
 
-        const { title, content, type, published, sendNotification, expiresAt } = body;
+        // Sanitize inputs
+        const title = sanitizeForDb(body.title, 200, false);
+        const content = sanitizeContent(body.content, 5000);
+        const type = sanitizeEnum(body.type, ['info', 'warning', 'success', 'error'] as const, 'info');
+        const published = body.published ?? true;
+        const sendNotificationFlag = body.sendNotification ?? true;
+        const expiresAt = body.expiresAt;
 
         if (!title || !content) {
             return NextResponse.json(
@@ -70,15 +77,15 @@ export async function POST(request: NextRequest) {
         const [newAnnouncement] = await db.insert(announcements).values({
             title,
             content,
-            type: type || 'info',
+            type,
             authorId: adminUser.id,
-            published: published ?? true,
-            sendNotification: sendNotification ?? true,
+            published,
+            sendNotification: sendNotificationFlag,
             expiresAt: expiresAt ? new Date(expiresAt) : null,
         }).returning();
 
         // If published and sendNotification, create notifications for all users
-        if (published && sendNotification) {
+        if (published && sendNotificationFlag) {
             const allUsers = await db.select({ id: users.id }).from(users);
 
             // Create notifications in batches
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             announcement: newAnnouncement,
-            notificationsSent: published && sendNotification,
+            notificationsSent: published && sendNotificationFlag,
         });
     } catch (error) {
         if (error instanceof Error && error.message === 'Unauthorized') {

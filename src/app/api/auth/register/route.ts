@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { users, registrationCodes } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { sendAdminNewUserAlert } from '@/lib/email';
+import { sanitizeEmail, sanitizeForDb } from '@/lib/sanitize';
 
 // Rate limiting
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -42,7 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, registrationCode } = body;
+
+    // Sanitize inputs
+    const email = sanitizeEmail(body.email);
+    const password = body.password; // Don't sanitize password - it's hashed and stored securely
+    const registrationCode = sanitizeForDb(body.registrationCode, 50, false);
 
     // Validate required fields
     if (!password || !registrationCode) {

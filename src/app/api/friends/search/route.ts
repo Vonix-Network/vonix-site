@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users, friendships } from '@/db/schema';
 import { and, or, like, eq, ne, inArray } from 'drizzle-orm';
+import { sanitizeSearchQuery } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,9 @@ export async function GET(request: NextRequest) {
 
     const viewerId = parseInt(session.user.id as string);
     const { searchParams } = new URL(request.url);
-    const q = searchParams.get('q')?.trim() ?? '';
+
+    // Sanitize search query
+    const q = sanitizeSearchQuery(searchParams.get('q'));
 
     if (!q) {
       return NextResponse.json({ results: [] });

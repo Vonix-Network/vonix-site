@@ -4,6 +4,7 @@ import { supportTickets, ticketMessages, guestTicketTokens, ticketCategories } f
 import { desc, eq, and, gt, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sendTicketAccessEmail } from '@/lib/email';
+import { sanitizeEmail, sanitizeForDb, sanitizeContent, sanitizeEnum } from '@/lib/sanitize';
 
 /**
  * POST /api/tickets/guest
@@ -12,7 +13,15 @@ import { sendTicketAccessEmail } from '@/lib/email';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { email, name, subject, category, categoryId, priority, message } = body;
+
+        // Sanitize inputs
+        const email = sanitizeEmail(body.email);
+        const name = sanitizeForDb(body.name, 100, false);
+        const subject = sanitizeForDb(body.subject, 200, false);
+        const message = sanitizeContent(body.message, 5000);
+        const category = sanitizeEnum(body.category, ['account', 'billing', 'technical', 'general', 'other'] as const, 'general');
+        const priority = sanitizeEnum(body.priority, ['low', 'normal', 'high', 'urgent'] as const, 'normal');
+        const categoryId = body.categoryId;
 
         // Validate required fields
         if (!email || !name || !subject || !message) {
@@ -45,8 +54,8 @@ export async function POST(request: NextRequest) {
             userId: null, // Guest ticket
             categoryId: categoryId || null,
             subject,
-            category: category || 'general',
-            priority: priority || 'normal',
+            category,
+            priority,
             status: 'open',
             guestEmail: email,
             guestName: name,
@@ -86,8 +95,8 @@ export async function POST(request: NextRequest) {
                 ticket.id,
                 subject,
                 `${name} (Guest)`,
-                category || 'general',
-                priority || 'normal'
+                category,
+                priority
             );
 
             if (threadId) {

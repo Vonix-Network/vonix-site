@@ -6,6 +6,7 @@ import { and, or, eq, desc, inArray } from 'drizzle-orm';
 import { notifyNewMessage } from '@/lib/notifications';
 import { emitNewMessage } from '@/lib/socket-emit';
 import { sendUserNotificationEmail, getNewMessageEmailTemplate } from '@/lib/email';
+import { sanitizeContent } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -110,20 +111,24 @@ export async function POST(request: NextRequest) {
     }
 
     const viewerId = parseInt(session.user.id as string);
-    const { recipientId, content } = await request.json();
+    const body = await request.json();
+    const { recipientId } = body;
+
+    // Sanitize message content
+    const content = sanitizeContent(body.content, 2000);
 
     const targetId = parseInt(String(recipientId));
     if (!targetId || Number.isNaN(targetId)) {
       return NextResponse.json({ error: 'Invalid recipient id' }, { status: 400 });
     }
 
-    if (!content || !String(content).trim()) {
+    if (!content) {
       return NextResponse.json({ error: 'Message content required' }, { status: 400 });
     }
 
     const [inserted] = await db
       .insert(privateMessages)
-      .values({ senderId: viewerId, recipientId: targetId, content: String(content).trim() })
+      .values({ senderId: viewerId, recipientId: targetId, content })
       .returning();
 
     // Emit via socket for real-time delivery
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
     await notifyNewMessage(targetId, senderName);
 
     // Send email notification (async, don't wait)
-    const messagePreview = String(content).trim().substring(0, 200);
+    const messagePreview = content.substring(0, 200);
     sendUserNotificationEmail(
       targetId,
       'message',

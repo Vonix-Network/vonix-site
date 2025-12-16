@@ -3,6 +3,7 @@ import { auth } from '../../../../auth';
 import { db } from '@/db';
 import { supportTickets, ticketMessages, users } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
+import { sanitizeForDb, sanitizeContent, sanitizeEnum } from '@/lib/sanitize';
 
 /**
  * GET /api/tickets
@@ -125,7 +126,12 @@ export async function POST(request: NextRequest) {
 
         const user = session.user as any;
         const body = await request.json();
-        const { subject, category, priority, message } = body;
+
+        // Sanitize inputs
+        const subject = sanitizeForDb(body.subject, 200, false);
+        const message = sanitizeContent(body.message, 5000);
+        const category = sanitizeEnum(body.category, ['account', 'billing', 'technical', 'general', 'other'] as const, 'general');
+        const priority = sanitizeEnum(body.priority, ['low', 'normal', 'high', 'urgent'] as const, 'normal');
 
         if (!subject || !message) {
             return NextResponse.json(
@@ -149,8 +155,8 @@ export async function POST(request: NextRequest) {
             number: ticketNumber,
             userId,
             subject,
-            category: category || 'general',
-            priority: priority || 'normal',
+            category,
+            priority,
             status: 'open',
         }).returning();
 

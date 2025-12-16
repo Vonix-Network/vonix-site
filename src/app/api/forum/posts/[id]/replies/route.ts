@@ -5,6 +5,7 @@ import { forumPosts, forumReplies, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { notifyForumReply } from '@/lib/notifications';
 import { sendUserNotificationEmail, getForumReplyEmailTemplate } from '@/lib/email';
+import { sanitizeContent } from '@/lib/sanitize';
 
 export async function POST(
   request: NextRequest,
@@ -41,9 +42,11 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content } = body;
 
-    if (!content?.trim()) {
+    // Sanitize content
+    const content = sanitizeContent(body.content, 5000);
+
+    if (!content) {
       return NextResponse.json({ error: 'Reply content is required' }, { status: 400 });
     }
 
@@ -53,7 +56,7 @@ export async function POST(
       .values({
         postId,
         authorId: user.id,
-        content: content.trim(),
+        content,
       })
       .returning();
 
@@ -77,7 +80,7 @@ export async function POST(
       sendUserNotificationEmail(
         post.authorId,
         'forum_reply',
-        getForumReplyEmailTemplate(replierName, post.title, postId, content.trim().substring(0, 300))
+        getForumReplyEmailTemplate(replierName, post.title, postId, content.substring(0, 300))
       ).catch(err => console.error('Failed to send forum reply email:', err));
     }
 

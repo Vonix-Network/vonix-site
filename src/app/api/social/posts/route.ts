@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { socialPosts, users } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { sanitizeContent } from '@/lib/sanitize';
 
 // Force dynamic - always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -53,9 +54,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content } = body;
 
-    if (!content || content.trim().length === 0) {
+    // Sanitize content
+    const content = sanitizeContent(body.content, 500);
+
+    if (!content || content.length === 0) {
       return NextResponse.json(
         { error: 'Content is required' },
         { status: 400 }
@@ -73,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     const [newPost] = await db.insert(socialPosts).values({
       userId: userId,
-      content: content.trim(),
+      content,
       likesCount: 0,
     }).returning();
 

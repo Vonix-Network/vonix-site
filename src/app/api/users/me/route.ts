@@ -3,6 +3,7 @@ import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users, serverXp, friendships, forumPosts } from '@/db/schema';
 import { eq, or, and, count } from 'drizzle-orm';
+import { sanitizeForDb, sanitizeUrl, sanitizeEnum } from '@/lib/sanitize';
 
 // Force dynamic - always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -129,35 +130,49 @@ export async function PATCH(request: Request) {
         // Build update object for allowed fields
         const updateData: Record<string, unknown> = {};
 
-        // Avatar settings
+        // Avatar settings - sanitize enum values
         if (body.avatarAnimation !== undefined) {
-            updateData.avatarAnimation = body.avatarAnimation;
+            updateData.avatarAnimation = sanitizeEnum(body.avatarAnimation, ['walking', 'running', 'idle', 'none'] as const, 'walking');
         }
         if (body.avatarAutoRotate !== undefined) {
-            updateData.avatarAutoRotate = body.avatarAutoRotate;
+            updateData.avatarAutoRotate = Boolean(body.avatarAutoRotate);
         }
         if (body.avatarRotateSpeed !== undefined) {
-            updateData.avatarRotateSpeed = body.avatarRotateSpeed;
+            const speed = parseFloat(body.avatarRotateSpeed);
+            if (!isNaN(speed) && speed >= 0 && speed <= 2) {
+                updateData.avatarRotateSpeed = speed;
+            }
         }
         if (body.avatarZoom !== undefined) {
-            updateData.avatarZoom = body.avatarZoom;
+            const zoom = parseFloat(body.avatarZoom);
+            if (!isNaN(zoom) && zoom >= 0.5 && zoom <= 2) {
+                updateData.avatarZoom = zoom;
+            }
         }
         if (body.avatarAnimationSpeed !== undefined) {
-            updateData.avatarAnimationSpeed = body.avatarAnimationSpeed;
+            const animSpeed = parseFloat(body.avatarAnimationSpeed);
+            if (!isNaN(animSpeed) && animSpeed >= 0.1 && animSpeed <= 3) {
+                updateData.avatarAnimationSpeed = animSpeed;
+            }
         }
         if (body.avatarShowNameTag !== undefined) {
-            updateData.avatarShowNameTag = body.avatarShowNameTag;
+            updateData.avatarShowNameTag = Boolean(body.avatarShowNameTag);
         }
 
-        // Profile settings
+        // Profile settings - sanitize text inputs
         if (body.bio !== undefined) {
-            updateData.bio = body.bio;
+            updateData.bio = sanitizeForDb(body.bio, 500, true);
         }
         if (body.avatar !== undefined) {
-            updateData.avatar = body.avatar;
+            // Allow null to remove avatar, or validate URL
+            updateData.avatar = body.avatar ? sanitizeUrl(body.avatar) : null;
         }
         if (body.minecraftUsername !== undefined) {
-            updateData.minecraftUsername = body.minecraftUsername;
+            // Minecraft usernames: alphanumeric + underscore, 3-16 chars
+            const mcName = sanitizeForDb(body.minecraftUsername, 16, false);
+            if (mcName && /^[a-zA-Z0-9_]{3,16}$/.test(mcName)) {
+                updateData.minecraftUsername = mcName;
+            }
         }
 
         // Discord unlinking (allow setting to null)
