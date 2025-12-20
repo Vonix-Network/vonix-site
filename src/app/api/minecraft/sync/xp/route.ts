@@ -10,6 +10,7 @@ interface PlayerData {
     level: number;
     totalExperience: number;
     currentHealth?: number;
+    playtimeSeconds?: number;
 }
 
 interface SyncRequest {
@@ -107,6 +108,8 @@ export async function POST(request: NextRequest) {
                         .update(serverXp)
                         .set({
                             xp: newXp,
+                            level: player.level || 0,
+                            playtimeSeconds: player.playtimeSeconds || 0,
                             lastSyncedAt: new Date(),
                         })
                         .where(eq(serverXp.id, existingServerXp.id));
@@ -116,6 +119,8 @@ export async function POST(request: NextRequest) {
                         userId: user.id,
                         serverId: server.id,
                         xp: newXp,
+                        level: player.level || 0,
+                        playtimeSeconds: player.playtimeSeconds || 0,
                     });
                 }
 
@@ -158,6 +163,7 @@ export async function POST(request: NextRequest) {
             success: true,
             syncedCount,
             totalPlayers: players.length,
+            message: `Successfully synced ${syncedCount} players`,
             errors: errors.length > 0 ? errors : undefined,
             timestamp: new Date().toISOString(),
         });
