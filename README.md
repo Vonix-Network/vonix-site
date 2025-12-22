@@ -133,5 +133,3 @@ MIT License - See LICENSE file for details.
 ## Author
 
 Richard Cooper - [Vonix Network](https://vonix.network)
-
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Might Soon Be Powered by DartNode - Free VPS for Open Source")
