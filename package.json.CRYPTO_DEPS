@@ -1,0 +1,20 @@
+// Add these dependencies to your package.json:
+
+{
+  "dependencies": {
+    "ethers": "^6.10.0",
+    "bitcoinjs-lib": "^6.1.5",
+    "tiny-secp256k1": "^2.2.3",
+    "bip32": "^4.0.0",
+    "bip39": "^3.1.0",
+    "qrcode": "^1.5.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/uuid": "^9.0.7"
+  }
+}
+
+// Run: npm install ethers bitcoinjs-lib tiny-secp256k1 bip32 bip39 qrcode uuid
+// Run: npm install -D @types/qrcode @types/uuid
