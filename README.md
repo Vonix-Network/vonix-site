@@ -115,6 +115,17 @@ The Neon Rainbow theme is inspired by the Vonix logo, featuring:
 - `npm run db:push` - Push schema to database
 - `npm run db:studio` - Open Drizzle Studio
 
+## Documentation
+
+Additional documentation is available in the `docs/` folder:
+
+- [Discord Integration Setup](docs/DISCORD_INTEGRATION_SETUP.md) - Complete Discord bot setup guide
+- [Discord Ticket System](docs/Discord_Ticket_Guide.MD) - Ticket commands and configuration
+- [Minecraft Integration](docs/MINECRAFT-INTEGRATION.md) - Minecraft username system and API
+- [Rank System](docs/RANKS.md) - Donation ranks, Stripe payments, and badges
+
+For deployment instructions, see [SETUP.md](SETUP.md).
+
 ## License
 
 MIT License - See LICENSE file for details.
@@ -122,3 +133,5 @@ MIT License - See LICENSE file for details.
 ## Author
 
 Richard Cooper - [Vonix Network](https://vonix.network)
+
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Might Soon Be Powered by DartNode - Free VPS for Open Source")
