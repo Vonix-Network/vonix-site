@@ -420,9 +420,9 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
-                      ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
-                      : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${activeTab === tab.id
+                      ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 shadow-[0_0_10px_rgba(0,217,255,0.1)]'
+                      : 'hover:bg-white/5 text-muted-foreground hover:text-foreground border border-transparent hover:border-white/5'
                       }`}
                   >
                     <tab.icon className="w-5 h-5" />
@@ -857,8 +857,8 @@ export default function SettingsPage() {
                 {/* Discord OAuth Status Message */}
                 {discordMessage && (
                   <div className={`p-4 rounded-lg border ${discordMessage.type === 'success'
-                      ? 'bg-success/10 border-success/50 text-success'
-                      : 'bg-error/10 border-error/50 text-error'
+                    ? 'bg-success/10 border-success/50 text-success'
+                    : 'bg-error/10 border-error/50 text-error'
                     }`}>
                     <div className="flex items-center gap-2">
                       {discordMessage.type === 'success' ? (
