@@ -132,3 +132,75 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    const user = session?.user as any;
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const postId = parseInt(id);
+
+    if (isNaN(postId)) {
+      return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 });
+    }
+
+    // Get post to check ownership
+    const [post] = await db
+      .select()
+      .from(forumPosts)
+      .where(eq(forumPosts.id, postId))
+      .limit(1);
+
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    // Check if user can edit (owner or admin/mod)
+    const canEdit = post.authorId === user.id ||
+      ['admin', 'superadmin', 'moderator'].includes(user.role);
+
+    if (!canEdit) {
+      return NextResponse.json({ error: 'Not authorized to edit this post' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { title, content } = body;
+
+    // Validate inputs
+    if (!title?.trim() && !content?.trim()) {
+      return NextResponse.json({ error: 'Title or content is required' }, { status: 400 });
+    }
+
+    // Build update object
+    const updateData: { title?: string; content?: string; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+
+    if (title?.trim()) {
+      updateData.title = title.trim().substring(0, 200);
+    }
+    if (content?.trim()) {
+      updateData.content = content.trim().substring(0, 10000);
+    }
+
+    // Update post
+    const [updatedPost] = await db
+      .update(forumPosts)
+      .set(updateData)
+      .where(eq(forumPosts.id, postId))
+      .returning();
+
+    return NextResponse.json({ success: true, post: updatedPost });
+  } catch (error) {
+    console.error('Error updating forum post:', error);
+    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
+  }
+}

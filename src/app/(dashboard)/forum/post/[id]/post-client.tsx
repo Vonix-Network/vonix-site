@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
     MessageSquare, Eye, Clock,
-    Pin, Lock, Trash2, Send, Loader2
+    Pin, Lock, Trash2, Send, Loader2, Edit2, X, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { RankBadge, RoleBadge } from '@/components/rank-badge';
 import { getMinecraftAvatarUrl, getInitials, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import { MarkdownEditor, MarkdownContent } from '@/components/markdown-editor';
+import { Input } from '@/components/ui/input';
 
 export interface ForumPost {
     id: number;
@@ -22,10 +24,10 @@ export interface ForumPost {
     content: string;
     createdAt: Date | string;
     views: number;
-    pinned: boolean; // boolean | null in DB but usually boolean in UI
-    locked: boolean; // boolean | null
+    pinned: boolean;
+    locked: boolean;
     authorId: number;
-    authorUsername: string | null; // leftJoin might be null
+    authorUsername: string | null;
     authorMinecraft: string | null;
     authorRole: string | null;
     authorRankId: number | null;
@@ -60,12 +62,25 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
     const { data: session } = useSession();
     const router = useRouter();
 
-    // We can treat initial data as static for now, but if we want to add new replies locally we need state
+    const [post, setPost] = useState<ForumPost>(initialPost);
     const [replies, setReplies] = useState<ForumReply[]>(initialReplies);
     const [replyContent, setReplyContent] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Edit states
+    const [isEditingPost, setIsEditingPost] = useState(false);
+    const [editPostTitle, setEditPostTitle] = useState(post.title);
+    const [editPostContent, setEditPostContent] = useState(post.content);
+    const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
+    const [editReplyContent, setEditReplyContent] = useState('');
+
     const user = session?.user as any;
+    const isAdmin = user && ['admin', 'superadmin', 'moderator'].includes(user.role);
+    const canModifyPost = user && (user.id === post.authorId || isAdmin);
+
+    const canModifyReply = (reply: ForumReply) => {
+        return user && (user.id === reply.authorId || isAdmin);
+    };
 
     // Handle new reply submission
     const handleSubmitReply = async (e: React.FormEvent) => {
@@ -83,7 +98,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(`/api/forum/posts/${initialPost.id}/replies`, {
+            const res = await fetch(`/api/forum/posts/${post.id}/replies`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: replyContent }),
@@ -91,7 +106,6 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
 
             if (res.ok) {
                 const data = await res.json();
-                // Append new reply
                 setReplies([...replies, data.reply]);
                 setReplyContent('');
                 toast.success('Reply posted!');
@@ -107,11 +121,44 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
         }
     };
 
+    // Edit post
+    const handleEditPost = async () => {
+        if (!editPostTitle.trim() || !editPostContent.trim()) {
+            toast.error('Title and content are required');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/forum/posts/${post.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: editPostTitle, content: editPostContent }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setPost({ ...post, title: data.post.title, content: data.post.content });
+                setIsEditingPost(false);
+                toast.success('Post updated!');
+            } else {
+                const data = await res.json();
+                toast.error(data.error || 'Failed to update post');
+            }
+        } catch (error) {
+            console.error('Failed to update post:', error);
+            toast.error('Failed to update post');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Delete post
     const handleDeletePost = async () => {
-        if (!confirm('Are you sure you want to delete this post?')) return;
+        if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return;
 
         try {
-            const res = await fetch(`/api/forum/posts/${initialPost.id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/forum/posts/${post.id}`, { method: 'DELETE' });
             if (res.ok) {
                 toast.success('Post deleted');
                 router.push('/forum');
@@ -125,7 +172,65 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
         }
     };
 
-    const canModify = user && (user.id === initialPost.authorId || ['admin', 'superadmin', 'moderator'].includes(user.role));
+    // Edit reply
+    const handleStartEditReply = (reply: ForumReply) => {
+        setEditingReplyId(reply.id);
+        setEditReplyContent(reply.content);
+    };
+
+    const handleCancelEditReply = () => {
+        setEditingReplyId(null);
+        setEditReplyContent('');
+    };
+
+    const handleSaveEditReply = async (replyId: number) => {
+        if (!editReplyContent.trim()) {
+            toast.error('Reply cannot be empty');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/forum/posts/${post.id}/replies/${replyId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: editReplyContent }),
+            });
+
+            if (res.ok) {
+                setReplies(replies.map(r => r.id === replyId ? { ...r, content: editReplyContent } : r));
+                setEditingReplyId(null);
+                setEditReplyContent('');
+                toast.success('Reply updated!');
+            } else {
+                const data = await res.json();
+                toast.error(data.error || 'Failed to update reply');
+            }
+        } catch (error) {
+            console.error('Failed to update reply:', error);
+            toast.error('Failed to update reply');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Delete reply
+    const handleDeleteReply = async (replyId: number) => {
+        if (!confirm('Are you sure you want to delete this reply?')) return;
+
+        try {
+            const res = await fetch(`/api/forum/posts/${post.id}/replies/${replyId}`, { method: 'DELETE' });
+            if (res.ok) {
+                setReplies(replies.filter(r => r.id !== replyId));
+                toast.success('Reply deleted');
+            } else {
+                toast.error('Failed to delete reply');
+            }
+        } catch (error) {
+            console.error('Failed to delete reply:', error);
+            toast.error('Failed to delete reply');
+        }
+    };
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -139,13 +244,13 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                 </Link>
                 <span className="text-muted-foreground">/</span>
                 <Link
-                    href={`/forum/category/${initialPost.categorySlug}`}
+                    href={`/forum/category/${post.categorySlug}`}
                     className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                    {initialPost.categoryName}
+                    {post.categoryName}
                 </Link>
                 <span className="text-muted-foreground">/</span>
-                <span className="text-foreground truncate">{initialPost.title}</span>
+                <span className="text-foreground truncate">{post.title}</span>
             </div>
 
             {/* Main Post */}
@@ -154,26 +259,49 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                     <div className="flex items-start justify-between">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                                {initialPost.pinned && (
+                                {post.pinned && (
                                     <Badge variant="neon-orange">
                                         <Pin className="w-3 h-3 mr-1" />
                                         Pinned
                                     </Badge>
                                 )}
-                                {initialPost.locked && (
+                                {post.locked && (
                                     <Badge variant="secondary">
                                         <Lock className="w-3 h-3 mr-1" />
                                         Locked
                                     </Badge>
                                 )}
                             </div>
-                            <CardTitle className="text-2xl">{initialPost.title}</CardTitle>
+                            {isEditingPost ? (
+                                <Input
+                                    value={editPostTitle}
+                                    onChange={(e) => setEditPostTitle(e.target.value)}
+                                    className="text-2xl font-bold mb-2"
+                                    placeholder="Post title"
+                                />
+                            ) : (
+                                <CardTitle className="text-2xl">{post.title}</CardTitle>
+                            )}
                         </div>
 
-                        {canModify && (
+                        {canModifyPost && !isEditingPost && (
                             <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => setIsEditingPost(true)}>
+                                    <Edit2 className="w-4 h-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" onClick={handleDeletePost}>
                                     <Trash2 className="w-4 h-4 text-error" />
+                                </Button>
+                            </div>
+                        )}
+
+                        {isEditingPost && (
+                            <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => setIsEditingPost(false)} disabled={isSubmitting}>
+                                    <X className="w-4 h-4" />
+                                </Button>
+                                <Button variant="neon" size="icon" onClick={handleEditPost} disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                 </Button>
                             </div>
                         )}
@@ -184,22 +312,22 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
                         <Avatar glow>
                             <AvatarImage
-                                src={getMinecraftAvatarUrl(initialPost.authorMinecraft || initialPost.authorUsername || 'Steve')}
-                                alt={initialPost.authorUsername || 'User'}
+                                src={getMinecraftAvatarUrl(post.authorMinecraft || post.authorUsername || 'Steve')}
+                                alt={post.authorUsername || 'User'}
                             />
-                            <AvatarFallback>{getInitials(initialPost.authorUsername || 'User')}</AvatarFallback>
+                            <AvatarFallback>{getInitials(post.authorUsername || 'User')}</AvatarFallback>
                         </Avatar>
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium">{initialPost.authorUsername}</span>
-                                {initialPost.authorRole && initialPost.authorRole !== 'user' && (
-                                    <RoleBadge role={initialPost.authorRole} size="sm" />
+                                <span className="font-medium">{post.authorUsername}</span>
+                                {post.authorRole && post.authorRole !== 'user' && (
+                                    <RoleBadge role={post.authorRole} size="sm" />
                                 )}
-                                {initialPost.authorRankId && initialPost.authorRankExpiresAt && new Date(initialPost.authorRankExpiresAt) > new Date() && (
+                                {post.authorRankId && post.authorRankExpiresAt && new Date(post.authorRankExpiresAt) > new Date() && (
                                     <RankBadge
                                         rank={{
-                                            name: initialPost.rankName || 'Supporter',
-                                            color: initialPost.rankColor || '#00D9FF',
+                                            name: post.rankName || 'Supporter',
+                                            color: post.rankColor || '#00D9FF',
                                         }}
                                         size="sm"
                                     />
@@ -208,20 +336,27 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                             <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    {formatRelativeTime(new Date(initialPost.createdAt))}
+                                    {formatRelativeTime(new Date(post.createdAt))}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <Eye className="w-3 h-3" />
-                                    {initialPost.views} views
+                                    {post.views} views
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     {/* Post Content */}
-                    <div className="prose prose-invert max-w-none">
-                        <p className="whitespace-pre-wrap">{initialPost.content}</p>
-                    </div>
+                    {isEditingPost ? (
+                        <MarkdownEditor
+                            value={editPostContent}
+                            onChange={setEditPostContent}
+                            minHeight="200px"
+                            maxLength={10000}
+                        />
+                    ) : (
+                        <MarkdownContent content={post.content} />
+                    )}
                 </CardContent>
             </Card>
 
@@ -244,25 +379,60 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                                     <AvatarFallback>{getInitials(reply.authorUsername || 'User')}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                        <span className="font-medium">{reply.authorUsername}</span>
-                                        {reply.authorRole && reply.authorRole !== 'user' && (
-                                            <RoleBadge role={reply.authorRole} size="sm" />
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-medium">{reply.authorUsername}</span>
+                                            {reply.authorRole && reply.authorRole !== 'user' && (
+                                                <RoleBadge role={reply.authorRole} size="sm" />
+                                            )}
+                                            {reply.authorRankId && reply.authorRankExpiresAt && new Date(reply.authorRankExpiresAt) > new Date() && (
+                                                <RankBadge
+                                                    rank={{
+                                                        name: reply.rankName || 'Supporter',
+                                                        color: reply.rankColor || '#00D9FF',
+                                                    }}
+                                                    size="sm"
+                                                />
+                                            )}
+                                            <span className="text-sm text-muted-foreground">
+                                                {formatRelativeTime(new Date(reply.createdAt))}
+                                            </span>
+                                        </div>
+
+                                        {/* Reply actions */}
+                                        {canModifyReply(reply) && editingReplyId !== reply.id && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => handleStartEditReply(reply)}>
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => handleDeleteReply(reply.id)}>
+                                                    <Trash2 className="w-3.5 h-3.5 text-error" />
+                                                </Button>
+                                            </div>
                                         )}
-                                        {reply.authorRankId && reply.authorRankExpiresAt && new Date(reply.authorRankExpiresAt) > new Date() && (
-                                            <RankBadge
-                                                rank={{
-                                                    name: reply.rankName || 'Supporter',
-                                                    color: reply.rankColor || '#00D9FF',
-                                                }}
-                                                size="sm"
-                                            />
+
+                                        {editingReplyId === reply.id && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="w-7 h-7" onClick={handleCancelEditReply} disabled={isSubmitting}>
+                                                    <X className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button variant="neon" size="icon" className="w-7 h-7" onClick={() => handleSaveEditReply(reply.id)} disabled={isSubmitting}>
+                                                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                                </Button>
+                                            </div>
                                         )}
-                                        <span className="text-sm text-muted-foreground">
-                                            {formatRelativeTime(new Date(reply.createdAt))}
-                                        </span>
                                     </div>
-                                    <p className="whitespace-pre-wrap">{reply.content}</p>
+
+                                    {editingReplyId === reply.id ? (
+                                        <MarkdownEditor
+                                            value={editReplyContent}
+                                            onChange={setEditReplyContent}
+                                            minHeight="100px"
+                                            maxLength={5000}
+                                        />
+                                    ) : (
+                                        <MarkdownContent content={reply.content} />
+                                    )}
                                 </div>
                             </div>
                         </CardContent>
@@ -270,15 +440,16 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                 ))}
 
                 {/* Reply Form */}
-                {!initialPost.locked && session ? (
+                {!post.locked && session ? (
                     <Card variant="glass">
                         <CardContent className="p-4">
                             <form onSubmit={handleSubmitReply}>
-                                <textarea
+                                <MarkdownEditor
                                     value={replyContent}
-                                    onChange={(e) => setReplyContent(e.target.value)}
-                                    placeholder="Write a reply..."
-                                    className="w-full min-h-[120px] p-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan resize-none"
+                                    onChange={setReplyContent}
+                                    placeholder="Write a reply... (Markdown supported)"
+                                    minHeight="120px"
+                                    maxLength={5000}
                                 />
                                 <div className="flex justify-end mt-3">
                                     <Button type="submit" variant="gradient" disabled={isSubmitting || !replyContent.trim()}>
@@ -298,7 +469,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                             </form>
                         </CardContent>
                     </Card>
-                ) : initialPost.locked ? (
+                ) : post.locked ? (
                     <Card variant="glass">
                         <CardContent className="p-4 text-center text-muted-foreground">
                             <Lock className="w-6 h-6 mx-auto mb-2" />

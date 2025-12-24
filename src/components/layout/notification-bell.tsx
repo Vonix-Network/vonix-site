@@ -39,8 +39,9 @@ export function NotificationBell() {
     <Link
       href="/notifications"
       className={cn(
-        'relative p-2 rounded-lg hover:bg-white/5 transition-colors',
-        unreadCount > 0 && 'text-neon-cyan'
+        'relative flex items-center justify-center p-3 rounded-full bg-background/50 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-200',
+        'text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-background/80',
+        unreadCount > 0 && 'text-neon-cyan border-neon-cyan/50 shadow-[0_0_10px_rgba(0,217,255,0.2)]'
       )}
       title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
     >

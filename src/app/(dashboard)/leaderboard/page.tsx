@@ -85,189 +85,207 @@ export default function LeaderboardPage() {
     : 1;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-neon-orange/20 border border-neon-orange/50 mb-4">
-          <Trophy className="w-10 h-10 text-neon-orange" />
+    <div className="relative min-h-screen">
+      {/* ========== VISIBLE GRADIENT EFFECTS ========== */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 60% at 0% 30%, rgba(249, 115, 22, 0.10) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 50% at 100% 70%, rgba(0, 217, 255, 0.08) 0%, transparent 45%),
+            radial-gradient(ellipse 50% 40% at 50% 100%, rgba(139, 92, 246, 0.06) 0%, transparent 40%)
+          `
+        }}
+      />
+
+      {/* Glow orbs - orange theme for leaderboard */}
+      <div className="fixed top-20 -left-32 w-[500px] h-[500px] bg-neon-orange/12 rounded-full blur-[150px] pointer-events-none" />
+      <div className="fixed bottom-20 -right-32 w-[400px] h-[400px] bg-neon-cyan/10 rounded-full blur-[130px] pointer-events-none" />
+
+      <div className="container relative z-10 mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-neon-orange/20 border border-neon-orange/50 mb-4">
+            <Trophy className="w-10 h-10 text-neon-orange" />
+          </div>
+          <h1 className="text-4xl font-bold gradient-text mb-4">
+            Leaderboard
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Top players ranked by {leaderboardType === 'xp' ? 'experience points' : 'playtime'}
+          </p>
         </div>
-        <h1 className="text-4xl font-bold gradient-text mb-4">
-          Leaderboard
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Top players ranked by {leaderboardType === 'xp' ? 'experience points' : 'playtime'}
-        </p>
-      </div>
 
-      {/* Toggle Buttons */}
-      <div className="flex justify-center gap-4 mb-8">
-        <Button
-          variant={leaderboardType === 'xp' ? 'gradient' : 'neon-outline'}
-          onClick={() => setLeaderboardType('xp')}
-          className="min-w-[140px]"
-        >
-          <Star className="w-4 h-4 mr-2" />
-          XP Leaderboard
-        </Button>
-        <Button
-          variant={leaderboardType === 'playtime' ? 'gradient' : 'neon-outline'}
-          onClick={() => setLeaderboardType('playtime')}
-          className="min-w-[140px]"
-        >
-          <Clock className="w-4 h-4 mr-2" />
-          Playtime Leaderboard
-        </Button>
-      </div>
+        {/* Toggle Buttons */}
+        <div className="flex justify-center gap-4 mb-8">
+          <Button
+            variant={leaderboardType === 'xp' ? 'gradient' : 'neon-outline'}
+            onClick={() => setLeaderboardType('xp')}
+            className="min-w-[140px]"
+          >
+            <Star className="w-4 h-4 mr-2" />
+            XP Leaderboard
+          </Button>
+          <Button
+            variant={leaderboardType === 'playtime' ? 'gradient' : 'neon-outline'}
+            onClick={() => setLeaderboardType('playtime')}
+            className="min-w-[140px]"
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            Playtime Leaderboard
+          </Button>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              {leaderboardType === 'xp' ? (
+                <>
+                  <Star className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
+                  <p className="text-3xl font-bold">{formatNumber(totalXP)}</p>
+                  <p className="text-muted-foreground">Total Community XP</p>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
+                  <p className="text-3xl font-bold">{formatPlaytime(totalPlaytime)}</p>
+                  <p className="text-muted-foreground">Total Playtime</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              <TrendingUp className="w-8 h-8 mx-auto mb-2 text-neon-purple" />
+              <p className="text-3xl font-bold">{avgLevel}</p>
+              <p className="text-muted-foreground">Average Level</p>
+            </CardContent>
+          </Card>
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              <Trophy className="w-8 h-8 mx-auto mb-2 text-neon-orange" />
+              <p className="text-3xl font-bold">{leaderboard.length}</p>
+              <p className="text-muted-foreground">Ranked Players</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Leaderboard Table */}
         <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            {leaderboardType === 'xp' ? (
-              <>
-                <Star className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
-                <p className="text-3xl font-bold">{formatNumber(totalXP)}</p>
-                <p className="text-muted-foreground">Total Community XP</p>
-              </>
+          <CardHeader>
+            <CardTitle>
+              {leaderboardType === 'xp' ? 'Top Players by XP' : 'Top Players by Playtime'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
+              </div>
+            ) : leaderboard.length > 0 ? (
+              <div className="space-y-2">
+                {leaderboard.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className={`flex items-center gap-4 p-4 rounded-lg border transition-colors hover:bg-secondary/80 ${getRankBg(index + 1)}`}
+                  >
+                    {/* Rank */}
+                    <div className="w-10 flex justify-center">
+                      {getRankIcon(index + 1)}
+                    </div>
+
+                    {/* Avatar */}
+                    <Avatar className="w-12 h-12" glow={index < 3}>
+                      <AvatarImage
+                        src={getMinecraftAvatarUrl(player.minecraftUsername || player.username)}
+                        alt={player.username}
+                      />
+                      <AvatarFallback>
+                        {getInitials(player.username)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {/* Player Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold truncate">{player.username}</span>
+                        {player.role && player.role !== 'user' && (
+                          <RoleBadge role={player.role} size="sm" />
+                        )}
+                        {player.donationRank && (
+                          <RankBadge
+                            rank={{
+                              name: player.donationRank.name,
+                              color: player.donationRank.color,
+                            }}
+                            size="sm"
+                          />
+                        )}
+                      </div>
+                      {player.title && (
+                        <p className="text-sm text-muted-foreground">{player.title}</p>
+                      )}
+                    </div>
+
+                    {/* Level */}
+                    <div className="text-center px-4">
+                      <p className="text-lg font-bold text-neon-cyan">Lv. {player.level || 1}</p>
+                    </div>
+
+                    {/* XP or Playtime */}
+                    <div className="text-right min-w-[100px]">
+                      {leaderboardType === 'xp' ? (
+                        <>
+                          <p className="font-bold">{formatNumber(player.xp || 0)}</p>
+                          <p className="text-xs text-muted-foreground">XP</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-bold">{formatPlaytime(player.playtimeSeconds || 0)}</p>
+                          <p className="text-xs text-muted-foreground">Playtime</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <>
-                <Clock className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
-                <p className="text-3xl font-bold">{formatPlaytime(totalPlaytime)}</p>
-                <p className="text-muted-foreground">Total Playtime</p>
-              </>
+              <div className="text-center py-12">
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-xl font-bold mb-2">No Players Yet</h3>
+                <p className="text-muted-foreground">
+                  Be the first to earn XP and climb the leaderboard!
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
-        <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="w-8 h-8 mx-auto mb-2 text-neon-purple" />
-            <p className="text-3xl font-bold">{avgLevel}</p>
-            <p className="text-muted-foreground">Average Level</p>
-          </CardContent>
-        </Card>
-        <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            <Trophy className="w-8 h-8 mx-auto mb-2 text-neon-orange" />
-            <p className="text-3xl font-bold">{leaderboard.length}</p>
-            <p className="text-muted-foreground">Ranked Players</p>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Leaderboard Table */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle>
-            {leaderboardType === 'xp' ? 'Top Players by XP' : 'Top Players by Playtime'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-neon-cyan" />
-            </div>
-          ) : leaderboard.length > 0 ? (
-            <div className="space-y-2">
-              {leaderboard.map((player, index) => (
-                <div
-                  key={player.id}
-                  className={`flex items-center gap-4 p-4 rounded-lg border transition-colors hover:bg-secondary/80 ${getRankBg(index + 1)}`}
-                >
-                  {/* Rank */}
-                  <div className="w-10 flex justify-center">
-                    {getRankIcon(index + 1)}
+        {/* How to Earn XP */}
+        <Card variant="gradient" className="mt-8">
+          <CardContent className="py-8">
+            <h2 className="text-2xl font-bold text-center mb-6">How to Earn XP</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[
+                { icon: Clock, title: 'Daily Login', xp: '+10 XP', desc: 'Log in every day' },
+                { icon: MessageSquare, title: 'Forum Posts', xp: '+5 XP', desc: 'Create discussions' },
+                { icon: Heart, title: 'Social Activity', xp: '+2 XP', desc: 'Like and comment' },
+                { icon: Trophy, title: 'Achievements', xp: 'Varies', desc: 'Complete challenges' },
+              ].map((item) => (
+                <div key={item.title} className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center mx-auto mb-3">
+                    <item.icon className="w-6 h-6 text-neon-cyan" />
                   </div>
-
-                  {/* Avatar */}
-                  <Avatar className="w-12 h-12" glow={index < 3}>
-                    <AvatarImage
-                      src={getMinecraftAvatarUrl(player.minecraftUsername || player.username)}
-                      alt={player.username}
-                    />
-                    <AvatarFallback>
-                      {getInitials(player.username)}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  {/* Player Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold truncate">{player.username}</span>
-                      {player.role && player.role !== 'user' && (
-                        <RoleBadge role={player.role} size="sm" />
-                      )}
-                      {player.donationRank && (
-                        <RankBadge
-                          rank={{
-                            name: player.donationRank.name,
-                            color: player.donationRank.color,
-                          }}
-                          size="sm"
-                        />
-                      )}
-                    </div>
-                    {player.title && (
-                      <p className="text-sm text-muted-foreground">{player.title}</p>
-                    )}
-                  </div>
-
-                  {/* Level */}
-                  <div className="text-center px-4">
-                    <p className="text-lg font-bold text-neon-cyan">Lv. {player.level || 1}</p>
-                  </div>
-
-                  {/* XP or Playtime */}
-                  <div className="text-right min-w-[100px]">
-                    {leaderboardType === 'xp' ? (
-                      <>
-                        <p className="font-bold">{formatNumber(player.xp || 0)}</p>
-                        <p className="text-xs text-muted-foreground">XP</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-bold">{formatPlaytime(player.playtimeSeconds || 0)}</p>
-                        <p className="text-xs text-muted-foreground">Playtime</p>
-                      </>
-                    )}
-                  </div>
+                  <h3 className="font-bold mb-1">{item.title}</h3>
+                  <Badge variant="neon" className="mb-2">{item.xp}</Badge>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-xl font-bold mb-2">No Players Yet</h3>
-              <p className="text-muted-foreground">
-                Be the first to earn XP and climb the leaderboard!
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* How to Earn XP */}
-      <Card variant="gradient" className="mt-8">
-        <CardContent className="py-8">
-          <h2 className="text-2xl font-bold text-center mb-6">How to Earn XP</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              { icon: Clock, title: 'Daily Login', xp: '+10 XP', desc: 'Log in every day' },
-              { icon: MessageSquare, title: 'Forum Posts', xp: '+5 XP', desc: 'Create discussions' },
-              { icon: Heart, title: 'Social Activity', xp: '+2 XP', desc: 'Like and comment' },
-              { icon: Trophy, title: 'Achievements', xp: 'Varies', desc: 'Complete challenges' },
-            ].map((item) => (
-              <div key={item.title} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center mx-auto mb-3">
-                  <item.icon className="w-6 h-6 text-neon-cyan" />
-                </div>
-                <h3 className="font-bold mb-1">{item.title}</h3>
-                <Badge variant="neon" className="mb-2">{item.xp}</Badge>
-                <p className="text-sm text-muted-foreground">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

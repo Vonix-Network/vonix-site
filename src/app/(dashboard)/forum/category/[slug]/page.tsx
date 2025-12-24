@@ -159,10 +159,10 @@ export default async function CategoryPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           {posts.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-6">
               {posts.map((post) => (
-                <Link key={post.id} href={`/forum/post/${post.id}`}>
-                  <div className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group">
+                <Link key={post.id} href={`/forum/post/${post.id}`} className="block">
+                  <div className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group border border-transparent hover:border-white/5">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         {post.pinned && (

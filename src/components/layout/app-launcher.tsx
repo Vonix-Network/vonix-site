@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home,
     Server,
@@ -70,6 +71,39 @@ interface AppLauncherProps {
     onClose: () => void;
 }
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05,
+            delayChildren: 0.1
+        }
+    },
+    exit: {
+        opacity: 0,
+        transition: {
+            staggerChildren: 0.02,
+            staggerDirection: -1
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.9 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+            type: "spring",
+            stiffness: 300,
+            damping: 24
+        }
+    },
+    exit: { opacity: 0, y: 20, scale: 0.9 }
+};
+
 export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
     const { data: session } = useSession();
     const pathname = usePathname();
@@ -103,8 +137,10 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
             setTimeout(() => searchInputRef.current?.focus(), 100);
         }
         if (!isOpen) {
-            setSearchQuery('');
-            setActiveCategory('all');
+            setTimeout(() => {
+                setSearchQuery('');
+                setActiveCategory('all');
+            }, 300); // Clear after exit animation
         }
     }, [isOpen]);
 
@@ -129,134 +165,170 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
         return () => { document.body.style.overflow = ''; };
     }, [isOpen]);
 
-    const handleItemClick = useCallback(() => {
-        onClose();
-    }, [onClose]);
-
-    if (!isOpen) return null;
-
     // Filter categories to only show those with items
     const availableCategories = categories.filter(cat =>
         cat.id === 'all' || availableItems.some(item => item.category === cat.id)
     );
 
     return (
-        <div
-            className="fixed inset-0 z-[100] flex flex-col"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) onClose();
-            }}
-        >
-            {/* Full screen backdrop with blur */}
-            <div className="absolute inset-0 bg-background/95 backdrop-blur-2xl" />
+        <AnimatePresence>
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-[100] flex flex-col"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) onClose();
+                    }}
+                >
+                    {/* Full screen backdrop with blur */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-[#0a0a0a]/98 backdrop-blur-3xl"
+                    />
 
-            {/* Full screen launcher container */}
-            <div
-                ref={containerRef}
-                className="relative flex-1 flex flex-col w-full h-full overflow-hidden animate-in fade-in duration-200"
-            >
-                {/* Header with search - centered content */}
-                <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-4">
-                    <div className="relative flex items-center justify-center mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold gradient-text">Navigation</h2>
-                        <button
-                            onClick={onClose}
-                            className="absolute right-0 p-3 rounded-xl hover:bg-white/10 transition-colors"
+                    {/* Content Container */}
+                    <div className="relative z-10 flex-1 flex flex-col overflow-hidden w-full h-full">
+                        {/* Header with search - centered content */}
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-4"
                         >
-                            <X className="w-6 h-6" />
-                        </button>
-                    </div>
+                            <div className="relative flex items-center justify-center mb-8">
+                                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-purple-500 to-neon-pink">
+                                    Vonix Network
+                                </h2>
+                                <button
+                                    onClick={onClose}
+                                    className="absolute right-0 p-3 rounded-full hover:bg-white/10 transition-colors group"
+                                >
+                                    <X className="w-6 h-6 text-muted-foreground group-hover:text-neon-cyan transition-colors" />
+                                </button>
+                            </div>
 
-                    {/* Search bar */}
-                    <div className="relative max-w-xl mx-auto">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder="Type to search..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-4 bg-secondary/50 border border-white/10 rounded-2xl text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:border-neon-cyan/50 transition-all"
-                        />
-                    </div>
+                            {/* Search bar */}
+                            <div className="relative max-w-xl mx-auto mb-8">
+                                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    placeholder="Search pages..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/10 rounded-full text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:border-neon-cyan/50 transition-all shadow-lg"
+                                />
+                            </div>
 
-                    {/* Category tabs - scrollable on mobile, centered on desktop */}
-                    <div className="flex flex-wrap justify-center gap-2 mt-6 px-4 sm:px-0">
-                        {availableCategories.map((cat) => (
-                            <button
-                                key={cat.id}
-                                onClick={() => setActiveCategory(cat.id)}
-                                className={cn(
-                                    'px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex-shrink-0',
-                                    activeCategory === cat.id
-                                        ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
-                                        : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent'
+                            {/* Category tabs */}
+                            <div className="flex flex-wrap justify-center gap-2 px-4 sm:px-0">
+                                {availableCategories.map((cat, i) => (
+                                    <motion.button
+                                        key={cat.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 + (i * 0.05) }}
+                                        onClick={() => setActiveCategory(cat.id)}
+                                        className={cn(
+                                            'px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border',
+                                            activeCategory === cat.id
+                                                ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30 shadow-[0_0_10px_rgba(0,217,255,0.2)]'
+                                                : 'bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border-transparent'
+                                        )}
+                                    >
+                                        {cat.label}
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        {/* Items grid */}
+                        <motion.div
+                            className="flex-1 overflow-y-auto px-4 sm:px-8 py-6"
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                        >
+                            <div className="max-w-5xl mx-auto">
+                                {filteredItems.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="text-center py-20 text-muted-foreground"
+                                    >
+                                        <Search className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                                        <p className="text-xl">No items found</p>
+                                    </motion.div>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 pb-20">
+                                        {filteredItems.map((item) => {
+                                            const isActive = pathname === item.href;
+                                            return (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    onClick={onClose}
+                                                    className="block h-full"
+                                                >
+                                                    <motion.div
+                                                        variants={itemVariants}
+                                                        className={cn(
+                                                            'flex flex-col items-center gap-4 p-6 h-full rounded-3xl transition-all group relative overflow-hidden',
+                                                            isActive
+                                                                ? 'bg-gradient-to-br from-neon-cyan/20 to-purple-500/20 border border-neon-cyan/30 shadow-neon-sm'
+                                                                : 'bg-white/[0.03] border border-white/5 hover:bg-white-[0.07] hover:border-white/10 hover:shadow-lg'
+                                                        )}
+                                                    >
+                                                        {isActive && (
+                                                            <div className="absolute inset-0 bg-neon-cyan/5 blur-xl" />
+                                                        )}
+
+                                                        <div className={cn(
+                                                            'relative w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner',
+                                                            isActive
+                                                                ? 'bg-neon-cyan text-black shadow-[0_0_15px_rgba(0,217,255,0.5)]'
+                                                                : 'bg-black/40 text-muted-foreground group-hover:text-neon-cyan group-hover:bg-black/60 group-hover:scale-110'
+                                                        )}>
+                                                            <item.icon className="w-8 h-8" />
+                                                        </div>
+
+                                                        <div className="relative text-center">
+                                                            <p className={cn(
+                                                                'text-base font-medium mb-1 transition-colors',
+                                                                isActive ? 'text-neon-cyan' : 'text-foreground group-hover:text-white'
+                                                            )}>
+                                                                {item.name}
+                                                            </p>
+                                                            {item.description && (
+                                                                <p className="text-xs text-muted-foreground line-clamp-1 group-hover:text-gray-400 transition-colors">
+                                                                    {item.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
                                 )}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
+                            </div>
+                        </motion.div>
+
+                        {/* Footer hint */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                            className="py-6 text-center text-sm text-muted-foreground border-t border-white/5 bg-[#0a0a0a]/50 backdrop-blur-md"
+                        >
+                            Press <kbd className="px-2 py-1 mx-1 rounded-lg bg-white/10 text-white font-mono text-xs">Esc</kbd> to close
+                        </motion.div>
                     </div>
                 </div>
-
-                {/* Items grid - centered with scroll */}
-                <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
-                    <div className="max-w-5xl mx-auto">
-                        {filteredItems.length === 0 ? (
-                            <div className="text-center py-16 text-muted-foreground">
-                                <Search className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                <p className="text-lg">No items found</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-6">
-                                {filteredItems.map((item) => {
-                                    const isActive = pathname === item.href;
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            onClick={handleItemClick}
-                                            className={cn(
-                                                'flex flex-col items-center gap-3 p-4 sm:p-6 rounded-2xl transition-all group',
-                                                isActive
-                                                    ? 'bg-neon-cyan/20 border border-neon-cyan/30 shadow-neon-sm'
-                                                    : 'hover:bg-white/5 border border-transparent hover:border-white/10'
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all',
-                                                isActive
-                                                    ? 'bg-neon-cyan/30 text-neon-cyan'
-                                                    : 'bg-secondary/70 text-muted-foreground group-hover:text-foreground group-hover:bg-secondary'
-                                            )}>
-                                                <item.icon className="w-7 h-7 sm:w-8 sm:h-8" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className={cn(
-                                                    'text-sm font-medium',
-                                                    isActive ? 'text-neon-cyan' : 'text-foreground'
-                                                )}>
-                                                    {item.name}
-                                                </p>
-                                                {item.description && (
-                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1 hidden sm:block">
-                                                        {item.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer hint - fixed at bottom */}
-                <div className="py-4 text-center text-sm text-muted-foreground border-t border-white/5">
-                    Press <kbd className="px-2 py-1 rounded-lg bg-secondary text-foreground font-mono text-xs">Esc</kbd> to close
-                </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 }

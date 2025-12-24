@@ -71,26 +71,31 @@
     --input: 214 32% 91%;
     --ring: 189 100% 45%;
   }
+
   .dark {
-    --background: 0 0% 3.9%;
+    /* Ultra-deep black background - DartNode inspired */
+    --background: 220 15% 3%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    /* Elevated card backgrounds */
+    --card: 220 15% 5%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 220 15% 6%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --primary-foreground: 220 15% 3%;
+    /* Subtle blue-tinted dark surfaces */
+    --secondary: 220 15% 8%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 220 15% 10%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 15% 12%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    /* Subtle borders with slight color */
+    --border: 220 15% 12%;
+    --input: 220 15% 12%;
+    --ring: 174 100% 50%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -191,19 +196,134 @@
     0 0 30px rgba(236, 72, 153, 0.3);
 }
 
-/* Glass Morphism */
+/* ===================================
+   GLASS MORPHISM - Enhanced Premium
+   =================================== */
+
+/* Glass Morphism - Base */
 .glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* Glass Card - Premium DartNode Style */
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Premium Card with Top Gradient Border */
+.premium-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.premium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+}
+
+/* Stat Card - DartNode Inspired */
+.stat-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 217, 255, 0.25);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 24px rgba(0, 217, 255, 0.08);
+}
+
+/* Feature Card - Enhanced with Glow on Hover */
+.feature-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.feature-card:hover {
+  border-color: rgba(0, 217, 255, 0.3);
+  background: linear-gradient(180deg, rgba(0, 217, 255, 0.04) 0%, rgba(0, 0, 0, 0.05) 100%);
+  box-shadow: 
+    0 0 40px rgba(0, 217, 255, 0.06),
+    inset 0 1px 0 rgba(0, 217, 255, 0.1);
+  transform: translateY(-4px);
+}
+
+/* Server Card - Premium Style */
+.server-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.server-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #10B981, #10B981);
+  opacity: 0.8;
+}
+
+.server-card.offline::before {
+  background: linear-gradient(90deg, #EF4444, #EF4444);
+}
+
+.server-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
 /* Neon Border Gradient */
@@ -262,16 +382,19 @@
   animation: gradient-xy 20s ease infinite;
 }
 
-/* Hover Effects */
+/* ===================================
+   HOVER EFFECTS
+   =================================== */
+
 .hover-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(0, 217, 255, 0.2);
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    0 0 20px rgba(0, 217, 255, 0.15);
 }
 
 .hover-glow {
@@ -280,9 +403,23 @@
 
 .hover-glow:hover {
   box-shadow: 
-    0 0 30px rgba(0, 217, 255, 0.4),
-    0 0 60px rgba(139, 92, 246, 0.3);
+    0 0 30px rgba(0, 217, 255, 0.35),
+    0 0 60px rgba(139, 92, 246, 0.25);
 }
+
+/* Subtle hover for cards */
+.hover-subtle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-subtle:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
 
 /* Pulse Animation */
 @keyframes pulse-glow {
@@ -308,7 +445,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.08) 50%,
     transparent 100%
   );
   background-size: 1000px 100%;
@@ -357,6 +494,24 @@
   animation: scale-in 0.4s ease-out;
 }
 
+/* Glow Pulse - for online indicators */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px currentColor, 0 0 8px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* ===================================
+   UTILITY CLASSES
+   =================================== */
+
 /* Pixelated rendering for Minecraft heads */
 .pixelated {
   image-rendering: pixelated;
@@ -364,7 +519,27 @@
   image-rendering: crisp-edges;
 }
 
-/* Scrollbar Styling */
+/* Monospace font for technical info */
+.font-mono-numbers {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Text gradient with glow effect */
+.text-glow-cyan {
+  color: #00D9FF;
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+.text-glow-green {
+  color: #10B981;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* ===================================
+   SCROLLBAR STYLING
+   =================================== */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -384,17 +559,22 @@
   background: linear-gradient(180deg, #00D9FF 0%, #EC4899 100%);
 }
 
+/* ===================================
+   ACCESSIBILITY
+   =================================== */
+
 /* Focus Styles for Accessibility */
 :focus-visible {
   outline: 2px solid #00D9FF;
   outline-offset: 2px;
 }
 
-/* Smooth Transitions */
-* {
+/* Smooth Transitions - but not for everything */
+a, button, input, select, textarea,
+[class*="hover-"], [class*="card"], [class*="btn"] {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 200ms;
 }
 
 /* Disable transitions for reduced motion preference */
@@ -405,14 +585,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }

@@ -680,741 +680,759 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-error/20 border border-error/50 mb-4 animate-pulse-glow">
-          <Heart className="w-10 h-10 text-error" />
-        </div>
-        <h1 className="text-4xl font-bold gradient-text mb-4">
-          Support Vonix Network
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Help us keep the servers running and unlock exclusive perks!
-        </p>
-      </div>
+    <div className="relative min-h-screen">
+      {/* ========== VISIBLE GRADIENT EFFECTS ========== */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 60% at 0% 30%, rgba(239, 68, 68, 0.10) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 50% at 100% 70%, rgba(236, 72, 153, 0.08) 0%, transparent 45%),
+            radial-gradient(ellipse 50% 40% at 50% 100%, rgba(139, 92, 246, 0.06) 0%, transparent 40%)
+          `
+        }}
+      />
 
-      {/* Loading payment config */}
-      {paymentConfigLoading && (
-        <div className="text-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-neon-cyan" />
-          <p className="text-muted-foreground mt-2">Loading payment options...</p>
-        </div>
-      )}
+      {/* Glow orbs - red/pink theme for donations */}
+      <div className="fixed top-20 -left-32 w-[500px] h-[500px] bg-error/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="fixed bottom-20 -right-32 w-[400px] h-[400px] bg-neon-pink/10 rounded-full blur-[130px] pointer-events-none" />
 
-      {/* Donations Disabled */}
-      {!paymentConfigLoading && paymentConfig?.provider === 'disabled' && (
-        <Card variant="glass" className="max-w-2xl mx-auto mb-12">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-2xl font-bold text-muted-foreground mb-2">
-              Donations Currently Unavailable
-            </h2>
-            <p className="text-muted-foreground">
-              We&apos;re not accepting donations at this time. Please check back later!
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Ko-Fi Primary Donation Button */}
-      {!paymentConfigLoading && paymentConfig?.provider === 'kofi' && paymentConfig.enabled && (
-        <Card variant="gradient" className="max-w-2xl mx-auto mb-12">
-          <CardContent className="p-8 text-center">
-            <Coffee className="w-16 h-16 mx-auto mb-4 text-neon-pink" />
-            <h2 className="text-2xl font-bold mb-4">Support Us on Ko-Fi</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Click the button below to make a donation through Ko-Fi. All donations are greatly appreciated!
-            </p>
-            <Button
-              variant="gradient"
-              size="lg"
-              onClick={() => {
-                if (paymentConfig.pageUrl) {
-                  window.open(paymentConfig.pageUrl, '_blank');
-                }
-              }}
-              className="bg-[#FF5E5B] hover:bg-[#FF5E5B]/90 border-none"
-            >
-              <Coffee className="w-5 h-5 mr-2" />
-              Donate on Ko-Fi
-              <ExternalLink className="w-4 h-4 ml-2" />
-            </Button>
-            <p className="text-xs text-muted-foreground mt-4">
-              <strong>Memberships</strong> automatically grant their rank. <strong>One-time donations</strong> are matched to the best rank (e.g. $5 = Supporter). Extra amount grants extra days!
-            </p>
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-              <p className="text-xs text-yellow-500 flex items-center justify-center gap-1">
-                <AlertCircle className="w-4 h-4 mr-1 shrink-0" />
-                <span>
-                  Important: Please ensure your Ko-Fi email matches your{' '}
-                  <Link href="/settings" className="underline hover:text-yellow-400 font-medium">
-                    account email
-                  </Link>{' '}
-                  for automatic rank assignment!
-                </span>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Rank Status (if logged in and has rank) */}
-      {userSubscription && userSubscription.hasRank && userSubscription.rank && !userSubscription.isExpired && (
-        <Card variant="neon-glow" className="mb-8 max-w-2xl mx-auto">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-                style={{
-                  background: `${userSubscription.rank.color}20`,
-                  border: `2px solid ${userSubscription.rank.color}50`,
-                }}
-              >
-                {userSubscription.rank.icon || '👤'}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-muted-foreground">Your Current Rank:</span>
-                  <Badge
-                    variant="outline"
-                    style={{ borderColor: userSubscription.rank.color || '#00D9FF', color: userSubscription.rank.color || '#00D9FF' }}
-                  >
-                    {userSubscription.rank.name}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4 text-sm">
-                  {userSubscription.expiresAt && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      {formatRemainingTime(userSubscription.expiresAt)}
-                    </span>
-                  )}
-                  {userSubscription.hasSubscription && (
-                    <span className="flex items-center gap-1 text-green-400">
-                      <RefreshCw className="w-4 h-4" />
-                      Auto-renewing
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>
-                Manage
-              </Button>
-            </div>
-            {!userSubscription.hasSubscription && (
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                Tip: Subscribe below to enable auto-renewal and never lose your rank!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="max-w-md mx-auto mb-8 p-4 rounded-lg bg-error/10 border border-error/30 text-error text-center">
-          {error}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            <Gift className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
-            <p className="text-3xl font-bold">{formatCurrency(stats.total)}</p>
-            <p className="text-muted-foreground">Total Raised</p>
-          </CardContent>
-        </Card>
-        <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            <Heart className="w-8 h-8 mx-auto mb-2 text-error" />
-            <p className="text-3xl font-bold">{stats.count}</p>
-            <p className="text-muted-foreground">Donations</p>
-          </CardContent>
-        </Card>
-        <Card variant="glass">
-          <CardContent className="p-6 text-center">
-            <Crown className="w-8 h-8 mx-auto mb-2 text-neon-orange" />
-            <p className="text-3xl font-bold">{displayRanks.length}</p>
-            <p className="text-muted-foreground">Rank Tiers</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Donation Ranks */}
-      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square' || paymentConfig?.provider === 'kofi') && paymentConfig.enabled && (
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
-          <p className="text-center text-muted-foreground mb-8">
-            {paymentConfig?.provider === 'kofi'
-              ? 'Support us on Ko-Fi to automatically receive these ranks!'
-              : 'Subscribe for auto-renewal or buy a one-time rank'}
+      <div className="container relative z-10 mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-error/20 border border-error/50 mb-4 animate-pulse-glow">
+            <Heart className="w-10 h-10 text-error" />
+          </div>
+          <h1 className="text-4xl font-bold gradient-text mb-4">
+            Support Vonix Network
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Help us keep the servers running and unlock exclusive perks!
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {displayRanks.map((rank) => {
-              const isCurrentRank = userHasRank(rank.id);
+        </div>
 
-              return (
-                <Card
-                  key={rank.id}
-                  variant="glass"
-                  hover
-                  className={`relative overflow-hidden ${isCurrentRank ? 'ring-2 ring-green-500/50' : ''}`}
-                  style={{ borderColor: `${rank.color}50` }}
+        {/* Loading payment config */}
+        {paymentConfigLoading && (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-neon-cyan" />
+            <p className="text-muted-foreground mt-2">Loading payment options...</p>
+          </div>
+        )}
+
+        {/* Donations Disabled */}
+        {!paymentConfigLoading && paymentConfig?.provider === 'disabled' && (
+          <Card variant="glass" className="max-w-2xl mx-auto mb-12">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-bold text-muted-foreground mb-2">
+                Donations Currently Unavailable
+              </h2>
+              <p className="text-muted-foreground">
+                We&apos;re not accepting donations at this time. Please check back later!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ko-Fi Primary Donation Button */}
+        {!paymentConfigLoading && paymentConfig?.provider === 'kofi' && paymentConfig.enabled && (
+          <Card variant="gradient" className="max-w-2xl mx-auto mb-12">
+            <CardContent className="p-8 text-center">
+              <Coffee className="w-16 h-16 mx-auto mb-4 text-neon-pink" />
+              <h2 className="text-2xl font-bold mb-4">Support Us on Ko-Fi</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Click the button below to make a donation through Ko-Fi. All donations are greatly appreciated!
+              </p>
+              <Button
+                variant="gradient"
+                size="lg"
+                onClick={() => {
+                  if (paymentConfig.pageUrl) {
+                    window.open(paymentConfig.pageUrl, '_blank');
+                  }
+                }}
+                className="bg-[#FF5E5B] hover:bg-[#FF5E5B]/90 border-none"
+              >
+                <Coffee className="w-5 h-5 mr-2" />
+                Donate on Ko-Fi
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                <strong>Memberships</strong> automatically grant their rank. <strong>One-time donations</strong> are matched to the best rank (e.g. $5 = Supporter). Extra amount grants extra days!
+              </p>
+              <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                <p className="text-xs text-yellow-500 flex items-center justify-center gap-1">
+                  <AlertCircle className="w-4 h-4 mr-1 shrink-0" />
+                  <span>
+                    Important: Please ensure your Ko-Fi email matches your{' '}
+                    <Link href="/settings" className="underline hover:text-yellow-400 font-medium">
+                      account email
+                    </Link>{' '}
+                    for automatic rank assignment!
+                  </span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Current Rank Status (if logged in and has rank) */}
+        {userSubscription && userSubscription.hasRank && userSubscription.rank && !userSubscription.isExpired && (
+          <Card variant="neon-glow" className="mb-8 max-w-2xl mx-auto">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+                  style={{
+                    background: `${userSubscription.rank.color}20`,
+                    border: `2px solid ${userSubscription.rank.color}50`,
+                  }}
                 >
-                  {/* Current rank badge */}
-                  {isCurrentRank && (
-                    <div className="absolute top-2 right-2 z-10">
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                        <Check className="w-3 h-3 mr-1" /> Current
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Glow effect */}
-                  <div
-                    className="absolute inset-0 opacity-10"
-                    style={{ background: `radial-gradient(circle at top, ${rank.color}, transparent 70%)` }}
-                  />
-
-                  <CardHeader className="text-center relative">
-                    <div
-                      className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
-                      style={{
-                        background: `${rank.color}20`,
-                        border: `2px solid ${rank.color}50`,
-                      }}
+                  {userSubscription.rank.icon || '👤'}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm text-muted-foreground">Your Current Rank:</span>
+                    <Badge
+                      variant="outline"
+                      style={{ borderColor: userSubscription.rank.color || '#00D9FF', color: userSubscription.rank.color || '#00D9FF' }}
                     >
-                      {rank.icon || <Star className="w-8 h-8" style={{ color: rank.color }} />}
-                    </div>
-                    <CardTitle style={{ color: rank.color }}>{rank.name}</CardTitle>
-                    <CardDescription>
-                      <span className="text-2xl font-bold text-foreground">
-                        {formatCurrency(rank.minAmount)}
+                      {userSubscription.rank.name}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    {userSubscription.expiresAt && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        {formatRemainingTime(userSubscription.expiresAt)}
                       </span>
-                      <span className="text-muted-foreground">/month</span>
-                    </CardDescription>
-                  </CardHeader>
+                    )}
+                    {userSubscription.hasSubscription && (
+                      <span className="flex items-center gap-1 text-green-400">
+                        <RefreshCw className="w-4 h-4" />
+                        Auto-renewing
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>
+                  Manage
+                </Button>
+              </div>
+              {!userSubscription.hasSubscription && (
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Tip: Subscribe below to enable auto-renewal and never lose your rank!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                  <CardContent className="relative">
-                    <ul className="space-y-2 mb-6">
-                      {rank.perks.map((perk, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
-                          <span className="text-muted-foreground">{perk}</span>
-                        </li>
-                      ))}
-                    </ul>
+        {/* Error Message */}
+        {error && (
+          <div className="max-w-md mx-auto mb-8 p-4 rounded-lg bg-error/10 border border-error/30 text-error text-center">
+            {error}
+          </div>
+        )}
 
-                    {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') ? (
-                      <div className="space-y-2">
-                        {/* Rank purchases require login */}
-                        {status !== 'authenticated' ? (
-                          <div className="text-center py-3">
-                            <p className="text-sm text-muted-foreground mb-2">
-                              Login required for rank purchases
-                            </p>
-                            <Button
-                              variant="neon-outline"
-                              className="w-full"
-                              style={{ borderColor: rank.color, color: rank.color }}
-                              onClick={() => router.push('/login?callbackUrl=/donate')}
-                            >
-                              Login to Subscribe
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              <Gift className="w-8 h-8 mx-auto mb-2 text-neon-cyan" />
+              <p className="text-3xl font-bold">{formatCurrency(stats.total)}</p>
+              <p className="text-muted-foreground">Total Raised</p>
+            </CardContent>
+          </Card>
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              <Heart className="w-8 h-8 mx-auto mb-2 text-error" />
+              <p className="text-3xl font-bold">{stats.count}</p>
+              <p className="text-muted-foreground">Donations</p>
+            </CardContent>
+          </Card>
+          <Card variant="glass">
+            <CardContent className="p-6 text-center">
+              <Crown className="w-8 h-8 mx-auto mb-2 text-neon-orange" />
+              <p className="text-3xl font-bold">{displayRanks.length}</p>
+              <p className="text-muted-foreground">Rank Tiers</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Donation Ranks */}
+        {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square' || paymentConfig?.provider === 'kofi') && paymentConfig.enabled && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-center mb-2">Donation Ranks</h2>
+            <p className="text-center text-muted-foreground mb-8">
+              {paymentConfig?.provider === 'kofi'
+                ? 'Support us on Ko-Fi to automatically receive these ranks!'
+                : 'Subscribe for auto-renewal or buy a one-time rank'}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {displayRanks.map((rank) => {
+                const isCurrentRank = userHasRank(rank.id);
+
+                return (
+                  <Card
+                    key={rank.id}
+                    variant="glass"
+                    hover
+                    className={`relative overflow-hidden ${isCurrentRank ? 'ring-2 ring-green-500/50' : ''}`}
+                    style={{ borderColor: `${rank.color}50` }}
+                  >
+                    {/* Current rank badge */}
+                    {isCurrentRank && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          <Check className="w-3 h-3 mr-1" /> Current
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Glow effect */}
+                    <div
+                      className="absolute inset-0 opacity-10"
+                      style={{ background: `radial-gradient(circle at top, ${rank.color}, transparent 70%)` }}
+                    />
+
+                    <CardHeader className="text-center relative">
+                      <div
+                        className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                        style={{
+                          background: `${rank.color}20`,
+                          border: `2px solid ${rank.color}50`,
+                        }}
+                      >
+                        {rank.icon || <Star className="w-8 h-8" style={{ color: rank.color }} />}
+                      </div>
+                      <CardTitle style={{ color: rank.color }}>{rank.name}</CardTitle>
+                      <CardDescription>
+                        <span className="text-2xl font-bold text-foreground">
+                          {formatCurrency(rank.minAmount)}
+                        </span>
+                        <span className="text-muted-foreground">/month</span>
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="relative">
+                      <ul className="space-y-2 mb-6">
+                        {rank.perks.map((perk, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
+                            <span className="text-muted-foreground">{perk}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') ? (
+                        <div className="space-y-2">
+                          {/* Rank purchases require login */}
+                          {status !== 'authenticated' ? (
+                            <div className="text-center py-3">
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Login required for rank purchases
+                              </p>
                               <Button
                                 variant="neon-outline"
                                 className="w-full"
                                 style={{ borderColor: rank.color, color: rank.color }}
-                                onClick={() => handleSubscribe(rank)}
+                                onClick={() => router.push('/login?callbackUrl=/donate')}
+                              >
+                                Login to Subscribe
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
+                                <Button
+                                  variant="neon-outline"
+                                  className="w-full"
+                                  style={{ borderColor: rank.color, color: rank.color }}
+                                  onClick={() => handleSubscribe(rank)}
+                                  disabled={loadingRankId === rank.id}
+                                >
+                                  {loadingRankId === rank.id && loadingType === 'subscription' ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                  )}
+                                  {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                className="w-full text-muted-foreground hover:text-foreground"
+                                onClick={() => openPurchaseModal(rank)}
                                 disabled={loadingRankId === rank.id}
                               >
-                                {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="w-4 h-4 mr-2" />
-                                )}
-                                {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
+                                <Clock className="w-4 h-4 mr-2" />
+                                {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
                               </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              className="w-full text-muted-foreground hover:text-foreground"
-                              onClick={() => openPurchaseModal(rank)}
-                              disabled={loadingRankId === rank.id}
-                            >
-                              <Clock className="w-4 h-4 mr-2" />
-                              {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Button
-                          variant="neon-outline"
-                          className="w-full"
-                          style={{ borderColor: rank.color, color: rank.color }}
-                          onClick={() => {
-                            if (paymentConfig?.pageUrl) {
-                              window.open(paymentConfig.pageUrl, '_blank');
-                            }
-                          }}
-                        >
-                          <Coffee className="w-4 h-4 mr-2" />
-                          Donate {formatCurrency(rank.minAmount)}
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* One-time Donation - Stripe/Square Only */}
-      {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
-        <Card variant="gradient" className="mb-12">
-          <CardContent className="py-8 text-center">
-            <Sparkles className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
-            <h2 className="text-2xl font-bold mb-4">One-Time Tip</h2>
-            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              Want to support without a rank? Every donation helps keep our servers running!
-            </p>
-
-            {/* Guest donor info form - shown when not logged in */}
-            {status !== 'authenticated' && (
-              <div className="max-w-md mx-auto mb-6 space-y-4">
-                <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                  <p className="text-sm text-muted-foreground mb-4 text-center">
-                    Not logged in? No problem! Enter your details below:
-                  </p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Your Name *</label>
-                      <Input
-                        value={guestName}
-                        onChange={(e) => setGuestName(e.target.value)}
-                        placeholder="Enter your display name"
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Minecraft Username (Optional)</label>
-                      <Input
-                        value={guestMinecraftUsername}
-                        onChange={(e) => setGuestMinecraftUsername(e.target.value)}
-                        placeholder="For avatar display (defaults to 'Maid')"
-                        className="bg-background"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Your Minecraft skin will appear in the donation announcement!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap justify-center gap-4">
-              {[5, 10, 25, 50, 100].map((amount) => (
-                <Button
-                  key={amount}
-                  variant="glass"
-                  size="lg"
-                  onClick={() => handleOneTimePayment(amount)}
-                  disabled={loadingAmount === amount}
-                >
-                  {loadingAmount === amount ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : null}
-                  {formatCurrency(amount)}
-                </Button>
-              ))}
-            </div>
-
-            {/* Custom Amount Input */}
-            <div className="mt-6 flex items-center justify-center gap-3 max-w-xs mx-auto">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="Custom"
-                  className="pl-7 bg-background text-center"
-                  id="custom-tip-amount"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      const amount = parseFloat(input.value);
-                      if (amount >= 1) handleOneTimePayment(amount);
-                    }
-                  }}
-                />
-              </div>
-              <Button
-                variant="neon"
-                size="lg"
-                onClick={() => {
-                  const input = document.getElementById('custom-tip-amount') as HTMLInputElement;
-                  const amount = parseFloat(input?.value || '0');
-                  if (amount >= 1) {
-                    handleOneTimePayment(amount);
-                  } else {
-                    setError('Minimum donation is $1');
-                  }
-                }}
-                disabled={loadingAmount !== null}
-              >
-                {loadingAmount !== null && ![5, 10, 25, 50, 100].includes(loadingAmount) ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : null}
-                Donate
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recent Donations */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-error" />
-            Recent Supporters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentDonations.length > 0 ? (
-            <div className="space-y-3">
-              {recentDonations.map((donation) => (
-                <div
-                  key={donation.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 relative overflow-hidden rounded-lg bg-secondary">
-                      {donation.minecraftUsername ? (
-                        <Image
-                          src={getMinotaurBustUrl(donation.minecraftUsername)}
-                          alt={donation.minecraftUsername}
-                          width={48}
-                          height={48}
-                          className="object-cover"
-                          unoptimized
-                        />
+                            </>
+                          )}
+                        </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-neon-purple/20">
-                          <Heart className="w-5 h-5 text-neon-purple" />
+                        <div className="space-y-2">
+                          <Button
+                            variant="neon-outline"
+                            className="w-full"
+                            style={{ borderColor: rank.color, color: rank.color }}
+                            onClick={() => {
+                              if (paymentConfig?.pageUrl) {
+                                window.open(paymentConfig.pageUrl, '_blank');
+                              }
+                            }}
+                          >
+                            <Coffee className="w-4 h-4 mr-2" />
+                            Donate {formatCurrency(rank.minAmount)}
+                          </Button>
                         </div>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium">
-                          {donation.minecraftUsername || 'Anonymous'}
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(donation.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* One-time Donation - Stripe/Square Only */}
+        {!paymentConfigLoading && (paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
+          <Card variant="gradient" className="mb-12">
+            <CardContent className="py-8 text-center">
+              <Sparkles className="w-12 h-12 mx-auto mb-4 text-neon-cyan" />
+              <h2 className="text-2xl font-bold mb-4">One-Time Tip</h2>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                Want to support without a rank? Every donation helps keep our servers running!
+              </p>
+
+              {/* Guest donor info form - shown when not logged in */}
+              {status !== 'authenticated' && (
+                <div className="max-w-md mx-auto mb-6 space-y-4">
+                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                    <p className="text-sm text-muted-foreground mb-4 text-center">
+                      Not logged in? No problem! Enter your details below:
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium block mb-1">Your Name *</label>
+                        <Input
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          placeholder="Enter your display name"
+                          className="bg-background"
+                        />
                       </div>
-                      {donation.message && (
-                        <p className="text-sm text-muted-foreground break-words">
-                          &quot;{donation.message}&quot;
+                      <div>
+                        <label className="text-sm font-medium block mb-1">Minecraft Username (Optional)</label>
+                        <Input
+                          value={guestMinecraftUsername}
+                          onChange={(e) => setGuestMinecraftUsername(e.target.value)}
+                          placeholder="For avatar display (defaults to 'Maid')"
+                          className="bg-background"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your Minecraft skin will appear in the donation announcement!
                         </p>
-                      )}
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="neon">{formatCurrency(donation.amount)}</Badge>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No donations yet. Be the first to support us!</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
 
-      {/* Trust Badges */}
-      <div className="mt-12 text-center">
-        <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-success" />
-            <span className="text-sm">Secure Payments</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-neon-orange" />
-            <span className="text-sm">{paymentConfig?.provider === 'stripe' ? 'Instant Activation' : 'Quick Processing'}</span>
-          </div>
-          {paymentConfig?.provider === 'stripe' && (
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-neon-cyan" />
-              <span className="text-sm">Powered by Stripe</span>
-            </div>
-          )}
-          {paymentConfig?.provider === 'square' && (
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-neon-green" />
-              <span className="text-sm">Powered by Square</span>
-            </div>
-          )}
-          {paymentConfig?.provider === 'kofi' && (
-            <div className="flex items-center gap-2">
-              <Coffee className="w-5 h-5 text-neon-pink" />
-              <span className="text-sm">Powered by Ko-Fi</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* One-Time Purchase Modal */}
-      {showPurchaseModal && selectedRank && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <Card variant="glass" className="w-full max-w-md relative">
-            <button
-              onClick={() => setShowPurchaseModal(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <CardHeader className="text-center">
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
-                style={{
-                  background: `${selectedRank.color}20`,
-                  border: `2px solid ${selectedRank.color}50`,
-                }}
-              >
-                {selectedRank.icon}
+              <div className="flex flex-wrap justify-center gap-4">
+                {[5, 10, 25, 50, 100].map((amount) => (
+                  <Button
+                    key={amount}
+                    variant="glass"
+                    size="lg"
+                    onClick={() => handleOneTimePayment(amount)}
+                    disabled={loadingAmount === amount}
+                  >
+                    {loadingAmount === amount ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    {formatCurrency(amount)}
+                  </Button>
+                ))}
               </div>
-              <CardTitle style={{ color: selectedRank.color }}>
-                {userHasRank(selectedRank.id) ? `Extend ${selectedRank.name}` : `Buy ${selectedRank.name}`}
-              </CardTitle>
-              <CardDescription>
-                Choose how long you want your rank
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 mb-6">
-                {durationOptions.map((option) => {
-                  const price = calculatePrice(selectedRank, option.days);
-                  return (
-                    <button
-                      key={option.days}
-                      onClick={() => setSelectedDuration(option.days)}
-                      className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${selectedDuration === option.days
-                        ? 'border-neon-cyan bg-neon-cyan/10'
-                        : 'border-border hover:border-neon-cyan/50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-5 h-5 text-muted-foreground" />
-                        <span className="font-medium">{option.label}</span>
-                        {option.discount > 0 && (
-                          <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-0">
-                            Save {option.discount}%
-                          </Badge>
+
+              {/* Custom Amount Input */}
+              <div className="mt-6 flex items-center justify-center gap-3 max-w-xs mx-auto">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Custom"
+                    className="pl-7 bg-background text-center"
+                    id="custom-tip-amount"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const input = e.target as HTMLInputElement;
+                        const amount = parseFloat(input.value);
+                        if (amount >= 1) handleOneTimePayment(amount);
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="neon"
+                  size="lg"
+                  onClick={() => {
+                    const input = document.getElementById('custom-tip-amount') as HTMLInputElement;
+                    const amount = parseFloat(input?.value || '0');
+                    if (amount >= 1) {
+                      handleOneTimePayment(amount);
+                    } else {
+                      setError('Minimum donation is $1');
+                    }
+                  }}
+                  disabled={loadingAmount !== null}
+                >
+                  {loadingAmount !== null && ![5, 10, 25, 50, 100].includes(loadingAmount) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  Donate
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Donations */}
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="w-5 h-5 text-error" />
+              Recent Supporters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentDonations.length > 0 ? (
+              <div className="space-y-3">
+                {recentDonations.map((donation) => (
+                  <div
+                    key={donation.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 relative overflow-hidden rounded-lg bg-secondary">
+                        {donation.minecraftUsername ? (
+                          <Image
+                            src={getMinotaurBustUrl(donation.minecraftUsername)}
+                            alt={donation.minecraftUsername}
+                            width={48}
+                            height={48}
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-neon-purple/20">
+                            <Heart className="w-5 h-5 text-neon-purple" />
+                          </div>
                         )}
                       </div>
-                      <span className="font-bold text-lg">{formatCurrency(price)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {userHasRank(selectedRank.id) && userSubscription?.expiresAt && (
-                <p className="text-sm text-muted-foreground text-center mb-4">
-                  This will add time to your current rank expiration.
-                </p>
-              )}
-
-              <Button
-                variant="gradient"
-                className="w-full"
-                onClick={handleOneTimeRankPurchase}
-                disabled={loadingRankId === selectedRank.id}
-              >
-                {loadingRankId === selectedRank.id && loadingType === 'one_time' ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <CreditCard className="w-4 h-4 mr-2" />
-                )}
-                Pay {formatCurrency(calculatePrice(selectedRank, selectedDuration))}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Square Card Entry Modal for Subscriptions */}
-      {showSquareCardModal && selectedRank && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card variant="glass" className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">⬜</span>
-                Subscribe to {selectedRank.name}
-              </CardTitle>
-              <CardDescription>
-                Set up monthly auto-renewal for ${selectedRank.minAmount}/month
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
-                <p className="text-sm text-neon-green font-medium mb-2">
-                  🔒 Secure Square Payment
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Your card will be securely stored for monthly billing. You can cancel anytime.
-                </p>
-              </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              {/* Square Web Payments SDK Card Container */}
-              <div
-                id="square-card-container"
-                className="min-h-[100px]"
-              >
-                {!squareCardReady && (
-                  <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium">
+                            {donation.minecraftUsername || 'Anonymous'}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(donation.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        {donation.message && (
+                          <p className="text-sm text-muted-foreground break-words">
+                            &quot;{donation.message}&quot;
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="neon">{formatCurrency(donation.amount)}</Badge>
                   </div>
-                )}
+                ))}
               </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setShowSquareCardModal(false);
-                    setError(null);
-                    setLoadingRankId(null);
-                    setLoadingType(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="gradient"
-                  className="flex-1"
-                  disabled={squareCardLoading || !squareCardReady}
-                  onClick={handleSquareSubscribe}
-                >
-                  {squareCardLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      Subscribe ${selectedRank.minAmount}/month
-                    </>
-                  )}
-                </Button>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No donations yet. Be the first to support us!</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Square One-Time Payment Modal */}
-      {showSquareOneTimeModal && selectedRank && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card variant="glass" className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+        {/* Trust Badges */}
+        <div className="mt-12 text-center">
+          <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-success" />
+              <span className="text-sm">Secure Payments</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-neon-orange" />
+              <span className="text-sm">{paymentConfig?.provider === 'stripe' ? 'Instant Activation' : 'Quick Processing'}</span>
+            </div>
+            {paymentConfig?.provider === 'stripe' && (
+              <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-neon-cyan" />
-                Complete Your Purchase
-              </CardTitle>
-              <CardDescription>
-                {selectedRank.name} Rank - {durationOptions.find(o => o.days === selectedDuration)?.label}
-                <span className="block text-neon-cyan font-medium mt-1">
-                  ${calculatePrice(selectedRank, selectedDuration).toFixed(2)}
-                </span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
-                <p className="text-sm text-neon-cyan font-medium mb-2">
-                  🔒 Secure Square Payment
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Your payment is processed securely. Card details are never stored on our servers.
-                </p>
+                <span className="text-sm">Powered by Stripe</span>
               </div>
+            )}
+            {paymentConfig?.provider === 'square' && (
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-neon-green" />
+                <span className="text-sm">Powered by Square</span>
+              </div>
+            )}
+            {paymentConfig?.provider === 'kofi' && (
+              <div className="flex items-center gap-2">
+                <Coffee className="w-5 h-5 text-neon-pink" />
+                <span className="text-sm">Powered by Ko-Fi</span>
+              </div>
+            )}
+          </div>
+        </div>
 
-              {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              {/* Square Web Payments SDK Card Container */}
-              <div
-                id="square-onetime-card-container"
-                className="min-h-[100px]"
+        {/* One-Time Purchase Modal */}
+        {showPurchaseModal && selectedRank && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <Card variant="glass" className="w-full max-w-md relative">
+              <button
+                onClick={() => setShowPurchaseModal(false)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
               >
-                {!squareOneTimeCardReady && (
-                  <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setShowSquareOneTimeModal(false);
-                    setSquareOrderId(null);
-                    setError(null);
+                <X className="w-5 h-5" />
+              </button>
+              <CardHeader className="text-center">
+                <div
+                  className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                  style={{
+                    background: `${selectedRank.color}20`,
+                    border: `2px solid ${selectedRank.color}50`,
                   }}
                 >
-                  Cancel
-                </Button>
+                  {selectedRank.icon}
+                </div>
+                <CardTitle style={{ color: selectedRank.color }}>
+                  {userHasRank(selectedRank.id) ? `Extend ${selectedRank.name}` : `Buy ${selectedRank.name}`}
+                </CardTitle>
+                <CardDescription>
+                  Choose how long you want your rank
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 mb-6">
+                  {durationOptions.map((option) => {
+                    const price = calculatePrice(selectedRank, option.days);
+                    return (
+                      <button
+                        key={option.days}
+                        onClick={() => setSelectedDuration(option.days)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${selectedDuration === option.days
+                          ? 'border-neon-cyan bg-neon-cyan/10'
+                          : 'border-border hover:border-neon-cyan/50'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-5 h-5 text-muted-foreground" />
+                          <span className="font-medium">{option.label}</span>
+                          {option.discount > 0 && (
+                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-0">
+                              Save {option.discount}%
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="font-bold text-lg">{formatCurrency(price)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {userHasRank(selectedRank.id) && userSubscription?.expiresAt && (
+                  <p className="text-sm text-muted-foreground text-center mb-4">
+                    This will add time to your current rank expiration.
+                  </p>
+                )}
+
                 <Button
                   variant="gradient"
-                  className="flex-1"
-                  disabled={squareOneTimeLoading || !squareOneTimeCardReady}
-                  onClick={handleSquareOneTimePay}
+                  className="w-full"
+                  onClick={handleOneTimeRankPurchase}
+                  disabled={loadingRankId === selectedRank.id}
                 >
-                  {squareOneTimeLoading ? (
+                  {loadingRankId === selectedRank.id && loadingType === 'one_time' ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <CreditCard className="w-4 h-4 mr-2" />
                   )}
-                  {squareOneTimeCardReady ? `Pay $${calculatePrice(selectedRank, selectedDuration).toFixed(2)}` : 'Loading...'}
+                  Pay {formatCurrency(calculatePrice(selectedRank, selectedDuration))}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Square Card Entry Modal for Subscriptions */}
+        {showSquareCardModal && selectedRank && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <Card variant="glass" className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">⬜</span>
+                  Subscribe to {selectedRank.name}
+                </CardTitle>
+                <CardDescription>
+                  Set up monthly auto-renewal for ${selectedRank.minAmount}/month
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-neon-green/10 border border-neon-green/30">
+                  <p className="text-sm text-neon-green font-medium mb-2">
+                    🔒 Secure Square Payment
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Your card will be securely stored for monthly billing. You can cancel anytime.
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
+
+                {/* Square Web Payments SDK Card Container */}
+                <div
+                  id="square-card-container"
+                  className="min-h-[100px]"
+                >
+                  {!squareCardReady && (
+                    <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowSquareCardModal(false);
+                      setError(null);
+                      setLoadingRankId(null);
+                      setLoadingType(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="gradient"
+                    className="flex-1"
+                    disabled={squareCardLoading || !squareCardReady}
+                    onClick={handleSquareSubscribe}
+                  >
+                    {squareCardLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Subscribe ${selectedRank.minAmount}/month
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Square One-Time Payment Modal */}
+        {showSquareOneTimeModal && selectedRank && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <Card variant="glass" className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-neon-cyan" />
+                  Complete Your Purchase
+                </CardTitle>
+                <CardDescription>
+                  {selectedRank.name} Rank - {durationOptions.find(o => o.days === selectedDuration)?.label}
+                  <span className="block text-neon-cyan font-medium mt-1">
+                    ${calculatePrice(selectedRank, selectedDuration).toFixed(2)}
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                  <p className="text-sm text-neon-cyan font-medium mb-2">
+                    🔒 Secure Square Payment
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Your payment is processed securely. Card details are never stored on our servers.
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
+
+                {/* Square Web Payments SDK Card Container */}
+                <div
+                  id="square-onetime-card-container"
+                  className="min-h-[100px]"
+                >
+                  {!squareOneTimeCardReady && (
+                    <div className="flex items-center justify-center h-[100px] border border-border rounded-lg bg-background/50">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowSquareOneTimeModal(false);
+                      setSquareOrderId(null);
+                      setError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="gradient"
+                    className="flex-1"
+                    disabled={squareOneTimeLoading || !squareOneTimeCardReady}
+                    onClick={handleSquareOneTimePay}
+                  >
+                    {squareOneTimeLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4 mr-2" />
+                    )}
+                    {squareOneTimeCardReady ? `Pay $${calculatePrice(selectedRank, selectedDuration).toFixed(2)}` : 'Loading...'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

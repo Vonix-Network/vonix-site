@@ -9,13 +9,23 @@ const cardVariants = cva(
       variant: {
         default: 'bg-card text-card-foreground border-border',
         glass: 'glass-card',
+        'glass-hover': 'glass-card hover:border-white/10 hover:bg-white/[0.04]',
         neon: 'neon-border bg-card/50 backdrop-blur-sm',
         'neon-glow': 'neon-border bg-card/50 backdrop-blur-sm neon-glow',
         gradient: 'bg-gradient-to-br from-neon-cyan/10 via-neon-purple/10 to-neon-pink/10 border-white/10',
+        // Premium Card - DartNode inspired with top border gradient
+        premium: 'premium-card',
+        // Feature Card - with hover glow effect
+        feature: 'feature-card',
+        // Server Card - with status indicator line
+        server: 'server-card',
+        // Stat Card - for metrics display
+        stat: 'stat-card',
       },
       hover: {
         true: 'hover-lift hover:border-neon-cyan/50',
         false: '',
+        subtle: 'hover-subtle',
       },
       glow: {
         true: 'neon-glow',
@@ -32,7 +42,7 @@ const cardVariants = cva(
 
 export interface CardProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {}
+  VariantProps<typeof cardVariants> { }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant, hover, glow, ...props }, ref) => (
@@ -102,4 +112,3 @@ const CardFooter = React.forwardRef<
 CardFooter.displayName = 'CardFooter';
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants };
-

@@ -554,8 +554,8 @@ export function ServerStatusList({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {servers.map((server) => (
-          <Card key={server.id} variant="glass" hover className="overflow-hidden">
-            <div className={cn("h-1", server.online ? "bg-success" : "bg-error")} />
+          <Card key={server.id} variant="premium" className={cn("overflow-hidden group", !server.online && "opacity-80")}>
+            <div className={cn("h-[2px]", server.online ? "bg-success" : "bg-error")} />
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">

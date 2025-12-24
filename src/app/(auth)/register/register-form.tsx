@@ -283,10 +283,21 @@ export function RegisterForm() {
 
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-12">
-            {/* Background effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-neon-purple/5 to-neon-pink/5" />
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/10 rounded-full blur-[128px]" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/10 rounded-full blur-[128px]" />
+            {/* ========== VISIBLE GRADIENT EFFECTS ========== */}
+            <div
+                className="fixed inset-0 pointer-events-none"
+                style={{
+                    background: `
+                        radial-gradient(ellipse 80% 70% at 0% 40%, rgba(0, 217, 255, 0.18) 0%, transparent 55%),
+                        radial-gradient(ellipse 70% 60% at 100% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse 60% 50% at 60% 90%, rgba(236, 72, 153, 0.08) 0%, transparent 45%)
+                    `
+                }}
+            />
+
+            {/* Large glow orbs */}
+            <div className="fixed top-1/4 -left-32 w-[700px] h-[700px] bg-neon-cyan/20 rounded-full blur-[160px] pointer-events-none" />
+            <div className="fixed bottom-1/3 -right-32 w-[600px] h-[600px] bg-neon-purple/15 rounded-full blur-[140px] pointer-events-none" />
 
             <Card variant="glass" className="w-full max-w-md relative z-10">
                 <CardHeader className="text-center space-y-4">

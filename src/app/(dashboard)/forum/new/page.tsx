@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { 
+import {
   ArrowLeft, Send, Loader2, AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MarkdownEditor } from '@/components/markdown-editor';
 
 interface Category {
   id: number;
@@ -20,7 +21,7 @@ interface Category {
 export default function NewForumPostPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -89,8 +90,8 @@ export default function NewForumPostPage() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       {/* Header */}
       <div className="mb-8">
-        <Link 
-          href="/forum" 
+        <Link
+          href="/forum"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -150,18 +151,14 @@ export default function NewForumPostPage() {
 
             {/* Content */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Content</label>
-              <textarea
+              <label className="text-sm font-medium">Content (Markdown supported)</label>
+              <MarkdownEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your post content here..."
-                className="w-full bg-secondary/50 border border-border rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 min-h-[300px]"
+                onChange={setContent}
+                placeholder="Write your post content here... Use Markdown for formatting!"
+                minHeight="300px"
                 maxLength={10000}
-                required
               />
-              <p className="text-xs text-muted-foreground text-right">
-                {content.length}/10000
-              </p>
             </div>
 
             {/* Guidelines */}

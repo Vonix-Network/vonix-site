@@ -107,25 +107,41 @@ export default async function HomePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Hero Section */}
+      {/* Hero Section - ORIGINAL CENTERED with VISIBLE GRADIENTS */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-neon-purple/5 to-neon-pink/5 animate-gradient-xy" />
+        {/* ========== VISIBLE GRADIENT EFFECTS - DartNode Style ========== */}
 
-        {/* Radial glow effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[128px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-pink/10 rounded-full blur-[150px]" />
-
-        {/* Grid pattern overlay */}
+        {/* Strong radial gradient overlay - cyan from left */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
+            background: `
+              radial-gradient(ellipse 80% 70% at 0% 40%, rgba(0, 217, 255, 0.18) 0%, transparent 55%),
+              radial-gradient(ellipse 70% 60% at 100% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 60% 90%, rgba(236, 72, 153, 0.08) 0%, transparent 45%)
+            `
           }}
         />
 
+        {/* Large cyan glow orb - left side like DartNode */}
+        <div className="absolute top-1/4 -left-32 w-[800px] h-[800px] bg-neon-cyan/20 rounded-full blur-[160px] pointer-events-none" />
+
+        {/* Purple glow orb - right side */}
+        <div className="absolute bottom-1/3 -right-32 w-[600px] h-[600px] bg-neon-purple/15 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Pink glow orb - bottom center */}
+        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-neon-pink/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Very subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        {/* ========== ORIGINAL CENTERED CONTENT ========== */}
         <div className="container relative z-10 px-4 py-20 text-center space-y-8">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full neon-border bg-background/50 backdrop-blur-sm">
@@ -184,135 +200,160 @@ export default async function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-24 px-4">
-        <div className="container">
-          {/* Section Header */}
-          <div className="text-center mb-16 space-y-4">
-            <Badge variant="neon" className="mb-4">Features</Badge>
+      <section className="relative py-32 px-4 overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-7xl opacity-30 pointer-events-none">
+          <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-neon-purple/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-neon-cyan/20 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="container relative z-10">
+          <div className="text-center mb-20 space-y-4">
+            <Badge variant="neon" className="mb-4">Why Vonix?</Badge>
             <h2 className="text-4xl md:text-5xl font-bold">
-              Why Choose <span className="gradient-text">Vonix Network</span>
+              The Ultimate <span className="gradient-text">Minecraft Experience</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Experience Minecraft like never before with our premium features and active community
+              We've crafted every detail to provide the most immersive and engaging gameplay possible.
             </p>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card
+              <div
                 key={index}
-                variant="glass"
-                hover
-                className="group"
+                className="group relative p-1 rounded-2xl bg-gradient-to-b from-white/10 to-transparent hover:from-neon-cyan/50 transition-all duration-300"
               >
-                <CardContent className="p-6 space-y-4">
-                  <div className={`p-3 rounded-xl ${feature.bgColor} w-fit group-hover:scale-110 transition-transform duration-300`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-transparent to-neon-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+                <div className="relative h-full p-8 rounded-xl bg-card/50 backdrop-blur-xl border border-white/5 group-hover:border-transparent transition-all">
+                  <div className={`mb-6 p-4 rounded-2xl w-fit ${feature.bgColor} group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className={`h-8 w-8 ${feature.color}`} />
                   </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-white transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed group-hover:text-gray-300 transition-colors">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Perks Section */}
-      <section className="relative py-24 px-4">
-        <div className="container">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative py-32 px-4 border-y border-white/5 bg-black/20">
+        <div className="container relative">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left Side - Content */}
-            {/* Left Side - Content */}
-            <div className="space-y-6 text-center lg:text-left">
-              <Badge variant="neon-purple" className="mb-4 mx-auto lg:mx-0">
-                <Zap className="h-3 w-3 mr-1" />
-                Premium Features
-              </Badge>
+            <div className="space-y-8 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neon-purple/10 border border-neon-purple/20 text-neon-purple text-sm font-medium">
+                <Zap className="h-4 w-4" />
+                <span>Premium Features</span>
+              </div>
 
-              <h2 className="text-4xl md:text-5xl font-bold">
+              <h2 className="text-4xl md:text-6xl font-bold leading-tight">
                 Everything You Need,
                 <br />
-                <span className="gradient-text">All in One Place</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-purple via-pink-500 to-neon-orange">
+                  All in One Place
+                </span>
               </h2>
 
-              <p className="text-lg text-muted-foreground mx-auto lg:mx-0 max-w-xl lg:max-w-none">
-                Vonix Network offers a complete Minecraft community experience with
-                advanced features designed for both casual and hardcore players.
+              <p className="text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0">
+                Vonix Network combines advanced custom plugins with a vanilla-friendly feel.
+                Whether you're a builder, fighter, or explorer, we have something for you.
               </p>
 
-              <div className="space-y-3 pt-4">
+              <div className="grid sm:grid-cols-2 gap-4 pt-4">
                 {perks.map((perk, index) => (
-                  <div key={index} className="flex items-center gap-3 group justify-center lg:justify-start">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
-                      <Check className="h-4 w-4 text-success" />
+                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center shadow-lg shadow-neon-cyan/20">
+                      <Check className="h-4 w-4 text-white font-bold" />
                     </div>
-                    <span className="text-muted-foreground group-hover:text-foreground transition-colors">{perk}</span>
+                    <span className="font-medium text-gray-200">{perk}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="pt-6">
-                <Button size="lg" variant="neon" asChild>
+              <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Button size="xl" variant="neon" asChild className="shadow-lg shadow-neon-cyan/25">
                   <Link href="/register">
-                    Join Now
+                    Join The Action
                     <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button size="xl" variant="ghost" asChild className="border border-white/10 hover:bg-white/5">
+                  <Link href="/about">
+                    Learn More
                   </Link>
                 </Button>
               </div>
             </div>
 
             {/* Right Side - Live Server Status */}
-            <div className="relative">
-              {/* Live Server Status Component - Carousel style */}
-              <ServerStatusList variant="carousel" showRefresh={true} />
+            <div className="relative lg:h-[600px] flex items-center justify-centerPerspective">
+              {/* Glowing backdrop */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-neon-purple/20 via-transparent to-neon-cyan/20 blur-3xl rounded-full" />
 
-              {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-neon-cyan/20 rounded-full blur-2xl" />
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-neon-purple/20 rounded-full blur-2xl" />
+              <div className="relative w-full transform transition-transform hover:scale-[1.02] duration-500">
+                <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan via-purple-500 to-neon-pink rounded-3xl opacity-30 blur-lg" />
+                <div className="relative bg-[#0a0a0f]/90 backdrop-blur-xl rounded-2xl border border-white/10 p-2 shadow-2xl">
+                  {/* Fake browser bar for style */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 mb-2">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                    </div>
+                    <div className="mx-auto text-xs text-muted-foreground font-mono">server-status.exe</div>
+                  </div>
+                  <ServerStatusList variant="carousel" showRefresh={true} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 px-4">
+      <section className="relative py-32 px-4">
         <div className="container">
-          <Card variant="gradient" glow className="text-center overflow-hidden relative">
-            {/* Background effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/20 via-neon-purple/20 to-neon-pink/20" />
-            <div className="absolute top-0 left-1/4 w-64 h-64 bg-neon-cyan/30 rounded-full blur-[100px]" />
-            <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-neon-pink/30 rounded-full blur-[100px]" />
+          <div className="relative rounded-3xl overflow-hidden border border-white/10">
+            {/* Animated Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 via-purple-900/80 to-pink-900/80" />
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
 
-            <CardContent className="relative z-10 p-12 space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold">
-                Ready to Start Your Adventure?
+            {/* Glow Orbs */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-neon-cyan/30 rounded-full blur-[120px] mix-blend-screen" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-neon-purple/30 rounded-full blur-[120px] mix-blend-screen" />
+
+            <div className="relative z-10 p-12 md:p-24 text-center space-y-10">
+              <h2 className="text-5xl md:text-7xl font-bold tracking-tight text-white drop-shadow-2xl">
+                Ready to Start?
               </h2>
 
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Join our community today and experience Minecraft in a whole new way
+              <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto drop-shadow-md">
+                Join thousands of other players today and verify your account to unlock exclusive rewards.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
-                <Button size="xl" variant="neon" asChild>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <Button size="xl" className="bg-white text-black hover:bg-gray-100 min-w-[200px] text-lg h-14 shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:scale-105" asChild>
                   <Link href="/register">
                     Create Account
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-5 w-5 ml-2" />
                   </Link>
                 </Button>
 
-                <Button size="xl" variant="glass" asChild>
-                  <Link href="/forum">
-                    Browse Forum
-                  </Link>
+                <Button size="xl" variant="outline" className="border-2 border-white/20 text-white hover:bg-white/10 min-w-[200px] text-lg h-14 backdrop-blur-md" asChild>
+                  <a href="https://discord.gg/TXmVwQB5p7" target="_blank" rel="noopener noreferrer">
+                    Join Discord
+                  </a>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -321,4 +362,3 @@ export default async function HomePage() {
     </div>
   );
 }
-

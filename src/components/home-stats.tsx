@@ -53,22 +53,30 @@ export function HomeStats({ initialData }: HomeStatsProps) {
         {
             label: 'Total Members',
             value: stats ? formatNumber(stats.users) : '...',
-            icon: Users
+            icon: Users,
+            color: 'text-neon-cyan',
+            glowColor: 'group-hover:shadow-[0_0_20px_rgba(0,217,255,0.3)]',
         },
         {
             label: 'Servers',
             value: stats ? stats.servers.toString() : '...',
-            icon: Server
+            icon: Server,
+            color: 'text-neon-purple',
+            glowColor: 'group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]',
         },
         {
             label: 'Total Donated',
             value: stats ? formatCurrency(stats.donations) : '...',
-            icon: Heart
+            icon: Heart,
+            color: 'text-neon-pink',
+            glowColor: 'group-hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]',
         },
         {
             label: 'Community',
             value: 'Active',
-            icon: Star
+            icon: Star,
+            color: 'text-success',
+            glowColor: 'group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]',
         },
     ];
 
@@ -76,7 +84,7 @@ export function HomeStats({ initialData }: HomeStatsProps) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-4xl mx-auto">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="glass-card rounded-xl p-4 text-center h-28 flex items-center justify-center">
+                    <div key={i} className="stat-card p-5 text-center h-28 flex items-center justify-center">
                         <Loader2 className="w-6 h-6 animate-spin text-neon-cyan/50" />
                     </div>
                 ))}
@@ -89,11 +97,22 @@ export function HomeStats({ initialData }: HomeStatsProps) {
             {statCards.map((stat, index) => (
                 <div
                     key={index}
-                    className="glass-card rounded-xl p-4 text-center hover-lift transition-all duration-300"
+                    className={`group stat-card p-5 text-center transition-all duration-300 ${stat.glowColor}`}
                 >
-                    <stat.icon className="w-6 h-6 mx-auto mb-2 text-neon-cyan" />
-                    <div className="text-2xl font-bold gradient-text">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    {/* Icon with colored background */}
+                    <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 mb-3 ${stat.color} group-hover:scale-110 transition-transform`}>
+                        <stat.icon className="w-5 h-5" />
+                    </div>
+
+                    {/* Value - Large and Bold */}
+                    <div className={`text-2xl md:text-3xl font-bold ${stat.color} mb-1`}>
+                        {stat.value}
+                    </div>
+
+                    {/* Label - Small and Muted */}
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                        {stat.label}
+                    </div>
                 </div>
             ))}
         </div>
