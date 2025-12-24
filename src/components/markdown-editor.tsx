@@ -1,5 +1,7 @@
 'use client';
 
+// Dependencies: react-markdown, remark-gfm (Ensure these are installed)
+
 import { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
