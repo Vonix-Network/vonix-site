@@ -279,12 +279,12 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         return {
             uptimePercentage: totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0,
             avgResponseTime: responseTimes.length > 0
-                ? Math.round(responseTimes.reduce((a: any, b: any) => a + b, 0) / responseTimes.length)
+                ? Math.round(responseTimes.reduce((a: any, b: any) => Number(a) + Number(b), 0) / responseTimes.length)
                 : 0,
             avgPlayers: playerCounts.length > 0
-                ? Math.round(playerCounts.reduce((a: any, b: any) => a + b, 0) / playerCounts.length)
+                ? Math.round(playerCounts.reduce((a: any, b: any) => Number(a) + Number(b), 0) / playerCounts.length)
                 : 0,
-            peakPlayers: playerCounts.length > 0 ? Math.max(...playerCounts) : 0,
+            peakPlayers: playerCounts.length > 0 ? Math.max(...playerCounts.map(Number)) : 0,
         };
     }, [records, isAggregated]);
 
@@ -395,7 +395,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                 const bucket = hourlyMap.get(key)!;
                 const total = bucket.online + bucket.offline;
                 const avgPlayers = bucket.players.length > 0
-                    ? Math.round(bucket.players.reduce((a: any, b: any) => a + b, 0) / bucket.players.length)
+                    ? Math.round(bucket.players.reduce((a: any, b: any) => Number(a) + Number(b), 0) / bucket.players.length)
                     : 0;
 
                 result.push({
@@ -463,8 +463,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setDataView('uptime')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${dataView === 'uptime'
-                                        ? 'bg-success text-white'
-                                        : 'text-muted-foreground hover:text-foreground'
+                                    ? 'bg-success text-white'
+                                    : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <Wifi className="w-3 h-3 inline mr-1" />
@@ -473,8 +473,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setDataView('players')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${dataView === 'players'
-                                        ? 'bg-neon-purple text-white'
-                                        : 'text-muted-foreground hover:text-foreground'
+                                    ? 'bg-neon-purple text-white'
+                                    : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <Users className="w-3 h-3 inline mr-1" />
@@ -488,10 +488,10 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                                 onClick={() => minutelyAvailable && setGranularity('minutely')}
                                 disabled={!minutelyAvailable}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'minutely' && minutelyAvailable
-                                        ? 'bg-neon-cyan text-white'
-                                        : minutelyAvailable
-                                            ? 'text-muted-foreground hover:text-foreground'
-                                            : 'text-muted-foreground/50 cursor-not-allowed'
+                                    ? 'bg-neon-cyan text-white'
+                                    : minutelyAvailable
+                                        ? 'text-muted-foreground hover:text-foreground'
+                                        : 'text-muted-foreground/50 cursor-not-allowed'
                                     }`}
                                 title={!minutelyAvailable ? 'Minutely data not available for ranges > 24h' : ''}
                             >
@@ -501,8 +501,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                             <button
                                 onClick={() => setGranularity('hourly')}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${granularity === 'hourly'
-                                        ? 'bg-neon-cyan text-white'
-                                        : 'text-muted-foreground hover:text-foreground'
+                                    ? 'bg-neon-cyan text-white'
+                                    : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <BarChart3 className="w-3 h-3 inline mr-1" />
@@ -517,8 +517,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                                     key={range.label}
                                     onClick={() => setSelectedRangeIndex(index)}
                                     className={`px-2 py-0.5 rounded-full text-xs transition ${selectedRangeIndex === index
-                                            ? 'bg-primary text-primary-foreground shadow'
-                                            : 'text-muted-foreground hover:bg-muted/40'
+                                        ? 'bg-primary text-primary-foreground shadow'
+                                        : 'text-muted-foreground hover:bg-muted/40'
                                         }`}
                                 >
                                     {range.label}

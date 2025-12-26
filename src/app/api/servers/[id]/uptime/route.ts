@@ -43,19 +43,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         let records: any[] = [];
 
         if (shouldAggregate) {
-            // Aggregate records by hour for longer time ranges
-            // This dramatically reduces the data size while preserving accuracy
-            const aggregatedRecords = await db
+            // For aggregation, fetch raw records and aggregate in JS
+            // This avoids SQLite-specific strftime issues with Turso
+            const rawRecords = await db
                 .select({
-                    // Use strftime to group by hour
-                    hourBucket: sql<string>`strftime('%Y-%m-%d %H:00:00', datetime(${serverUptimeRecords.checkedAt}, 'unixepoch'))`.as('hour_bucket'),
-                    online: sql<number>`SUM(CASE WHEN ${serverUptimeRecords.online} = 1 THEN 1 ELSE 0 END)`.as('online_count'),
-                    offline: sql<number>`SUM(CASE WHEN ${serverUptimeRecords.online} = 0 THEN 1 ELSE 0 END)`.as('offline_count'),
-                    totalChecks: sql<number>`COUNT(*)`.as('total_checks'),
-                    avgPlayers: sql<number>`AVG(${serverUptimeRecords.playersOnline})`.as('avg_players'),
-                    maxPlayers: sql<number>`MAX(${serverUptimeRecords.playersOnline})`.as('max_players'),
-                    maxSlots: sql<number>`MAX(${serverUptimeRecords.playersMax})`.as('max_slots'),
-                    avgResponseTime: sql<number>`AVG(${serverUptimeRecords.responseTimeMs})`.as('avg_response_time'),
+                    id: serverUptimeRecords.id,
+                    serverId: serverUptimeRecords.serverId,
+                    online: serverUptimeRecords.online,
+                    playersOnline: serverUptimeRecords.playersOnline,
+                    playersMax: serverUptimeRecords.playersMax,
+                    responseTimeMs: serverUptimeRecords.responseTimeMs,
+                    checkedAt: serverUptimeRecords.checkedAt,
                 })
                 .from(serverUptimeRecords)
                 .where(
@@ -64,25 +62,81 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         gte(serverUptimeRecords.checkedAt, startDate)
                     )
                 )
-                .groupBy(sql`strftime('%Y-%m-%d %H:00:00', datetime(${serverUptimeRecords.checkedAt}, 'unixepoch'))`)
-                .orderBy(sql`hour_bucket DESC`);
+                .orderBy(desc(serverUptimeRecords.checkedAt));
 
-            // Transform aggregated data into a format compatible with the frontend
-            records = aggregatedRecords.map((row: any) => ({
-                id: 0, // Aggregated record
-                serverId,
-                online: row.online > 0, // At least one online check in this hour
-                playersOnline: Math.round(row.avgPlayers || 0),
-                playersMax: row.maxSlots || 0,
-                responseTimeMs: Math.round(row.avgResponseTime || 0),
-                checkedAt: row.hourBucket, // ISO string for the hour
-                // Additional aggregation data
-                _aggregated: true,
-                _onlineCount: row.online,
-                _offlineCount: row.offline,
-                _totalChecks: row.totalChecks,
-                _uptimePercent: row.totalChecks > 0 ? (row.online / row.totalChecks) * 100 : 0,
-            }));
+            // Aggregate by hour in JavaScript
+            const hourlyMap = new Map<string, {
+                online: number;
+                offline: number;
+                players: number[];
+                maxSlots: number;
+                responseTimes: number[];
+                date: Date;
+            }>();
+
+            for (const record of rawRecords) {
+                const date = record.checkedAt instanceof Date
+                    ? record.checkedAt
+                    : new Date(record.checkedAt as any);
+
+                // Create hour key: YYYY-MM-DDTHH
+                const hourKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}`;
+
+                if (!hourlyMap.has(hourKey)) {
+                    hourlyMap.set(hourKey, {
+                        online: 0,
+                        offline: 0,
+                        players: [],
+                        maxSlots: 0,
+                        responseTimes: [],
+                        date: new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()),
+                    });
+                }
+
+                const bucket = hourlyMap.get(hourKey)!;
+                if (record.online) {
+                    bucket.online++;
+                } else {
+                    bucket.offline++;
+                }
+                if (record.playersOnline != null) {
+                    bucket.players.push(Number(record.playersOnline));
+                }
+                if (record.playersMax) {
+                    bucket.maxSlots = Math.max(bucket.maxSlots, Number(record.playersMax));
+                }
+                if (record.responseTimeMs) {
+                    bucket.responseTimes.push(Number(record.responseTimeMs));
+                }
+            }
+
+            // Convert to records array
+            const sortedKeys = Array.from(hourlyMap.keys()).sort();
+            records = sortedKeys.map(key => {
+                const bucket = hourlyMap.get(key)!;
+                const totalChecks = bucket.online + bucket.offline;
+                const avgPlayers = bucket.players.length > 0
+                    ? Math.round(bucket.players.reduce((a, b) => a + b, 0) / bucket.players.length)
+                    : 0;
+                const avgResponseTime = bucket.responseTimes.length > 0
+                    ? Math.round(bucket.responseTimes.reduce((a, b) => a + b, 0) / bucket.responseTimes.length)
+                    : 0;
+
+                return {
+                    id: 0,
+                    serverId,
+                    online: bucket.online > 0,
+                    playersOnline: avgPlayers,
+                    playersMax: bucket.maxSlots,
+                    responseTimeMs: avgResponseTime,
+                    checkedAt: bucket.date.toISOString(),
+                    _aggregated: true,
+                    _onlineCount: bucket.online,
+                    _offlineCount: bucket.offline,
+                    _totalChecks: totalChecks,
+                    _uptimePercent: totalChecks > 0 ? (bucket.online / totalChecks) * 100 : 0,
+                };
+            });
         } else {
             // For 1 day or less, return raw records (limit to ~1500 for performance)
             const rawRecords = await db
@@ -105,7 +159,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 .orderBy(desc(serverUptimeRecords.checkedAt))
                 .limit(1500);
 
-            records = rawRecords;
+            // Convert numbers properly
+            records = rawRecords.map((r: any) => ({
+                ...r,
+                playersOnline: r.playersOnline != null ? Number(r.playersOnline) : null,
+                playersMax: r.playersMax != null ? Number(r.playersMax) : null,
+                responseTimeMs: r.responseTimeMs != null ? Number(r.responseTimeMs) : null,
+            }));
         }
 
         // Calculate overall stats from records
