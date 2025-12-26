@@ -25,7 +25,7 @@ export function usePresenceHeartbeat() {
     
     try {
       await fetch('/api/presence', { method: 'POST' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send presence heartbeat:', error);
     }
   }, [session?.user]);
@@ -75,7 +75,7 @@ export function useUserPresence(userIds: number[]) {
         const data = await res.json();
         setPresence(data.presence || {});
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch presence:', error);
     } finally {
       setLoading(false);

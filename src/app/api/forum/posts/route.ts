@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const posts = await query;
 
     return NextResponse.json(posts);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching forum posts:', error);
     return NextResponse.json(
       { error: 'Failed to fetch posts' },
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     return NextResponse.json(newPost, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating forum post:', error);
     return NextResponse.json(
       { error: 'Failed to create post' },

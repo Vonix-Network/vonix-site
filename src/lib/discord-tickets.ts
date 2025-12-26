@@ -107,7 +107,7 @@ export async function getDiscordClient(): Promise<Client | null> {
         await discordClient.login(settings.botToken);
         console.log('✅ Discord ticket bot connected');
         return discordClient;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to initialize Discord client:', error);
         return null;
     }
@@ -334,7 +334,7 @@ export async function registerTicketCommands() {
             { body: commands }
         );
         console.log('✅ Registered Discord ticket commands');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error registering ticket commands:', error);
     }
 }
@@ -599,7 +599,7 @@ export async function createTicket(
         // Log ticket creation
         await logTicketEvent('create', ticket.id, interaction.user.id, `Ticket created by ${interaction.user.tag}`);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating ticket:', error);
         await interaction.editReply({
             content: '❌ Failed to create ticket. Please try again or contact an administrator.',
@@ -826,7 +826,7 @@ async function finallyCloseTicket(interaction: any, ticketId: number, reason?: s
 
     try {
         await interaction.channel.delete(`Ticket closed by ${interaction.user.tag}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to delete ticket channel:', error);
     }
 
@@ -1503,7 +1503,7 @@ async function logTicketEvent(
                     .setTimestamp(),
             ],
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to log ticket event:', error);
     }
 }
@@ -1766,7 +1766,7 @@ export async function setupTicketEventHandlers(): Promise<void> {
                 }
                 return;
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error handling interaction:', error);
             try {
                 const errorMsg = '❌ An error occurred. Please try again.';
@@ -1842,7 +1842,7 @@ export async function initializeDiscordTickets(): Promise<void> {
         await setupTicketEventHandlers();
 
         console.log('✅ Discord tickets system initialized');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to initialize Discord tickets:', error);
     }
 }

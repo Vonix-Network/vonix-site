@@ -166,7 +166,7 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(new URL('/login?error=No%20account%20linked%20to%20this%20Discord', origin));
             }
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling Discord callback:', error);
         return NextResponse.redirect(new URL('/login?error=Discord%20authentication%20failed', origin));
     }

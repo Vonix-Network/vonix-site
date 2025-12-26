@@ -32,7 +32,7 @@ export function ContactList() {
         }));
         setFriends(friendList);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load friends:', err);
     } finally {
       setLoading(false);

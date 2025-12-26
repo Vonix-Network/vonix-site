@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting cron status:', error);
     return NextResponse.json(
       { error: 'Failed to get cron status' },

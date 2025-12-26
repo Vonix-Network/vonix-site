@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
                 days: 30,
                 paymentType: 'subscription',
             }).catch((err: Error) => console.error('Discord notification error:', err));
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to load Discord notification module:', e);
         }
 
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
                     paymentId: subscriptionId,
                 }).catch((err: Error) => console.error('Email receipt error:', err));
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to load email module:', e);
         }
 
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
             subscriptionId,
             message: `Successfully subscribed to ${rank.name} rank!`,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating Square subscription:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,

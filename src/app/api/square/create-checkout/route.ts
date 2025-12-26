@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
             days: daysValue,
             // No URL - client handles payment modal
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating Square checkout:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,

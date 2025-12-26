@@ -23,7 +23,7 @@ export async function GET() {
             maintenanceMode: maintenanceSetting?.value === 'true',
             maintenanceMessage: messageSetting?.value || 'Under Maintenance, Expect possible downtimes.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error checking maintenance mode:', error);
         // Default to not in maintenance mode if error
         return NextResponse.json({

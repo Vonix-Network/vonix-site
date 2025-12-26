@@ -76,7 +76,7 @@ export default function SocialPage() {
       }));
       
       setPosts(transformedPosts);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching posts:', err);
       setError('Failed to load posts');
     } finally {
@@ -110,7 +110,7 @@ export default function SocialPage() {
       // Refresh posts to get the new one with proper user data
       await fetchPosts();
       setNewPost('');
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Failed to create post');
     } finally {
       setIsPosting(false);
@@ -161,7 +161,7 @@ export default function SocialPage() {
       }));
 
       toast.success(data.liked ? 'Post liked!' : 'Like removed');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to update like');
     }
   };

@@ -30,7 +30,7 @@ export async function GET() {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json({ success: true, rank });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
       .returning();
 
     return NextResponse.json({ success: true, rank });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest) {
     await db.delete(donationRanks).where(eq(donationRanks.id, id));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

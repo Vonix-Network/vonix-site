@@ -72,7 +72,7 @@ export async function getSmtpConfig(): Promise<SmtpConfig | null> {
       adminNotifyDonations: getValue('smtp_admin_notify_donations') === 'true',
       adminNotifyRegistrations: getValue('smtp_admin_notify_registrations') === 'true',
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting SMTP config:', error);
     return null;
   }
@@ -130,7 +130,7 @@ export async function sendEmail(
     });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email:', error);
     return false;
   }
@@ -445,7 +445,7 @@ export async function sendAdminErrorAlert(
 
     const template = getErrorAlertEmailTemplate(errorType, errorMessage, errorStack, requestInfo);
     return await sendEmail(config.adminNotifyEmail, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending admin error alert:', error);
     return false;
   }
@@ -467,7 +467,7 @@ export async function sendAdminDonationAlert(
 
     const template = getNewDonationAdminEmailTemplate(username, amount, rankName);
     return await sendEmail(config.adminNotifyEmail, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending admin donation alert:', error);
     return false;
   }
@@ -488,7 +488,7 @@ export async function sendAdminNewUserAlert(
 
     const template = getNewUserAdminEmailTemplate(username, email);
     return await sendEmail(config.adminNotifyEmail, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending admin new user alert:', error);
     return false;
   }
@@ -518,7 +518,7 @@ export async function sendUserNotificationEmail(
     // For now, send if email exists
 
     return await sendEmail(user.email, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending user notification email:', error);
     return false;
   }
@@ -617,7 +617,7 @@ export async function sendDonationReceiptEmail(options: {
     const { to, ...templateOptions } = options;
     const template = getDonationReceiptEmailTemplate(templateOptions);
     return await sendEmail(to, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending donation receipt:', error);
     return false;
   }
@@ -682,7 +682,7 @@ export async function sendTicketAccessEmail(
   try {
     const template = getTicketAccessEmailTemplate(name, ticketId, accessToken);
     return await sendEmail(email, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending ticket access email:', error);
     return false;
   }
@@ -743,7 +743,7 @@ export async function sendTicketReplyEmail(
   try {
     const template = getTicketReplyEmailTemplate(name, ticketId, accessToken, staffName, replyPreview);
     return await sendEmail(email, template);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending ticket reply email:', error);
     return false;
   }

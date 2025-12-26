@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     const paginatedUsers = usersWithPlaytime.slice(offset, offset + limit);
 
     return NextResponse.json(paginatedUsers);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching leaderboard:', error);
     return NextResponse.json(
       { error: 'Failed to fetch leaderboard' },

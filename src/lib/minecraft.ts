@@ -36,7 +36,7 @@ export async function fetchMinecraftUUID(username: string): Promise<MinecraftPro
       id: data.id,
       name: data.name, // Current username (may differ from input if case differs)
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching Minecraft UUID:', error);
     return null;
   }
@@ -70,7 +70,7 @@ export async function fetchMinecraftUsername(uuid: string): Promise<string | nul
 
     const data = await response.json();
     return data.name;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching Minecraft username:', error);
     return null;
   }
@@ -137,7 +137,7 @@ export async function batchFetchUUIDs(usernames: string[]): Promise<MinecraftPro
       id: profile.id,
       name: profile.name,
     }));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error batch fetching UUIDs:', error);
     return [];
   }

@@ -23,7 +23,7 @@ export async function POST() {
       .where(eq(users.id, userId));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating presence:', error);
     return NextResponse.json({ error: 'Failed to update presence' }, { status: 500 });
   }
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ presence });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching presence:', error);
     return NextResponse.json({ error: 'Failed to fetch presence' }, { status: 500 });
   }

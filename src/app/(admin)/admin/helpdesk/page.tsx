@@ -100,7 +100,7 @@ export default function AdminHelpdeskPage() {
                     total: ticketList.length,
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching tickets:', error);
         } finally {
             setIsLoading(false);
@@ -118,7 +118,7 @@ export default function AdminHelpdeskPage() {
             if (res.ok) {
                 fetchTickets();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating ticket:', error);
         }
     };
@@ -133,7 +133,7 @@ export default function AdminHelpdeskPage() {
             if (res.ok) {
                 fetchTickets();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating ticket:', error);
         }
     };

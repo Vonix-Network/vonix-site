@@ -71,7 +71,7 @@ export default function AdminUptimePage() {
                 setChartData(data.chartData || []);
                 setRecords(data.records || []);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch uptime data:', error);
             toast.error('Failed to load uptime data');
         } finally {
@@ -99,7 +99,7 @@ export default function AdminUptimePage() {
             } else {
                 toast.error('Failed to check servers');
             }
-        } catch (error) {
+        } catch (error: any) {
             toast.error('Failed to trigger server check');
         }
     };

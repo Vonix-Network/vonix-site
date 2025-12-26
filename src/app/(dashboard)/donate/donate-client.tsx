@@ -166,7 +166,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         } else {
           setPaymentConfig({ provider: 'disabled', enabled: false });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch payment config:', err);
         setPaymentConfig({ provider: 'disabled', enabled: false });
       } finally {
@@ -248,7 +248,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         squareCardRef.current = card;
         setSquareCardReady(true);
         console.log('Square card form attached successfully');
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to initialize Square card:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize payment form. Please try again.');
       }
@@ -299,7 +299,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
       // Success! Redirect to success page
       window.location.href = '/donate/success?subscription=true';
-    } catch (err) {
+    } catch (err: any) {
       console.error('Square subscription error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -378,7 +378,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
         squareOneTimeCardRef.current = card;
         setSquareOneTimeCardReady(true);
         console.log('Square one-time card form attached successfully');
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to initialize Square card:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize payment form. Please try again.');
       }
@@ -429,7 +429,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
       // Success! Redirect to success page
       window.location.href = '/donate/success?provider=square&orderId=' + squareOrderId;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Square one-time payment error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -500,7 +500,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoadingRankId(null);
@@ -572,7 +572,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoadingRankId(null);
@@ -661,7 +661,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoadingAmount(null);

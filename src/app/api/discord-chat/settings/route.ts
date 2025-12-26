@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
             enabled: settingsMap['discord_chat_enabled'] === 'true',
             channelName: settingsMap['discord_chat_channel_name'] || undefined,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching discord chat settings:', error);
         return NextResponse.json({ enabled: false }, { status: 500 });
     }
@@ -325,7 +325,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating discord chat settings:', error);
         return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
     }

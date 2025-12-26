@@ -47,7 +47,7 @@ export async function GET() {
         return NextResponse.json({
             donations: userDonations,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching user donations:', error);
         return NextResponse.json(
             { error: 'Failed to fetch donations' },

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
         // Redirect to the callback URL on success
         return NextResponse.redirect(new URL(callbackUrl, origin));
-    } catch (error) {
+    } catch (error: any) {
         console.error('[Discord Login] Error:', error);
         return NextResponse.redirect(new URL('/login?error=Discord%20login%20failed', origin));
     }

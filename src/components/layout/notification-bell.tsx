@@ -17,7 +17,7 @@ export function NotificationBell() {
         const data = await res.json();
         setUnreadCount(data.unreadCount || 0);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch notification count:', err);
     }
   }, []);

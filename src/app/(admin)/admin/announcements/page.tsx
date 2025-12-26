@@ -52,7 +52,7 @@ export default function AnnouncementsPage() {
                 const data = await res.json();
                 setAnnouncements(data.announcements || []);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch announcements:', error);
             toast.error('Failed to load announcements');
         } finally {
@@ -71,7 +71,7 @@ export default function AnnouncementsPage() {
             } else {
                 toast.error('Failed to delete announcement');
             }
-        } catch (error) {
+        } catch (error: any) {
             toast.error('Failed to delete announcement');
         }
     };
@@ -89,7 +89,7 @@ export default function AnnouncementsPage() {
             } else {
                 toast.error('Failed to update announcement');
             }
-        } catch (error) {
+        } catch (error: any) {
             toast.error('Failed to update announcement');
         }
     };

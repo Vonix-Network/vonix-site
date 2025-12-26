@@ -50,7 +50,7 @@ export async function loadKofiConfig(): Promise<{
         configCacheTimestamp = now;
 
         return kofiConfigCache;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error loading Ko-Fi config from database:', error);
         return {
             verificationToken: '',

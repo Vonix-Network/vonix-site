@@ -18,7 +18,7 @@ export async function GET() {
             donations: donationStats[0]?.total || 0,
             servers: serverCount[0]?.count || 0,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching public stats:', error);
         return NextResponse.json(
             { error: 'Failed to fetch stats' },

@@ -163,7 +163,7 @@ async function handleMessage(message: Message) {
 
         const channelType = isViscordChannel ? 'Viscord' : 'Chat';
         console.log(`📥 Discord ${channelType} message received from ${message.author.username}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error storing Discord message:', error);
     }
 }
@@ -177,7 +177,7 @@ async function handleMessageDelete(messageId: string) {
             .delete(discordMessages)
             .where(eq(discordMessages.discordMessageId, messageId));
         console.log(`🗑️ Discord message deleted: ${messageId}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting Discord message:', error);
     }
 }
@@ -221,7 +221,7 @@ async function handleMessageUpdate(message: Message) {
             })
             .where(eq(discordMessages.discordMessageId, message.id));
         console.log(`✏️ Discord message updated: ${message.id}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating Discord message:', error);
     }
 }
@@ -281,7 +281,7 @@ export async function initDiscordBot() {
                         }
                         console.log('✅ Discord history backfill complete');
                     }
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Failed to backfill Discord messages:', error);
                 }
             }
@@ -327,7 +327,7 @@ export async function initDiscordBot() {
         // Connect to Discord
         await discordClient.login(settings.token);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('🤖 Failed to initialize Discord bot:', error);
     } finally {
         isConnecting = false;

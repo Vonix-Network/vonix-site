@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
                     .set({ discordThreadId: threadId })
                     .where(eq(supportTickets.id, ticket.id));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create Discord thread for guest ticket:', error);
         }
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
             },
             message: 'Ticket created! Check your email for the access link.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating guest ticket:', error);
         return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
     }
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
                 createdAt: msg.createdAt,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching guest ticket:', error);
         return NextResponse.json({ error: 'Failed to fetch ticket' }, { status: 500 });
     }

@@ -100,7 +100,7 @@ export async function GET() {
             playtimeSeconds: totalPlaytimeSeconds,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching user data:', error);
         return NextResponse.json(
             { error: 'Failed to fetch user data' },
@@ -197,7 +197,7 @@ export async function PATCH(request: Request) {
 
         return NextResponse.json({ success: true });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating user data:', error);
         return NextResponse.json(
             { error: 'Failed to update user data' },

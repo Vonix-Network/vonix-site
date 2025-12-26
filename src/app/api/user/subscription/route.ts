@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         currentPeriodEnd = stripeSubscription
           ? new Date((stripeSubscription as any).current_period_end * 1000).toISOString()
           : null;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching Stripe subscription:', err);
       }
     } else if (user.squareSubscriptionId) {
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         squareSubscription = await getSquareSubscription(user.squareSubscriptionId);
         // Square doesn't have cancel_at_period_end, just status
         cancelAtPeriodEnd = squareSubscription?.status === 'CANCELED';
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching Square subscription:', err);
       }
     }
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       cancelAtPeriodEnd,
       currentPeriodEnd,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching subscription:', error);
     return NextResponse.json(
       { error: 'Failed to fetch subscription data' },

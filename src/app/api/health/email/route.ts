@@ -34,7 +34,7 @@ export async function GET() {
             },
             message: configured ? 'Email service configured' : 'SMTP not configured',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Email health check failed:', error);
 
         return NextResponse.json({

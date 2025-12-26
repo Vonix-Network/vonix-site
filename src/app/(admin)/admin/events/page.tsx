@@ -49,7 +49,7 @@ export default function AdminEventsPage() {
         const data = await res.json();
         setEvents(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch events:', error);
     } finally {
       setIsLoading(false);
@@ -72,7 +72,7 @@ export default function AdminEventsPage() {
         setShowCreateModal(false);
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create event:', error);
     } finally {
       setIsSaving(false);
@@ -95,7 +95,7 @@ export default function AdminEventsPage() {
         setEditingEvent(null);
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update event:', error);
     } finally {
       setIsSaving(false);
@@ -110,7 +110,7 @@ export default function AdminEventsPage() {
       if (res.ok) {
         await fetchEvents();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete event:', error);
     }
   };

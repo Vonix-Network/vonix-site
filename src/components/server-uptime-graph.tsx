@@ -235,7 +235,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
                 setRecords(fetchedRecords);
                 setIsAggregated(data.aggregated || false);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to fetch uptime data:', error);
                 setRecords([]);
             } finally {

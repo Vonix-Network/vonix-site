@@ -16,7 +16,7 @@ async function loadStripeConfig() {
       .where(like(siteSettings.key, 'stripe_%'));
 
     const dbSettings: Record<string, string> = {};
-    settings.forEach(s => {
+    settings.forEach((s: any) => {
       if (s.value) dbSettings[s.key] = s.value;
     });
 
@@ -223,7 +223,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, stripe: Strip
     console.log(`❌ Max retry attempts reached for user ${userId}, canceling subscription`);
     try {
       await stripe.subscriptions.cancel(subscriptionId);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error canceling subscription:', err);
     }
   }

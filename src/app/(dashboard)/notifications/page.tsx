@@ -63,7 +63,7 @@ export default function NotificationsPage() {
       const data = await res.json();
       setNotifications(data.notifications || []);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to load notifications');
       console.error(err);
     } finally {
@@ -89,7 +89,7 @@ export default function NotificationsPage() {
           n.id === id ? { ...n, read: true } : n
         ));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mark as read:', err);
     }
   };
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
       if (res.ok) {
         setNotifications(notifications.map(n => ({ ...n, read: true })));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mark all as read:', err);
     }
   };
@@ -119,7 +119,7 @@ export default function NotificationsPage() {
       if (res.ok) {
         setNotifications(notifications.filter(n => n.id !== id));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete notification:', err);
     }
   };
@@ -134,7 +134,7 @@ export default function NotificationsPage() {
       if (res.ok) {
         setNotifications([]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to clear all notifications:', err);
     }
   };
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                                   }
                                 }
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Failed to accept friend request:', err);
                             }
                           }}
@@ -311,7 +311,7 @@ export default function NotificationsPage() {
                                   }
                                 }
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Failed to decline friend request:', err);
                             }
                           }}

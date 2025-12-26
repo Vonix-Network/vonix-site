@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             .where(eq(users.id, userId));
 
         return NextResponse.json({ success: true, message: 'Password updated successfully' });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error changing password:', error);
         return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });
     }

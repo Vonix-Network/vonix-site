@@ -38,7 +38,7 @@ export function ProfileFriendActions({ isOwnProfile, friendshipStatus: initialSt
       if (data.status === 'none' || data.status === 'pending' || data.status === 'friends') {
         setStatus(data.status);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Friend action failed', err);
     } finally {
       setBusy(false);

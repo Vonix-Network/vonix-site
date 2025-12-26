@@ -41,7 +41,7 @@ export default function PterodactylSettingsPage() {
                     maskedApiKey: data.maskedApiKey || null,
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch Pterodactyl config:', err);
         } finally {
             setIsLoading(false);
@@ -83,7 +83,7 @@ export default function PterodactylSettingsPage() {
                     message: data.error || 'Connection failed',
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
             setTestResult({
                 success: false,
                 message: 'Network error - could not connect',
@@ -124,7 +124,7 @@ export default function PterodactylSettingsPage() {
             } else {
                 setError(data.error || 'Failed to save configuration');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Network error - could not save');
         } finally {
             setIsSaving(false);
@@ -150,7 +150,7 @@ export default function PterodactylSettingsPage() {
                 const data = await res.json();
                 setError(data.error || 'Failed to clear configuration');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Network error');
         }
     };

@@ -40,7 +40,7 @@ export async function GET() {
             .orderBy(desc(announcements.createdAt));
 
         return NextResponse.json({ announcements: allAnnouncements });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
             announcement: newAnnouncement,
             notificationsSent: published && sendNotificationFlag,
         });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

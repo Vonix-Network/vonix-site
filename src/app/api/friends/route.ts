@@ -64,7 +64,7 @@ export async function GET() {
     }
 
     return NextResponse.json({ friends, pending });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading friends:', error);
     return NextResponse.json({ error: 'Failed to load friends' }, { status: 500 });
   }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in /api/friends:', error);
     return NextResponse.json({ error: 'Failed to update friendship' }, { status: 500 });
   }

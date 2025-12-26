@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
             .orderBy(asc(ticketCategories.order));
 
         return NextResponse.json({ categories });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching ticket categories:', error);
         return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
     }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         }).returning();
 
         return NextResponse.json({ success: true, category });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating ticket category:', error);
         return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
     }
@@ -142,7 +142,7 @@ export async function PUT(request: NextRequest) {
             .returning();
 
         return NextResponse.json({ success: true, category });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating ticket category:', error);
         return NextResponse.json({ error: 'Failed to update category' }, { status: 500 });
     }
@@ -174,7 +174,7 @@ export async function DELETE(request: NextRequest) {
         await db.delete(ticketCategories).where(eq(ticketCategories.id, parseInt(id)));
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting ticket category:', error);
         return NextResponse.json({ error: 'Failed to delete category' }, { status: 500 });
     }

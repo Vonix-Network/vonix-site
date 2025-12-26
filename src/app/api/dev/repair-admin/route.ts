@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, userId: newAdmin.id, username });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Dev repair-admin error:', error);
     return NextResponse.json({ error: 'Failed to repair admin user' }, { status: 500 });
   }

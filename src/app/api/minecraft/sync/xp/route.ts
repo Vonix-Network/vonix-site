@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString(),
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('XP sync error:', error);
         return NextResponse.json(
             { success: false, error: 'Failed to sync XP' },

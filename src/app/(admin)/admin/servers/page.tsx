@@ -79,7 +79,7 @@ export default function AdminServersPage() {
         setServers(prev => prev.map(s => s.id === serverId ? { ...s, apiKey } : s));
         setShowApiKey(serverId);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to generate API key:', err);
     }
   };
@@ -117,7 +117,7 @@ export default function AdminServersPage() {
         }));
         setServers(serversWithStatus);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch servers:', err);
     } finally {
       setIsLoading(false);
@@ -149,7 +149,7 @@ export default function AdminServersPage() {
           pterodactylPanelUrl: '',
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add server:', err);
     }
   };
@@ -162,7 +162,7 @@ export default function AdminServersPage() {
       if (res.ok) {
         setServers(servers.filter(s => s.id !== id));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete server:', err);
     }
   };
@@ -198,7 +198,7 @@ export default function AdminServersPage() {
         setServers(prev => prev.map(s => (s.id === updated.id ? { ...s, ...updated } : s)));
         setEditingServer(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update server:', err);
     }
   };

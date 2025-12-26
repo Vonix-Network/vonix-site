@@ -286,7 +286,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
             userId: resolvedUserId,
             rankAssigned: rankName || undefined,
         };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error processing donation:', error);
         return {
             success: false,

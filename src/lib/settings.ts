@@ -36,7 +36,7 @@ export async function getSetting(key: string, defaultValue: string = ''): Promis
     cacheTimestamp = now;
 
     return value;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error getting setting ${key}:`, error);
     return defaultValue;
   }
@@ -60,7 +60,7 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
     });
 
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting settings:', error);
     return {};
   }
@@ -81,7 +81,7 @@ export async function getSettingsByCategory(category: string): Promise<Record<st
       });
 
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error getting settings for category ${category}:`, error);
     return {};
   }
@@ -102,7 +102,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 
     // Clear cache
     delete settingsCache[key];
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error setting ${key}:`, error);
   }
 }

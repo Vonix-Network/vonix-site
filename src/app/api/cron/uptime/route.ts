@@ -56,7 +56,7 @@ async function tryNativePing(host: string, port: number, retries: number = 2): P
             if (attempt < retries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.log(`   Native ping attempt ${attempt}/${retries} failed:`, error);
             if (attempt < retries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -110,7 +110,7 @@ async function tryApiPing(host: string, port: number, retries: number = 2): Prom
             if (attempt < retries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.log(`   API ping attempt ${attempt}/${retries} failed:`, error);
             if (attempt < retries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -331,7 +331,7 @@ export async function GET(request: NextRequest) {
                 method: r.method,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in uptime cron:', error);
         return NextResponse.json({ error: 'Failed to check servers' }, { status: 500 });
     }

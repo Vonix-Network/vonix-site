@@ -25,7 +25,7 @@ export async function GET() {
             oauthEnabled: settingsMap['discord_oauth_enabled'] === 'true',
             registrationEnabled: settingsMap['discord_oauth_registration_enabled'] === 'true',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error checking Discord OAuth settings:', error);
         return NextResponse.json({
             oauthEnabled: false,

@@ -157,7 +157,7 @@ export default async function AdminDashboard() {
           <CardContent>
             {recentUsers.length > 0 ? (
               <div className="space-y-3">
-                {recentUsers.map((user) => (
+                {recentUsers.map((user: any) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
@@ -197,7 +197,7 @@ export default async function AdminDashboard() {
           <CardContent>
             {recentDonations.length > 0 ? (
               <div className="space-y-3">
-                {recentDonations.map((donation) => (
+                {recentDonations.map((donation: any) => (
                   <div
                     key={donation.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"

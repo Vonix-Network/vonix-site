@@ -53,7 +53,7 @@ export default function DonationSuccessPage() {
         const data = await res.json();
         setPaymentDetails(data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to verify session:', err);
     } finally {
       setIsLoading(false);

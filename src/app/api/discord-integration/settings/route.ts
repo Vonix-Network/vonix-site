@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             guildId: settingsMap.get('discord_guild_id') || '',
             ticketForumId: settingsMap.get('discord_ticket_forum_id') || '',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Discord integration settings:', error);
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
@@ -117,13 +117,13 @@ export async function PATCH(request: NextRequest) {
                 const { registerSlashCommands } = await import('@/lib/discord-integration');
                 await registerSlashCommands();
                 console.log('✅ Re-registered Discord slash commands');
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to re-register slash commands:', error);
             }
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating Discord integration settings:', error);
         return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
     }

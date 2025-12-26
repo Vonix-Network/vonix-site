@@ -134,7 +134,7 @@ export function ServerStatusList({
         setServers(data.servers || []);
         setLastFetched(new Date());
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch servers:', error);
     } finally {
       setIsLoading(false);
@@ -153,7 +153,7 @@ export function ServerStatusList({
       await navigator.clipboard.writeText(ip);
       setCopiedIp(ip);
       setTimeout(() => setCopiedIp(null), 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to copy:', err);
     }
   };
@@ -660,7 +660,7 @@ export function SingleServerStatus({ address, port = 25565, name, className }: S
             });
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch status:', err);
       } finally {
         setIsLoading(false);

@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ received: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error processing Square webhook:', error);
         return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
@@ -128,7 +128,7 @@ async function handlePaymentUpdated(event: SquareWebhookEvent) {
             const client = await getSquareClient();
             const orderResponse = await client.ordersApi.retrieveOrder(payment.order_id);
             metadata = orderResponse.result.order?.metadata || {};
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching Square order:', error);
         }
     }

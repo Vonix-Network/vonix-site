@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Standard registration error:', error);
         return NextResponse.json(
             { error: 'An unexpected error occurred' },

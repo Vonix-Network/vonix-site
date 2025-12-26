@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       notifications: userNotifications,
       unreadCount: unreadNotifications.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
   }
@@ -86,7 +86,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating notifications:', error);
     return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 });
   }
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting notifications:', error);
     return NextResponse.json({ error: 'Failed to delete notifications' }, { status: 500 });
   }

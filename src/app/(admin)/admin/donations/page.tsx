@@ -118,7 +118,7 @@ export default function AdminDonationsPage() {
         setPagination(data.pagination);
         setStats(data.stats);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch donations:', err);
     } finally {
       setIsLoading(false);
@@ -180,7 +180,7 @@ export default function AdminDonationsPage() {
       } else {
         alert(data.error || 'Failed to add donation');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add donation:', err);
       alert('Failed to add donation. Please try again.');
     } finally {
@@ -199,7 +199,7 @@ export default function AdminDonationsPage() {
       if (res.ok) {
         setDonations(donations.map(d => d.id === id ? { ...d, displayed: !displayed } : d));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle visibility:', err);
     }
   };
@@ -212,7 +212,7 @@ export default function AdminDonationsPage() {
         setDonations(donations.filter(d => d.id !== id));
         fetchDonations();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete donation:', err);
     }
   };
@@ -260,7 +260,7 @@ export default function AdminDonationsPage() {
         const data = await res.json();
         alert(data.error || 'Failed to update donation');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update donation:', err);
       alert('Failed to update donation');
     } finally {
@@ -278,7 +278,7 @@ export default function AdminDonationsPage() {
       } else {
         alert(data.error || 'Failed to send Discord notification');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to resend Discord:', err);
       alert('Failed to send Discord notification');
     } finally {

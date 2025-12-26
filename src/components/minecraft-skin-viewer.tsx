@@ -92,7 +92,7 @@ export function MinecraftSkinViewer({
         viewerRef.current = viewer;
         setIsLoaded(true);
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to initialize skin viewer:', error);
         // Fallback to static image
         if (containerRef.current) {

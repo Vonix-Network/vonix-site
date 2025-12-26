@@ -46,7 +46,7 @@ async function loadStripeConfig(): Promise<{
       .where(like(siteSettings.key, 'stripe_%'));
 
     const dbSettings: Record<string, string> = {};
-    settings.forEach(s => {
+    settings.forEach((s: any) => {
       if (s.value) dbSettings[s.key] = s.value;
     });
 
@@ -71,7 +71,7 @@ async function loadStripeConfig(): Promise<{
     configCacheTimestamp = now;
 
     return stripeConfigCache;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading Stripe config from database, falling back to env vars:', error);
 
     // Fallback to environment variables
@@ -245,7 +245,7 @@ export async function getOrCreatePrice(
       if (price && price.active) {
         return existingPriceId;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(`Price ${existingPriceId} not found in Stripe, creating new one`);
     }
   }

@@ -87,7 +87,7 @@ export default function SettingsPage() {
               });
             }
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Failed to refresh user data:', err);
         }
       };
@@ -196,7 +196,7 @@ export default function SettingsPage() {
         const data = await res.json();
         setSubscription(data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching subscription:', err);
     } finally {
       setLoadingSubscription(false);
@@ -211,7 +211,7 @@ export default function SettingsPage() {
         const data = await res.json();
         setDonations(data.donations || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching donations:', err);
     } finally {
       setLoadingDonations(false);
@@ -254,7 +254,7 @@ export default function SettingsPage() {
           alert(`Failed to cancel subscription: ${data.error || 'Unknown error'}`);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error managing subscription:', err);
       alert('An error occurred. Please try again.');
     } finally {
@@ -300,7 +300,7 @@ export default function SettingsPage() {
       setIsSaving(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error resetting avatar:', err);
       setIsSaving(false);
     }
@@ -347,7 +347,7 @@ export default function SettingsPage() {
       setIsSaving(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving settings:', err);
       setIsSaving(false);
     }
@@ -393,7 +393,7 @@ export default function SettingsPage() {
       } else {
         setPasswordError(data.error || 'Failed to change password');
       }
-    } catch (err) {
+    } catch (err: any) {
       setPasswordError('Something went wrong');
     } finally {
       setSavingPassword(false);
@@ -917,7 +917,7 @@ export default function SettingsPage() {
                               if (res.ok) {
                                 window.location.reload();
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Failed to unlink Discord:', err);
                             }
                           }}
@@ -1146,7 +1146,7 @@ export default function SettingsPage() {
                             setAvatarSaved(true);
                             setTimeout(() => setAvatarSaved(false), 2000);
                           }
-                        } catch (err) {
+                        } catch (err: any) {
                           console.error('Failed to save avatar settings:', err);
                         } finally {
                           setSavingAvatarSettings(false);

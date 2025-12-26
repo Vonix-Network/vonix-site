@@ -73,7 +73,7 @@ export async function loadSquareConfig(): Promise<{
         configCacheTimestamp = now;
 
         return squareConfigCache;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error loading Square config from database, falling back to env vars:', error);
 
         // Fallback to environment variables
@@ -237,7 +237,7 @@ export async function verifyWebhookSignature(
             Buffer.from(signature),
             Buffer.from(expectedSignature)
         );
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error verifying Square webhook signature:', error);
         return false;
     }

@@ -70,7 +70,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                     const data = await res.json();
                     setSettings(data);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to fetch discord chat settings:', err);
             }
         };
@@ -111,7 +111,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                     setLastMessageId(prev => (prev === null || maxId > prev) ? maxId : prev);
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch discord messages:', err);
         } finally {
             setIsLoading(false);
@@ -224,7 +224,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
             const error = await res.json();
             console.error('Failed to send message:', error);
             return false;
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to send message:', err);
             return false;
         } finally {

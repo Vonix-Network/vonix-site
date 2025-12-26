@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({ tickets, counts, isStaff });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching tickets:', error);
         return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
     }
@@ -187,13 +187,13 @@ export async function POST(request: NextRequest) {
 
                 console.log(`✅ Created Discord thread ${threadId} for ticket #${ticket.id}`);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create Discord thread for ticket:', error);
             // Continue even if Discord thread creation fails
         }
 
         return NextResponse.json({ success: true, ticket });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating ticket:', error);
         return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
     }

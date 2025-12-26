@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
                 username: newUser.username,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error during Discord registration:', error);
         return NextResponse.json(
             { error: 'An unexpected error occurred during registration' },

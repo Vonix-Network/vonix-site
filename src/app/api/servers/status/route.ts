@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
         'Expires': '0',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching server status:', error);
     return NextResponse.json(
       { error: 'Failed to fetch server status' },

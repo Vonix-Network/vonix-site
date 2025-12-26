@@ -61,7 +61,7 @@ export function RankPurchaseCard({ rank }: RankPurchaseCardProps) {
         console.error('Checkout error:', error);
         alert('Failed to start checkout. Please try again.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Purchase error:', err);
       alert('An error occurred. Please try again.');
     } finally {

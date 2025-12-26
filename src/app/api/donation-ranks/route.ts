@@ -19,7 +19,7 @@ export async function GET() {
       .orderBy(asc(donationRanks.minAmount));
 
     // Parse features JSON for each rank - with safe parsing
-    const ranksWithFeatures = ranks.map(rank => {
+    const ranksWithFeatures = ranks.map((rank: any) => {
       let perks: string[] = [];
       try {
         if (typeof rank.perks === 'string' && rank.perks) {
@@ -41,7 +41,7 @@ export async function GET() {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching donation ranks:', error);
     return NextResponse.json(
       { error: 'Failed to fetch donation ranks' },

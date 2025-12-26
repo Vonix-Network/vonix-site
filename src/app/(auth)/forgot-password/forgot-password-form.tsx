@@ -32,7 +32,7 @@ export function ForgotPasswordForm() {
             } else {
                 setError(data.error || 'Something went wrong');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to send reset email');
         } finally {
             setIsLoading(false);

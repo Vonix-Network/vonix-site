@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       .offset(offset);
 
     return NextResponse.json(posts);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching posts:', error);
     return NextResponse.json(
       { error: 'Failed to fetch posts' },
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     return NextResponse.json(newPost, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating post:', error);
     return NextResponse.json(
       { error: 'Failed to create post' },

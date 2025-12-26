@@ -77,7 +77,7 @@ export async function GET() {
       completedAt: null,
       version: '4.0.0',
     });
-  } catch (error) {
+  } catch (error: any) {
     // If error occurs (e.g., table doesn't exist), assume setup not completed
     console.error('Error checking setup status:', error);
     return NextResponse.json({

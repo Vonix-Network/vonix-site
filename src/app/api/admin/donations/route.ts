@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         or(
           like(users.username, `%${search}%`),
           like(users.minecraftUsername, `%${search}%`),
-          like(donations.paymentId, `%${search}%`)
+          like(donations.paymentId as any, `%${search}%`)
         )
       );
     }

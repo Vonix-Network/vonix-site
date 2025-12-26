@@ -82,7 +82,7 @@ export async function assignRankSubscription(
     console.log(`✅ Assigned rank ${rankId} to user ${userId} for ${days} days (expires: ${expiresAt.toISOString()})`);
 
     return { success: true, expiresAt };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error assigning rank subscription:', error);
     return { success: false, error: 'Failed to assign rank' };
   }
@@ -134,7 +134,7 @@ export async function upgradeRank(
     console.log(`✅ Upgraded user ${userId} to rank ${newRankId} with ${convertedDays} converted days`);
 
     return { success: true, expiresAt };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error upgrading rank:', error);
     return { success: false, error: 'Failed to upgrade rank' };
   }
@@ -210,7 +210,7 @@ export async function removeExpiredRanks(): Promise<{ removed: number; users: st
     }
 
     return { removed: expiredUsers.length, users: removedUsernames };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error removing expired ranks:', error);
     return { removed: 0, users: [] };
   }
@@ -254,7 +254,7 @@ export async function getUserRankStatus(userId: number): Promise<{
       expiresAt,
       daysRemaining,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting user rank status:', error);
     return { hasRank: false };
   }

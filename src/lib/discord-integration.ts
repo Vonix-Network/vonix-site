@@ -106,7 +106,7 @@ export async function assignDiscordRole(userId: number, roleId: string): Promise
         await member.roles.add(roleId);
         console.log(`✅ Assigned role ${roleId} to Discord user ${user.discordId}`);
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error assigning Discord role:', error);
         return false;
     }
@@ -141,7 +141,7 @@ export async function removeDiscordRole(userId: number, roleId: string): Promise
         await member.roles.remove(roleId);
         console.log(`✅ Removed role ${roleId} from Discord user ${user.discordId}`);
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error removing Discord role:', error);
         return false;
     }
@@ -167,7 +167,7 @@ export async function updateUserDiscordRole(userId: number, newRankId: string | 
                 await assignDiscordRole(userId, newRank.discordRoleId);
             }
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating user Discord role:', error);
     }
 }
@@ -224,7 +224,7 @@ export async function createTicketThread(ticketId: number, subject: string, user
 
         console.log(`✅ Created Discord thread ${thread.id} for ticket #${ticketId}`);
         return thread.id;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating ticket thread:', error);
         return null;
     }
@@ -253,7 +253,7 @@ export async function sendTicketMessage(threadId: string, message: string, usern
 
         await thread.send({ embeds: [embed] });
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending ticket message to Discord:', error);
         return false;
     }
@@ -275,7 +275,7 @@ export async function closeTicketThread(threadId: string): Promise<boolean> {
 
         console.log(`✅ Closed Discord thread ${threadId}`);
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error closing ticket thread:', error);
         return false;
     }
@@ -381,7 +381,7 @@ export async function registerSlashCommands() {
         );
 
         console.log('✅ Registered Discord slash commands');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error registering slash commands:', error);
     }
 }
@@ -427,7 +427,7 @@ export async function handleTicketSetupCommand(interaction: any): Promise<void> 
         });
 
         console.log(`✅ Ticket forum set to ${forumChannel.id} by ${interaction.user.tag}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticket setup command:', error);
         await interaction.reply({
             content: '❌ Failed to setup ticket forum. Please try again.',
@@ -507,7 +507,7 @@ export async function handleTicketCreatorCommand(interaction: any): Promise<void
         });
 
         console.log(`✅ Ticket panel created in ${channel.id} by ${interaction.user.tag}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticketcreator command:', error);
         await interaction.reply({
             content: '❌ Failed to create ticket panel. Please try again.',
@@ -590,7 +590,7 @@ export async function handleTicketCommand(interaction: any): Promise<void> {
         });
 
         console.log(`✅ Ticket #${ticket.id} created by Discord user ${interaction.user.tag}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticket command:', error);
         await interaction.editReply({
             content: '❌ Failed to create ticket. Please try again.',
@@ -662,7 +662,7 @@ export async function handleCloseCommand(interaction: any): Promise<void> {
         await interaction.reply({ embeds: [embed] });
 
         console.log(`✅ Ticket #${ticket.id} closed by ${interaction.user.tag}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling close command:', error);
         await interaction.reply({
             content: '❌ Failed to close ticket. Please try again.',
@@ -704,7 +704,7 @@ export async function handleTicketButtonInteraction(interaction: any, categoryId
         modal.addComponents(row1, row2);
 
         await interaction.showModal(modal);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticket button:', error);
         await interaction.reply({
             content: '❌ Failed to open ticket form. Please try again.',
@@ -776,7 +776,7 @@ export async function handleTicketModalSubmit(interaction: any): Promise<void> {
         }
 
         await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticket modal:', error);
         await interaction.editReply({
             content: '❌ Failed to create ticket. Please try again.',
@@ -959,7 +959,7 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
         }
 
         await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error handling ticket modal:', error);
         await interaction.editReply({
             content: '❌ Failed to create ticket. Please try again.',

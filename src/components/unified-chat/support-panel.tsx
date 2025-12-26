@@ -76,7 +76,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                 const data = await res.json();
                 setTickets(data.tickets || []);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching tickets:', error);
         } finally {
             setIsLoading(false);
@@ -95,7 +95,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                     setHasNewMessages(true);
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching messages:', error);
         }
     };
@@ -139,7 +139,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                 await fetchMessages(selectedTicket.id);
                 setTimeout(scrollToBottom, 100);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending reply:', error);
         } finally {
             setIsSending(false);
@@ -168,7 +168,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                 await fetchTickets();
                 openTicket(data.ticket);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating ticket:', error);
         } finally {
             setIsSending(false);

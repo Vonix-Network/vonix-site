@@ -23,7 +23,7 @@ export async function GET() {
             registrationEnabled: registrationEnabled?.value !== 'false',
             requireRegistrationCode: requireCode?.value !== 'false',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error checking registration settings:', error);
         // Default to requiring registration code if error
         return NextResponse.json({

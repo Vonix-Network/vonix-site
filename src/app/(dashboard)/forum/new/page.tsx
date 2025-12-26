@@ -41,7 +41,7 @@ export default function NewForumPostPage() {
             setCategoryId(data[0].id);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch categories:', err);
       }
     };
@@ -79,7 +79,7 @@ export default function NewForumPostPage() {
 
       const post = await res.json();
       router.push(`/forum/post/${post.id}`);
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);

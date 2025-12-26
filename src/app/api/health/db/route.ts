@@ -22,7 +22,7 @@ export async function GET() {
             latency,
             message: 'Database connection successful',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Database health check failed:', error);
 
         return NextResponse.json({

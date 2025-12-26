@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
             console.error('Failed to process Ko-Fi donation:', result.error);
             return NextResponse.json({ error: result.error }, { status: 500 });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Ko-Fi webhook error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

@@ -31,7 +31,7 @@ export function HomeStats({ initialData }: HomeStatsProps) {
                     setStats(data);
                     setIsLoading(false);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to fetch stats:', error);
             }
         };

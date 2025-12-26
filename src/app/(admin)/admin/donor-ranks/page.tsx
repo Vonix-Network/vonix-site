@@ -60,7 +60,7 @@ export default function AdminDonorRanksPage() {
         const data = await res.json();
         setRanks(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch ranks:', error);
     } finally {
       setIsLoading(false);
@@ -86,7 +86,7 @@ export default function AdminDonorRanksPage() {
         setShowCreateModal(false);
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create rank:', error);
     } finally {
       setIsSaving(false);
@@ -112,7 +112,7 @@ export default function AdminDonorRanksPage() {
         setEditingRank(null);
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update rank:', error);
     } finally {
       setIsSaving(false);
@@ -127,7 +127,7 @@ export default function AdminDonorRanksPage() {
       if (res.ok) {
         await fetchRanks();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete rank:', error);
     }
   };

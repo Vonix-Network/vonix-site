@@ -63,7 +63,7 @@ export default function SupportPage() {
                 const data = await res.json();
                 setTickets(data.tickets || []);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching tickets:', error);
         } finally {
             setIsLoading(false);

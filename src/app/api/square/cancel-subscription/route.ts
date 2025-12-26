@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
             success: true,
             message: 'Subscription canceled successfully. You will retain access until the end of your current billing period.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error canceling Square subscription:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             error
@@ -125,7 +125,7 @@ export async function GET() {
             status: subscription?.status || user.subscriptionStatus,
             subscriptionId: user.squareSubscriptionId,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Square subscription:', error);
         return NextResponse.json(
             { error: 'Failed to fetch subscription details' },

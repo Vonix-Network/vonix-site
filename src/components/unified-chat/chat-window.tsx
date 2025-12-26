@@ -64,7 +64,7 @@ export function ChatWindow({ chat, index, embedded = false, onBack }: ChatWindow
                 }));
                 setMessages(msgs);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load messages:', err);
         } finally {
             setLoading(false);
@@ -133,7 +133,7 @@ export function ChatWindow({ chat, index, embedded = false, onBack }: ChatWindow
                 setNewMessage('');
                 refreshConversations();
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to send message:', err);
         } finally {
             setSending(false);

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         : `Awarded ${amount} XP`,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('XP award error:', error);
     return NextResponse.json(
       { error: 'Failed to award XP' },
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
       title: user.title,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('XP fetch error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch XP' },

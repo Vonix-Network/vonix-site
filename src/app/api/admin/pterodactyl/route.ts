@@ -34,7 +34,7 @@ export async function GET() {
                 ? `${config.apiKey.substring(0, 8)}...${config.apiKey.substring(config.apiKey.length - 4)}`
                 : null,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Pterodactyl config:', error);
         return NextResponse.json(
             { error: 'Failed to fetch configuration' },
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             message: 'Configuration saved successfully',
             serverCount: testResult.serverCount,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving Pterodactyl config:', error);
         return NextResponse.json(
             { error: 'Failed to save configuration' },
@@ -120,7 +120,7 @@ export async function DELETE() {
             success: true,
             message: 'Configuration cleared',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error clearing Pterodactyl config:', error);
         return NextResponse.json(
             { error: 'Failed to clear configuration' },

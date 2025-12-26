@@ -11,7 +11,7 @@ export async function GET() {
       .orderBy(asc(forumCategories.orderIndex));
 
     return NextResponse.json(categories);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching categories:', error);
     return NextResponse.json(
       { error: 'Failed to fetch categories' },

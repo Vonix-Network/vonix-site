@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in forgot password:', error);
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
   }

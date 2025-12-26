@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Player verification error:', error);
     return NextResponse.json(
       { error: 'Failed to verify player' },
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Player action error:', error);
     return NextResponse.json(
       { error: 'Failed to process action' },

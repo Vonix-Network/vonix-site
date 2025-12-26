@@ -29,7 +29,7 @@ export async function GET() {
       status: 'healthy',
       latency: Date.now() - dbStart,
     };
-  } catch (error) {
+  } catch (error: any) {
     checks.checks.database = {
       status: 'unhealthy',
       latency: 0,

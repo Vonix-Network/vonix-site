@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
             default:
                 return NextResponse.json({ error: 'Unknown event type' }, { status: 400 });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in discord webhook:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

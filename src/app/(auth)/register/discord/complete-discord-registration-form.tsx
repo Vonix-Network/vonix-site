@@ -47,7 +47,7 @@ export function CompleteDiscordRegistrationForm() {
             try {
                 const parsed = JSON.parse(decodeURIComponent(dataParam));
                 setDiscordData(parsed);
-            } catch (e) {
+            } catch (e: any) {
                 setErrorMessage('Invalid Discord data. Please try again.');
             }
         } else {
@@ -148,7 +148,7 @@ export function CompleteDiscordRegistrationForm() {
             }
 
             router.push('/login?registered=true&discord=true');
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
         } finally {
             setIsLoading(false);

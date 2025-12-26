@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
             message: 'Test email sent successfully',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Test email error:', error);
 
         const errorMessage = error instanceof Error

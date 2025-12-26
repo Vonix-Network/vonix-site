@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       users: result.users,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in expire-ranks cron:', error);
     return NextResponse.json(
       { error: 'Failed to process expired ranks' },

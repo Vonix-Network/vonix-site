@@ -50,7 +50,7 @@ export function MessengerProvider({ children }: { children: ReactNode }) {
         }));
         setConversations(convs);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load conversations:', err);
     }
   }, []);

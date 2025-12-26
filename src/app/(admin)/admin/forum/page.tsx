@@ -58,7 +58,7 @@ export default function AdminForumPage() {
         const data = await res.json();
         setCategories(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch categories:', error);
       toast.error('Failed to load categories');
     } finally {
@@ -99,7 +99,7 @@ export default function AdminForumPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to create category');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create category:', error);
       toast.error('Failed to create category');
     } finally {
@@ -127,7 +127,7 @@ export default function AdminForumPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to update category');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update category:', error);
       toast.error('Failed to update category');
     } finally {
@@ -146,7 +146,7 @@ export default function AdminForumPage() {
       } else {
         toast.error('Failed to delete category');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete category:', error);
       toast.error('Failed to delete category');
     }
@@ -239,7 +239,7 @@ export default function AdminForumPage() {
         await fetchCategories();
         toast.error('Failed to update order');
       }
-    } catch (error) {
+    } catch (error: any) {
       await fetchCategories();
       toast.error('Failed to update order');
     }

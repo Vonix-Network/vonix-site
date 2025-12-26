@@ -29,7 +29,7 @@ export async function GET() {
             publishableKey,
             mode,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Stripe config:', error);
         return NextResponse.json(
             { error: 'Failed to fetch Stripe configuration' },

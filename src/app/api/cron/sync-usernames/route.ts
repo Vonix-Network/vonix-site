@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         // Sleep 100ms between requests (max 10 req/sec)
         await new Promise(resolve => setTimeout(resolve, 100));
 
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error syncing user ${user.id}:`, error);
         errorCount++;
       }
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Username sync error:', error);
     return NextResponse.json(
       { error: 'Username sync failed' },

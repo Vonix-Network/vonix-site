@@ -196,7 +196,7 @@ export function RegisterForm() {
             }
 
             router.push('/login?registered=true');
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
         } finally {
             setIsLoading(false);
@@ -253,7 +253,7 @@ export function RegisterForm() {
             }
 
             router.push('/login?registered=true');
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
         } finally {
             setIsLoading(false);

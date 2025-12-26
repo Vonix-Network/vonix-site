@@ -104,7 +104,7 @@ export default function DashboardPage() {
           }));
           setNotifications(eventNotifs);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
         setIsLoading(false);

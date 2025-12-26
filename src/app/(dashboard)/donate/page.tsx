@@ -44,7 +44,7 @@ async function getRanks() {
         stripePriceMonthly: r.stripePriceMonthly,
       };
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching ranks:', error);
     return [];
   }

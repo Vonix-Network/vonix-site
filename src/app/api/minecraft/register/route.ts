@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       message: `Registration code generated for ${minecraftUsername}. Use this code on the website to complete registration. Code expires in 15 minutes.`,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Minecraft registration error:', error);
     return NextResponse.json(
       { error: 'Failed to generate registration code' },
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
       registered: false,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration check error:', error);
     return NextResponse.json(
       { error: 'Failed to check registration status' },

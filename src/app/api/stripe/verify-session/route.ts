@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       days,
       expiresAt: expiresAt.toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error verifying session:', error);
     return NextResponse.json(
       { error: 'Failed to verify session' },

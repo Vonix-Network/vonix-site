@@ -26,7 +26,7 @@ export async function GET() {
       .orderBy(asc(servers.id));
 
     return NextResponse.json(allServers);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching servers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch servers' },
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     return NextResponse.json(newServer, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating server:', error);
     return NextResponse.json(
       { error: 'Failed to create server' },

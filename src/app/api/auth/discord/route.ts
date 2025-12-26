@@ -69,7 +69,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.redirect(discordAuthUrl.toString());
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error initiating Discord OAuth:', error);
         return NextResponse.redirect(new URL('/login?error=Failed%20to%20initiate%20Discord%20login', request.url));
     }

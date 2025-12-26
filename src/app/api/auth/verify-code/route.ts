@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       minecraftUsername: registrationCode.minecraftUsername,
       minecraftUuid: registrationCode.minecraftUuid,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error verifying registration code:', error);
     return NextResponse.json(
       { valid: false, error: 'Failed to verify code' },

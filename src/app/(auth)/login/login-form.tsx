@@ -80,7 +80,7 @@ export function LoginForm() {
                 // Force a hard navigation to ensure session is loaded
                 window.location.href = callbackUrl;
             }
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage('An unexpected error occurred');
         } finally {
             setIsLoading(false);
@@ -92,7 +92,7 @@ export function LoginForm() {
         setErrorMessage('');
         try {
             window.location.href = `/api/auth/discord?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage('Failed to initiate Discord login');
             setIsDiscordLoading(false);
         }

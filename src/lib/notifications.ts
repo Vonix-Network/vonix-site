@@ -35,7 +35,7 @@ export async function createNotification(params: CreateNotificationParams) {
       .returning();
 
     return notification;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating notification:', error);
     return null;
   }

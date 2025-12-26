@@ -79,7 +79,7 @@ export const db = new Proxy({} as any, {
           });
 
           _db = drizzlePg(pgClient, { schema: pgSchema });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to initialize PostgreSQL client. Ensure "postgres" package is installed.', error);
           throw error;
         }
@@ -98,7 +98,7 @@ export const db = new Proxy({} as any, {
           });
 
           _db = drizzleMysql(pool, { schema: mysqlSchema, mode: 'default' });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to initialize MySQL client. Ensure "mysql2" package is installed.', error);
           throw error;
         }

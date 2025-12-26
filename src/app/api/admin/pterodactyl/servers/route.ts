@@ -70,7 +70,7 @@ export async function GET() {
             success: true,
             servers,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error listing Pterodactyl servers:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to list servers' },

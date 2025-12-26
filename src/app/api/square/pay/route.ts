@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
                 days,
                 paymentType: 'one_time',
             }).catch(err => console.error('Discord notification error:', err));
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to load Discord notification module:', e);
         }
 
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
                     orderId,
                 }).catch(err => console.error('Email receipt error:', err));
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to load email module:', e);
         }
 
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
             rankUpdated: true,
             expiresAt: newExpiresAt.toISOString(),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error processing Square payment:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,

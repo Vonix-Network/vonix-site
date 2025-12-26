@@ -50,7 +50,7 @@ export async function GET() {
             createdAt: new Date(),
             isNew: true,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching cron key:', error);
         return NextResponse.json({ error: 'Failed to fetch cron key' }, { status: 500 });
     }
@@ -102,7 +102,7 @@ export async function POST() {
             key: newKey,
             message: 'Cron key regenerated successfully. Update your cron jobs with the new key.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error regenerating cron key:', error);
         return NextResponse.json({ error: 'Failed to regenerate cron key' }, { status: 500 });
     }

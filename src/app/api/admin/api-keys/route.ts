@@ -21,7 +21,7 @@ export async function GET() {
       .orderBy(desc(apiKeys.createdAt));
 
     return NextResponse.json(keys);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching API keys:', error);
     return NextResponse.json(
       { error: 'Failed to fetch API keys' },
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     return NextResponse.json(newKey, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating API key:', error);
     return NextResponse.json(
       { error: 'Failed to create API key' },

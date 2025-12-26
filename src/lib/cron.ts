@@ -90,7 +90,7 @@ class CronManager {
       console.log(`⚡ Running cron job: ${job.name}`);
       await job.handler();
       console.log(`✅ Completed cron job: ${job.name}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error in cron job ${job.name}:`, error);
     } finally {
       job.running = false;
@@ -168,7 +168,7 @@ export function initializeCronJobs() {
         
         const data = await response.json();
         console.log('Username sync result:', data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to run username sync:', error);
       }
     }
@@ -192,7 +192,7 @@ export function initializeCronJobs() {
         
         const data = await response.json();
         console.log('Rank expiration result:', data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to run rank expiration:', error);
       }
     }

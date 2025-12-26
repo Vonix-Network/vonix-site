@@ -84,7 +84,7 @@ export default function AdminModerationPage() {
         setReports(data.reports || []);
         setAuditLogs(data.auditLogs || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch moderation data:', error);
     } finally {
       setIsLoading(false);
@@ -115,7 +115,7 @@ export default function AdminModerationPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to ban user');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to ban user');
     } finally {
       setIsSubmitting(false);
@@ -146,7 +146,7 @@ export default function AdminModerationPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to lock post');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to lock post');
     } finally {
       setIsSubmitting(false);
@@ -167,7 +167,7 @@ export default function AdminModerationPage() {
       } else {
         toast.error('Failed to update report');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to update report');
     }
   };

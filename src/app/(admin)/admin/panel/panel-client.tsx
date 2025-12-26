@@ -314,7 +314,7 @@ export default function ServerPanelPage() {
                     setSelectedServer(data.servers[0]);
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch servers:', err);
         } finally {
             setIsLoading(false);
@@ -338,7 +338,7 @@ export default function ServerPanelPage() {
                     }].slice(-60));
                 }
             }
-        } catch (err) { }
+        } catch (err: any) { }
     }, [selectedServer]);
 
     // Fetch player list
@@ -354,7 +354,7 @@ export default function ServerPanelPage() {
             } else {
                 setPlayerError(true);
             }
-        } catch (err) {
+        } catch (err: any) {
             setPlayerError(true);
         } finally {
             setPlayerLoading(false);
@@ -372,7 +372,7 @@ export default function ServerPanelPage() {
                 setFiles(data.files || []);
                 setCurrentPath(path);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load files');
         } finally {
             setFilesLoading(false);
@@ -389,7 +389,7 @@ export default function ServerPanelPage() {
                 setFileContent(data.content);
                 setEditingFile(filePath);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to open file');
         }
     };
@@ -408,7 +408,7 @@ export default function ServerPanelPage() {
             } else {
                 setError('Failed to save file');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to save file');
         }
     };
@@ -423,7 +423,7 @@ export default function ServerPanelPage() {
             });
             if (res.ok) fetchFiles(currentPath);
             else setError('Failed to delete');
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to delete');
         }
     };
@@ -441,7 +441,7 @@ export default function ServerPanelPage() {
                 setNewFolderName('');
                 fetchFiles(currentPath);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to create folder');
         }
     };
@@ -456,7 +456,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setDatabases(data.databases || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load databases');
         } finally {
             setDatabasesLoading(false);
@@ -479,7 +479,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setError(data.error || 'Failed to create database');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to create database');
         }
     };
@@ -490,7 +490,7 @@ export default function ServerPanelPage() {
             const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}/databases?id=${id}`, { method: 'DELETE' });
             if (res.ok) fetchDatabases();
             else setError('Failed to delete database');
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to delete database');
         }
     };
@@ -505,7 +505,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setBackups(data.backups || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load backups');
         } finally {
             setBackupsLoading(false);
@@ -528,7 +528,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setError(data.error || 'Failed to create backup');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to create backup');
         }
     };
@@ -539,7 +539,7 @@ export default function ServerPanelPage() {
             const res = await fetch(`/api/admin/pterodactyl/server/${selectedServer.identifier}/backups?uuid=${uuid}`, { method: 'DELETE' });
             if (res.ok) fetchBackups();
             else setError('Failed to delete backup');
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to delete backup');
         }
     };
@@ -554,7 +554,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setStartupVariables(data.variables || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load startup variables');
         } finally {
             setStartupLoading(false);
@@ -576,7 +576,7 @@ export default function ServerPanelPage() {
                 const data = await res.json();
                 setError(data.error || 'Failed to update variable');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to update variable');
         }
     };
@@ -609,7 +609,7 @@ export default function ServerPanelPage() {
                         setHasNewLogs(true);
                     }
                 }
-            } catch (e) { }
+            } catch (e: any) { }
         });
         eventSource.addEventListener('stats', (event) => {
             try {
@@ -626,7 +626,7 @@ export default function ServerPanelPage() {
                     timestamp: Date.now(), cpu: stats.cpu_absolute || 0, memory: stats.memory_bytes || 0,
                     networkRx: stats.network?.rx_bytes || 0, networkTx: stats.network?.tx_bytes || 0,
                 }].slice(-60));
-            } catch (e) { }
+            } catch (e: any) { }
         });
         eventSource.addEventListener('disconnected', () => { setWsConnected(false); setWsConnecting(false); });
         eventSource.onerror = () => {
@@ -667,7 +667,7 @@ export default function ServerPanelPage() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
             });
             if (!res.ok) { const data = await res.json(); setError(data.error || `Failed to ${action} server`); }
-        } catch (err) { setError('Network error'); }
+        } catch (err: any) { setError('Network error'); }
         finally { setActionInProgress(null); }
     };
 
@@ -679,7 +679,7 @@ export default function ServerPanelPage() {
             });
             if (res.ok) { setConsoleLines(prev => [...prev, `> ${command}`]); setCommand(''); }
             else { const data = await res.json(); setError(data.error || 'Failed to send command'); }
-        } catch (err) { setError('Failed to send command'); }
+        } catch (err: any) { setError('Failed to send command'); }
     };
 
     if (isLoading) return <div className="flex items-center justify-center min-h-[400px]"><RefreshCw className="w-8 h-8 animate-spin text-neon-cyan" /></div>;

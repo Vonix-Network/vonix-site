@@ -36,7 +36,7 @@ export async function GET() {
             mods: mods[0]?.count || 0,
             today: today[0]?.count || 0,
         });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

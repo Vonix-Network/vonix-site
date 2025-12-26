@@ -40,7 +40,7 @@ export default function NewTicketPage() {
                 const data = await res.json();
                 setError(data.error || 'Failed to create ticket');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('An error occurred. Please try again.');
         } finally {
             setIsSubmitting(false);

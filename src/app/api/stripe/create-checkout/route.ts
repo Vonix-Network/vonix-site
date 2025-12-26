@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       sessionId: checkoutSession.id,
       url: checkoutSession.url,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating checkout session:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,

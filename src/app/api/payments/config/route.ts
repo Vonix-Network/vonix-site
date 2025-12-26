@@ -65,7 +65,7 @@ export async function GET() {
                 : 'Stripe is not configured. Please set it up in the admin dashboard.',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching payment config:', error);
         return NextResponse.json(
             {

@@ -141,7 +141,7 @@ export default function AdminStatusPage() {
         users: { active: recentlyActive, total: usersTotal, recentlyActive },
         lastChecked: new Date(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch status:', error);
       setServices([]);
       setStatus({

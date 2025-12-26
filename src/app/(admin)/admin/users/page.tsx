@@ -129,7 +129,7 @@ export default function AdminUsersPage() {
         const data = await res.json();
         setUsers(data.users || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch users:', error);
       toast.error('Failed to load users');
     } finally {
@@ -144,7 +144,7 @@ export default function AdminUsersPage() {
         const data = await res.json();
         setStats(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch stats:', error);
     }
   };
@@ -173,7 +173,7 @@ export default function AdminUsersPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to create user');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to create user');
     } finally {
       setIsSaving(false);
@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to update user');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to update user');
     } finally {
       setIsSaving(false);
@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
       } else {
         toast.error('Failed to delete user');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to delete user');
     }
     setActionMenuOpen(null);
@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
       } else {
         toast.error('Failed to ban user');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to ban user');
     }
     setActionMenuOpen(null);
@@ -253,7 +253,7 @@ export default function AdminUsersPage() {
       try {
         await navigator.clipboard.writeText(email);
         toast.success('Email copied to clipboard');
-      } catch (err) {
+      } catch (err: any) {
         // Fallback to mailto
         window.location.href = `mailto:${email}`;
       }

@@ -43,7 +43,7 @@ export async function getUserRank(userId: number): Promise<DonationRank | null> 
       .limit(1);
 
     return rank || null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching user rank:', error);
     return null;
   }
@@ -61,7 +61,7 @@ export async function getRankById(rankId: string): Promise<DonationRank | null> 
       .limit(1);
 
     return rank || null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching rank:', error);
     return null;
   }
@@ -73,7 +73,7 @@ export async function getRankById(rankId: string): Promise<DonationRank | null> 
 export async function getAllRanks(): Promise<DonationRank[]> {
   try {
     return await db.select().from(donationRanks);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching ranks:', error);
     return [];
   }
@@ -142,7 +142,7 @@ export async function getUserRankStatus(userId: number): Promise<{
       isActive,
       daysRemaining,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting user rank status:', error);
     return {
       hasRank: false,

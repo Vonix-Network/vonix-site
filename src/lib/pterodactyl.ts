@@ -198,7 +198,7 @@ export async function testConnection(config: PterodactylConfig): Promise<{
             message: 'Connected successfully',
             serverCount: response.data?.length || 0,
         };
-    } catch (error) {
+    } catch (error: any) {
         return {
             success: false,
             message: error instanceof Error ? error.message : 'Connection failed',

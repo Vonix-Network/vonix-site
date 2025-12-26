@@ -106,7 +106,7 @@ export default function MessagesPage() {
         setFirstConversation(convs[0]);
         setNeedsAutoSelect(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading conversations', err);
     } finally {
       setLoadingConversations(false);
@@ -130,7 +130,7 @@ export default function MessagesPage() {
         time: new Date(m.createdAt),
       }));
       setMessages(msgs);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading messages', err);
     } finally {
       setLoadingMessages(false);
@@ -189,7 +189,7 @@ export default function MessagesPage() {
       }
 
       if (conv) setSelectedConversation(conv);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading conversation', err);
     } finally {
       setLoadingMessages(false);
@@ -320,7 +320,7 @@ export default function MessagesPage() {
         return updated;
       });
       setNewMessage('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sending message', err);
     }
   };

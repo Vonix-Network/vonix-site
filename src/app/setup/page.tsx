@@ -93,7 +93,7 @@ export default function SetupPage() {
           setSetupCompleted(true);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to check setup status:', err);
     } finally {
       setIsLoading(false);
@@ -177,7 +177,7 @@ export default function SetupPage() {
       } else {
         setErrors({ general: data.error || 'Setup failed. Please try again.' });
       }
-    } catch (err) {
+    } catch (err: any) {
       setErrors({ general: 'An error occurred. Please try again.' });
     } finally {
       setIsCompleting(false);

@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
                 createdAt: m.createdAt,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching discord messages:', error);
         return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
     }
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
                 createdAt: inserted.createdAt,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending discord message:', error);
         return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
     }

@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
             success: true,
             message: 'If a ticket exists for this email, an access link has been sent.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error resending access email:', error);
         return NextResponse.json({ error: 'Failed to resend email' }, { status: 500 });
     }

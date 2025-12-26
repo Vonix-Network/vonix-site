@@ -48,7 +48,7 @@ export default function ApiKeysPage() {
         const data = await res.json();
         setApiKeys(data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch API keys:', err);
     } finally {
       setIsLoading(false);
@@ -62,7 +62,7 @@ export default function ApiKeysPage() {
         const data = await res.json();
         setCronKey(data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch cron key:', err);
     }
   };
@@ -83,7 +83,7 @@ export default function ApiKeysPage() {
         setApiKeys([...apiKeys, data]);
         setNewKeyName('');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to generate API key:', err);
     }
   };
@@ -96,7 +96,7 @@ export default function ApiKeysPage() {
       if (res.ok) {
         setApiKeys(apiKeys.filter(k => k.id !== id));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete API key:', err);
     }
   };
@@ -136,7 +136,7 @@ export default function ApiKeysPage() {
         setCronKey({ configured: true, key: data.key });
         setShowCronKey(true); // Show the new key
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to regenerate cron key:', err);
     } finally {
       setIsRegeneratingCron(false);

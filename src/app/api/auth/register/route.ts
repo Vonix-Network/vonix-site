@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       user: finalUser,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },

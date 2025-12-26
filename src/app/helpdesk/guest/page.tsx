@@ -81,7 +81,7 @@ function GuestTicketContent() {
                 const data = await res.json();
                 setError(data.error || 'Failed to load ticket');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to load ticket');
         } finally {
             setLoading(false);
@@ -112,7 +112,7 @@ function GuestTicketContent() {
                 const data = await res.json();
                 setError(data.error || 'Failed to send reply');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to send reply');
         } finally {
             setIsSubmitting(false);
@@ -136,7 +136,7 @@ function GuestTicketContent() {
             } else {
                 setError('Failed to resend access email');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('Failed to resend access email');
         } finally {
             setResendLoading(false);

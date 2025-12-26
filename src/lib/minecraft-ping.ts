@@ -158,7 +158,7 @@ function parseServerResponse(jsonStr: string): MinecraftServerStatus {
       motd,
       icon: data.favicon || null,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[minecraft-ping] Failed to parse server response:', error);
     return { online: true };
   }
@@ -252,7 +252,7 @@ export async function pingServerNative(
               });
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           // Not enough data yet, wait for more
         }
       });

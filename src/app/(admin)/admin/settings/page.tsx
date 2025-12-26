@@ -215,7 +215,7 @@ export default function AdminSettingsPage() {
             donationWebhookAvatarUrl: discordData.donationWebhookAvatarUrl || '',
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load settings:', err);
       } finally {
         setIsLoading(false);
@@ -250,7 +250,7 @@ export default function AdminSettingsPage() {
       } else {
         toast.error('Failed to save settings');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save settings:', err);
       toast.error('Failed to save settings');
     } finally {
@@ -288,7 +288,7 @@ export default function AdminSettingsPage() {
       } else {
         setTestResult({ success: false, message: data.error || 'Failed to send test email' });
       }
-    } catch (err) {
+    } catch (err: any) {
       setTestResult({ success: false, message: 'Failed to send test email' });
     } finally {
       setIsSendingTest(false);
@@ -1907,7 +1907,7 @@ export default function AdminSettingsPage() {
                     } else {
                       toast.error('Failed to save Discord settings');
                     }
-                  } catch (err) {
+                  } catch (err: any) {
                     toast.error('Failed to save Discord settings');
                   } finally {
                     setDiscordSaving(false);

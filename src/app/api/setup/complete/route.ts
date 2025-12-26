@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       message: 'Setup completed successfully',
       adminId: newAdmin.id,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Setup error:', error);
     return NextResponse.json(
       { error: 'Setup failed. Please try again.' },

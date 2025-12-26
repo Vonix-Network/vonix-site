@@ -139,7 +139,7 @@ export async function sendDonationDiscordNotification(donation: DonationDetails)
 
         console.log('✅ Donation notification sent to Discord');
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending donation Discord notification:', error);
         return false;
     }

@@ -110,7 +110,7 @@ export async function GET(
         };
 
         // Resolve username and avatar: prefer linked user, then discord, then guest
-        const messages = rawMessages.map(msg => {
+        const messages = rawMessages.map((msg: any) => {
             // Resolve avatar URL
             let avatarUrl: string | null = null;
             if (msg.linkedAvatar) {
@@ -139,7 +139,7 @@ export async function GET(
         });
 
         return NextResponse.json({ ticket, messages, isStaff });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching ticket:', error);
         return NextResponse.json({ error: 'Failed to fetch ticket' }, { status: 500 });
     }
@@ -196,7 +196,7 @@ export async function PUT(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating ticket:', error);
         return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 });
     }

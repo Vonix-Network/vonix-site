@@ -69,7 +69,7 @@ export default function FriendsPage() {
       const data = await res.json();
       setFriends((data.friends || []) as Friend[]);
       setPendingRequests((data.pending || []) as PendingRequest[]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading friends:', err);
       setError('Failed to load friends');
     } finally {
@@ -99,7 +99,7 @@ export default function FriendsPage() {
       }
       const data = await res.json();
       setSearchResults((data.results || []) as FriendSearchResult[]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error searching users:', err);
     } finally {
       setSearchLoading(false);
@@ -330,7 +330,7 @@ export default function FriendsPage() {
                             if (res.ok) {
                               await reloadFriends();
                             }
-                          } catch (err) {
+                          } catch (err: any) {
                             console.error('Failed to accept friend request', err);
                           }
                         }}
@@ -350,7 +350,7 @@ export default function FriendsPage() {
                             if (res.ok) {
                               await reloadFriends();
                             }
-                          } catch (err) {
+                          } catch (err: any) {
                             console.error('Failed to decline friend request', err);
                           }
                         }}
@@ -447,7 +447,7 @@ export default function FriendsPage() {
                                 );
                                 await reloadFriends();
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Failed to send friend request', err);
                             }
                           }}

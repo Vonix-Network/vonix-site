@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ conversations });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading messages:', error);
     return NextResponse.json({ error: 'Failed to load messages' }, { status: 500 });
   }
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     ).catch(err => console.error('Failed to send message email:', err));
 
     return NextResponse.json(inserted, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending message:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }

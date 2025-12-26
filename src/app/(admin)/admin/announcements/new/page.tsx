@@ -65,7 +65,7 @@ export default function NewAnnouncementPage() {
                 const data = await res.json();
                 toast.error(data.error || 'Failed to create announcement');
             }
-        } catch (error) {
+        } catch (error: any) {
             toast.error('Failed to create announcement');
         } finally {
             setIsSaving(false);

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       : allEvents;
 
     return NextResponse.json(filteredEvents);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching events:', error);
     return NextResponse.json(
       { error: 'Failed to fetch events' },
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(newEvent, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating event:', error);
     return NextResponse.json(
       { error: 'Failed to create event' },

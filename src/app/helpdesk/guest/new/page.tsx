@@ -72,7 +72,7 @@ export default function NewGuestTicketPage() {
             } else {
                 setError(data.error || 'Failed to create ticket');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('An error occurred. Please try again.');
         } finally {
             setIsSubmitting(false);

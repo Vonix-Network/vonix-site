@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({ success: true, message: 'Post unlocked' });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
