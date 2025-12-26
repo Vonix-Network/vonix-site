@@ -20,7 +20,7 @@
 
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
-import * as schema from './schema-sqlite';
+import * as schemaSqlite from './schema-sqlite';
 
 // Get database type from environment
 const DATABASE_TYPE = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase();
@@ -44,31 +44,93 @@ export function getDatabaseType(): 'sqlite' | 'postgres' | 'mysql' {
   }
 }
 
-// Create database client for SQLite/Turso (the default)
-const client = createClient({
-  url: process.env.DATABASE_URL || 'file:./data/vonix.db',
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-});
-
-// Create drizzle instance with schema
-export const db = drizzle(client, { schema });
-
-// Export schema for use in queries
-export * from './schema';
-
 // Export database type for conditional logic
 export const databaseType = getDatabaseType();
 
 /**
- * Initialize PostgreSQL connection
- * Call this at app startup if using PostgreSQL/Supabase
+ * Global database instance (internal)
+ */
+let _db: any = null;
+
+/**
+ * Synchronous database instance export
  * 
- * @returns PostgreSQL drizzle instance
- * @example
- * ```ts
- * import { initPostgres } from '@/db';
- * const pgDb = await initPostgres();
- * ```
+ * Uses a Proxy to lazily initialize the correct database driver on first access.
+ * This avoids errors caused by initializing the wrong driver at module load time
+ * (e.g. libsql trying to parse a postgresql:// URL).
+ */
+export const db = new Proxy({} as any, {
+  get(target, prop, receiver) {
+    if (!_db) {
+      const type = getDatabaseType();
+      const url = process.env.DATABASE_URL || '';
+
+      if (type === 'postgres') {
+        try {
+          // Dynamic require for PostgreSQL support
+          const postgres = require('postgres');
+          const { drizzle: drizzlePg } = require('drizzle-orm/postgres-js');
+          const pgSchema = require('./schema-postgres');
+
+          const isSupabase = url.includes('supabase');
+          const pgClient = postgres(url, {
+            prepare: !isSupabase,
+            ssl: isSupabase || process.env.DATABASE_SSL === 'true' ? 'require' : undefined,
+          });
+
+          _db = drizzlePg(pgClient, { schema: pgSchema });
+        } catch (error) {
+          console.error('Failed to initialize PostgreSQL client. Ensure "postgres" package is installed.', error);
+          throw error;
+        }
+      } else if (type === 'mysql') {
+        try {
+          // Dynamic require for MySQL support
+          const mysql = require('mysql2/promise');
+          const { drizzle: drizzleMysql } = require('drizzle-orm/mysql2');
+          const mysqlSchema = require('./schema-mysql');
+
+          const pool = mysql.createPool({
+            uri: url,
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+          });
+
+          _db = drizzleMysql(pool, { schema: mysqlSchema, mode: 'default' });
+        } catch (error) {
+          console.error('Failed to initialize MySQL client. Ensure "mysql2" package is installed.', error);
+          throw error;
+        }
+      } else {
+        // Default to SQLite/Turso
+        const sqliteUrl = url.startsWith('postgresql') || url.startsWith('mysql')
+          ? 'file:./data/vonix.db'
+          : (url || 'file:./data/vonix.db');
+
+        const client = createClient({
+          url: sqliteUrl,
+          authToken: process.env.DATABASE_AUTH_TOKEN,
+        });
+
+        _db = drizzle(client, { schema: schemaSqlite });
+      }
+    }
+
+    // Forward the property access to the real drizzle instance
+    const value = _db[prop];
+    return typeof value === 'function' ? value.bind(_db) : value;
+  }
+});
+
+/**
+ * Re-export all schema definitions
+ * Note: These are from the SQLite schema for backward compatibility with types.
+ */
+export * from './schema';
+
+/**
+ * Initialize PostgreSQL connection (Asynchronous helper)
  */
 export async function initPostgres() {
   const { drizzle: drizzlePg } = await import('drizzle-orm/postgres-js');
@@ -80,7 +142,7 @@ export async function initPostgres() {
   const isSupabase = connectionUrl.includes('supabase');
 
   const pgClient = postgres(connectionUrl, {
-    prepare: !isSupabase, // Supabase doesn't support prepared statements in serverless
+    prepare: !isSupabase,
     ssl: isSupabase || process.env.DATABASE_SSL === 'true' ? 'require' : undefined,
   });
 
@@ -88,15 +150,7 @@ export async function initPostgres() {
 }
 
 /**
- * Initialize MySQL/MariaDB connection
- * Call this at app startup if using MySQL/MariaDB
- * 
- * @returns MySQL drizzle instance
- * @example
- * ```ts
- * import { initMySQL } from '@/db';
- * const mysqlDb = await initMySQL();
- * ```
+ * Initialize MySQL/MariaDB connection (Asynchronous helper)
  */
 export async function initMySQL() {
   const { drizzle: drizzleMysql } = await import('drizzle-orm/mysql2');
@@ -114,15 +168,7 @@ export async function initMySQL() {
 }
 
 /**
- * Get the appropriate database instance based on DATABASE_TYPE
- * Use this for dynamic database selection at runtime
- * 
- * @returns Database instance (type depends on DATABASE_TYPE)
- * @example
- * ```ts
- * import { getDatabase } from '@/db';
- * const database = await getDatabase();
- * ```
+ * Get the appropriate database instance (Asynchronous helper)
  */
 export async function getDatabase() {
   const dbType = getDatabaseType();
