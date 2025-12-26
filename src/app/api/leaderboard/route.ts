@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // Create a map of userId -> playtime
     const playtimeMap = new Map<number, number>();
     playtimeData.forEach((p: any) => {
-      playtimeMap.set(p.userId, p.totalPlaytime || 0);
+      playtimeMap.set(p.userId, Number(p.totalPlaytime || 0));
     });
 
     const now = new Date();

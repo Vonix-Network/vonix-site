@@ -78,10 +78,10 @@ export default function LeaderboardPage() {
   }, [leaderboardType]);
 
   // Calculate stats
-  const totalXP = leaderboard.reduce((sum: any, user: any) => sum + (user.xp || 0), 0);
-  const totalPlaytime = leaderboard.reduce((sum: any, user: any) => sum + (user.playtimeSeconds || 0), 0);
+  const totalXP = leaderboard.reduce((sum: any, user: any) => sum + Number(user.xp || 0), 0);
+  const totalPlaytime = leaderboard.reduce((sum: any, user: any) => sum + Number(user.playtimeSeconds || 0), 0);
   const avgLevel = leaderboard.length > 0
-    ? Math.round(leaderboard.reduce((sum: any, user: any) => sum + (user.level || 1), 0) / leaderboard.length)
+    ? Math.round(leaderboard.reduce((sum: any, user: any) => sum + Number(user.level || 1), 0) / leaderboard.length)
     : 1;
 
   return (
