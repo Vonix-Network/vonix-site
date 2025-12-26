@@ -264,7 +264,7 @@ export default async function AdminAnalyticsPage() {
         <CardContent>
           {recentDonations.length > 0 ? (
             <div className="space-y-3">
-              {recentDonations.map((donation) => (
+              {recentDonations.map((donation: any) => (
                 <div
                   key={donation.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
