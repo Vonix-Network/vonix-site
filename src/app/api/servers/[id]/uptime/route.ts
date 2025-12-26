@@ -132,12 +132,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         const uptimePercentage = totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0;
         const avgResponseTime = responseTimes.length > 0
-            ? Math.round(responseTimes.reduce((a: any, b: any) => a + b, 0) / responseTimes.length)
+            ? Math.round(responseTimes.reduce((a: any, b: any) => Number(a) + Number(b), 0) / responseTimes.length)
             : 0;
         const avgPlayers = playerCounts.length > 0
-            ? Math.round(playerCounts.reduce((a: any, b: any) => a + b, 0) / playerCounts.length)
+            ? Math.round(playerCounts.reduce((a: any, b: any) => Number(a) + Number(b), 0) / playerCounts.length)
             : 0;
-        const maxPlayers = playerCounts.length > 0 ? Math.max(...playerCounts) : 0;
+        const maxPlayers = playerCounts.length > 0 ? Math.max(...playerCounts.map(Number)) : 0;
 
         return NextResponse.json({
             server: {
