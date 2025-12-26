@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '../../../../../../auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, eq, gte } from 'drizzle-orm';
 
 async function requireAdmin() {
     const session = await auth();
@@ -23,18 +23,25 @@ export async function GET() {
     try {
         await requireAdmin();
 
+        // Calculate today's start date
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
         const [total, admins, mods, today] = await Promise.all([
             db.select({ count: sql<number>`count(*)` }).from(users),
-            db.select({ count: sql<number>`count(*)` }).from(users).where(sql`${users.role} IN ('admin', 'superadmin')`),
-            db.select({ count: sql<number>`count(*)` }).from(users).where(sql`${users.role} = 'moderator'`),
-            db.select({ count: sql<number>`count(*)` }).from(users).where(sql`date(${users.createdAt}, 'unixepoch') = date('now')`),
+            db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'admin')),
+            db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'moderator')),
+            db.select({ count: sql<number>`count(*)` }).from(users).where(gte(users.createdAt, todayStart)),
         ]);
 
+        // Also count superadmins as admins
+        const [superadmins] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'superadmin'));
+
         return NextResponse.json({
-            total: total[0]?.count || 0,
-            admins: admins[0]?.count || 0,
-            mods: mods[0]?.count || 0,
-            today: today[0]?.count || 0,
+            total: Number(total[0]?.count || 0),
+            admins: Number(admins[0]?.count || 0) + Number(superadmins?.count || 0),
+            mods: Number(mods[0]?.count || 0),
+            today: Number(today[0]?.count || 0),
         });
     } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
@@ -47,4 +54,3 @@ export async function GET() {
         );
     }
 }
-

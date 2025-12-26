@@ -10,21 +10,68 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Format a date to a human-readable string
+ * Handles Date objects, ISO strings, and Unix timestamps (both seconds and milliseconds)
  */
-export function formatDate(date: Date | string | number): string {
+export function formatDate(date: Date | string | number | null | undefined): string {
+  if (date === null || date === undefined) {
+    return 'N/A';
+  }
+
+  let dateObj: Date;
+
+  if (typeof date === 'number') {
+    // Unix timestamps in seconds are typically < 10 billion (before year 2286)
+    // Timestamps in milliseconds are typically > 10 trillion
+    // If the number is less than 10 billion, assume it's seconds and convert to ms
+    if (date < 10000000000) {
+      dateObj = new Date(date * 1000);
+    } else {
+      dateObj = new Date(date);
+    }
+  } else {
+    dateObj = new Date(date);
+  }
+
+  // Check for invalid date
+  if (isNaN(dateObj.getTime()) || dateObj.getFullYear() < 2000) {
+    return 'N/A';
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(date));
+  }).format(dateObj);
 }
 
 /**
  * Format a date to a relative time string (e.g., "2 hours ago")
+ * Handles Date objects, ISO strings, and Unix timestamps (both seconds and milliseconds)
  */
-export function formatRelativeTime(date: Date | string | number): string {
+export function formatRelativeTime(date: Date | string | number | null | undefined): string {
+  if (date === null || date === undefined) {
+    return 'N/A';
+  }
+
   const now = new Date();
-  const then = new Date(date);
+  let then: Date;
+
+  if (typeof date === 'number') {
+    // If the number is less than 10 billion, assume it's seconds and convert to ms
+    if (date < 10000000000) {
+      then = new Date(date * 1000);
+    } else {
+      then = new Date(date);
+    }
+  } else {
+    then = new Date(date);
+  }
+
+  // Check for invalid date
+  if (isNaN(then.getTime()) || then.getFullYear() < 2000) {
+    return 'N/A';
+  }
+
   const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
@@ -124,7 +171,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
-  
+
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
