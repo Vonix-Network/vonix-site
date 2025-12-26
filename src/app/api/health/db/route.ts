@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
+import { users } from '@/db/schema';
 import { sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +13,8 @@ export async function GET() {
     const startTime = Date.now();
 
     try {
-        // Simple query to check DB connection
-        await db.run(sql`SELECT 1`);
+        // Simple query to check DB connection (database-agnostic)
+        await db.select({ count: sql<number>`1` }).from(users).limit(1);
 
         const latency = Date.now() - startTime;
 

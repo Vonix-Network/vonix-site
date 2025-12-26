@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { db } from '@/db';
 import { users, forumPosts, auditLogs, reportedContent } from '@/db/schema';
-import { desc, sql, eq } from 'drizzle-orm';
+import { desc, sql, eq, gte } from 'drizzle-orm';
 
 async function requireModerator() {
     const session = await auth();
@@ -23,11 +23,14 @@ export async function GET() {
     try {
         await requireModerator();
 
+        // Current time for date comparisons (database-agnostic)
+        const now = new Date();
+
         // Get stats
         const [bannedCount, lockedPosts] = await Promise.all([
             db.select({ count: sql<number>`count(*)` })
                 .from(users)
-                .where(sql`${users.lockedUntil} > unixepoch()`),
+                .where(gte(users.lockedUntil, now)),
             db.select({ count: sql<number>`count(*)` })
                 .from(forumPosts)
                 .where(eq(forumPosts.locked, true)),
