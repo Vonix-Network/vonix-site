@@ -60,35 +60,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     // Generators
-    const serverRoutes: MetadataRoute.Sitemap = dbServers.map(s => ({
+    const serverRoutes: MetadataRoute.Sitemap = dbServers.map((s: any) => ({
         url: `${baseUrl}/servers/${s.id}`,
         lastModified: s.updatedAt || new Date(),
         changeFrequency: 'hourly',
         priority: 0.8
     }));
 
-    const categoryRoutes: MetadataRoute.Sitemap = dbCategories.map(c => ({
+    const categoryRoutes: MetadataRoute.Sitemap = dbCategories.map((c: any) => ({
         url: `${baseUrl}/forum/category/${c.slug}`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.8
     }));
 
-    const postRoutes: MetadataRoute.Sitemap = dbPosts.map(p => ({
+    const postRoutes: MetadataRoute.Sitemap = dbPosts.map((p: any) => ({
         url: `${baseUrl}/forum/post/${p.id}`,
         lastModified: p.updatedAt || new Date(),
         changeFrequency: 'weekly',
         priority: 0.7
     }));
 
-    const userRoutes: MetadataRoute.Sitemap = dbUsers.map(u => ({
+    const userRoutes: MetadataRoute.Sitemap = dbUsers.map((u: any) => ({
         url: `${baseUrl}/profile/${u.username}`,
         lastModified: u.updatedAt || new Date(),
         changeFrequency: 'monthly',
         priority: 0.6
     }));
 
-    const socialRoutes: MetadataRoute.Sitemap = dbSocial.map(s => ({
+    const socialRoutes: MetadataRoute.Sitemap = dbSocial.map((s: any) => ({
         url: `${baseUrl}/social/post/${s.id}`,
         lastModified: s.updatedAt || new Date(),
         changeFrequency: 'daily',

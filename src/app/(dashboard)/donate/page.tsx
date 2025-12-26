@@ -20,7 +20,7 @@ async function getRanks() {
   try {
     // Ordering by minAmount - auto-orders by price
     const ranks = await db.select().from(donationRanks).orderBy(donationRanks.minAmount);
-    return ranks.map(r => {
+    return ranks.map((r: any) => {
       // Safely parse perks - handle already-parsed or malformed data
       let perks: string[] = [];
       try {
@@ -68,7 +68,7 @@ async function getRecentDonations() {
       .orderBy(desc(donations.createdAt))
       .limit(10);
 
-    return result.map(d => ({
+    return result.map((d: any) => ({
       id: d.id,
       minecraftUsername: d.minecraftUsername || d.username || 'Anonymous',
       amount: d.amount,

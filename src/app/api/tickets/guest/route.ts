@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
                 updatedAt: ticket.updatedAt,
                 closedAt: ticket.closedAt,
             },
-            messages: messages.map(msg => ({
+            messages: messages.map((msg: any) => ({
                 id: msg.id,
                 message: msg.message,
                 isStaffReply: msg.isStaffReply,

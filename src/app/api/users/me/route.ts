@@ -63,12 +63,12 @@ export async function GET() {
         });
 
         const totalServerXp = serverXpData.reduce(
-            (acc, s) => acc + (s.xp || 0),
+            (acc: any, s: any) => acc + (s.xp || 0),
             0
         );
 
         const totalPlaytimeSeconds = serverXpData.reduce(
-            (acc, s) => acc + (s.playtimeSeconds || 0),
+            (acc: any, s: any) => acc + (s.playtimeSeconds || 0),
             0
         );
 

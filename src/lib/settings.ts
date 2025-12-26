@@ -53,7 +53,7 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
       .where(eq(siteSettings.key, keys[0])); // SQLite limitation workaround
 
     const result: Record<string, string> = {};
-    settings.forEach(setting => {
+    settings.forEach((setting: any) => {
       if (keys.includes(setting.key)) {
         result[setting.key] = setting.value || '';
       }
@@ -75,8 +75,8 @@ export async function getSettingsByCategory(category: string): Promise<Record<st
 
     const result: Record<string, string> = {};
     settings
-      .filter(s => s.category === category)
-      .forEach(setting => {
+      .filter((s: any) => s.category === category)
+      .forEach((setting: any) => {
         result[setting.key] = setting.value || '';
       });
 
