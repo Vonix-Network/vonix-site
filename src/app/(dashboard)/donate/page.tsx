@@ -116,7 +116,7 @@ async function getUserSubscription() {
     if (!user) return null;
 
     // Get rank details if user has a rank
-    let rank = null;
+    let rank: any = null;
     if (user.donationRankId) {
       const [foundRank] = await db
         .select()
