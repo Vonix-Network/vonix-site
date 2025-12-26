@@ -283,7 +283,7 @@ export default function AdminForumPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {categories.reduce((sum: any, c: any) => sum + (c.postCount || 0), 0)}
+                  {categories.reduce((sum: any, c: any) => sum + Number(c.postCount || 0), 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Posts</p>
               </div>

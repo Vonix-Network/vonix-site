@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
                 serverStats[record.serverId].online++;
             }
             if (record.responseTimeMs) {
-                serverStats[record.serverId].avgResponseTime += record.responseTimeMs;
+                serverStats[record.serverId].avgResponseTime += Number(record.responseTimeMs);
             }
         });
 

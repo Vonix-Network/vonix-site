@@ -120,7 +120,7 @@ async function getUserStats(userId: number) {
     ]);
 
     // Sum up playtime from all servers
-    const totalPlaytimeSeconds = serverXpData.reduce((acc: any, record: any) => acc + (record.playtimeSeconds || 0),
+    const totalPlaytimeSeconds = serverXpData.reduce((acc: any, record: any) => acc + Number(record.playtimeSeconds || 0),
       0
     );
 

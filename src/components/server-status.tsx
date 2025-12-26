@@ -158,7 +158,7 @@ export function ServerStatusList({
     }
   };
 
-  const totalPlayers = servers.reduce((sum: any, s: any) => sum + (s.players?.online || 0), 0);
+  const totalPlayers = servers.reduce((sum: any, s: any) => sum + Number(s.players?.online || 0), 0);
   const onlineServers = servers.filter((s: any) => s.online).length;
 
   const getServerAddress = (server: ServerData) =>

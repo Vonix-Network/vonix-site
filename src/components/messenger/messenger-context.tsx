@@ -85,7 +85,7 @@ export function MessengerProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const totalUnread = conversations.reduce((sum: any, c: any) => sum + c.unreadCount, 0);
+  const totalUnread = conversations.reduce((sum: any, c: any) => sum + Number(c.unreadCount || 0), 0);
 
   return (
     <MessengerContext.Provider

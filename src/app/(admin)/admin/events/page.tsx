@@ -209,7 +209,7 @@ export default function AdminEventsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {events.reduce((sum: any, e: any) => sum + (e.attendeeCount || 0), 0)}
+                  {events.reduce((sum: any, e: any) => sum + Number(e.attendeeCount || 0), 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">Total RSVPs</p>
               </div>

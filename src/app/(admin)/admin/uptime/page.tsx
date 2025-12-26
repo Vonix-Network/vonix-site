@@ -119,14 +119,14 @@ export default function AdminUptimePage() {
     };
 
     const overallUptime = uptimeStats.length > 0
-        ? uptimeStats.reduce((sum: any, s: any) => sum + s.uptimePercentage, 0) / uptimeStats.length
+        ? uptimeStats.reduce((sum: any, s: any) => sum + Number(s.uptimePercentage || 0), 0) / uptimeStats.length
         : 0;
 
     const avgResponseTime = uptimeStats.length > 0
-        ? uptimeStats.reduce((sum: any, s: any) => sum + s.avgResponseTime, 0) / uptimeStats.length
+        ? uptimeStats.reduce((sum: any, s: any) => sum + Number(s.avgResponseTime || 0), 0) / uptimeStats.length
         : 0;
 
-    const totalChecks = uptimeStats.reduce((sum: any, s: any) => sum + s.totalChecks, 0);
+    const totalChecks = uptimeStats.reduce((sum: any, s: any) => sum + Number(s.totalChecks || 0), 0);
     const maxChartValue = Math.max(...chartData.map((d: any) => d.online + d.offline), 1);
 
     if (isLoading) {

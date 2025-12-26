@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
                     where: eq(serverXp.userId, user.id),
                 });
 
-                const totalMinecraftXp = allServerXp.reduce((sum: any, s: any) => sum + (s.xp || 0), 0);
+                const totalMinecraftXp = allServerXp.reduce((sum: any, s: any) => sum + Number(s.xp || 0), 0);
 
                 // Calculate new total XP and level
                 const totalXp = totalMinecraftXp + (user.websiteXp || 0);
