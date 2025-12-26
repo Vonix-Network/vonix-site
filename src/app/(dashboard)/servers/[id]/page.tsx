@@ -87,27 +87,83 @@ function ServerDetailSkeleton() {
   );
 }
 
+import { db } from '@/db';
+import { servers } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { getServerStatus } from '@/lib/minecraft-status';
+import { pingServerNative } from '@/lib/minecraft-ping';
+
 async function getServerWithStatus(id: number) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
   try {
-    const res = await fetch(`${baseUrl}/api/servers/status`, {
-      cache: 'no-store', // Always fetch fresh data
-      headers: {
-        'Cache-Control': 'no-cache',
-      },
-    });
+    // 1. Fetch server config from DB
+    const [server] = await db
+      .select()
+      .from(servers)
+      .where(eq(servers.id, id))
+      .limit(1);
 
-    if (!res.ok) {
-      console.error(`Failed to fetch server status: ${res.status}`);
-      return null;
+    if (!server) return null;
+
+    // 2. Get live status directly
+    let result = await pingServerNative(server.ipAddress, server.port);
+
+    if (!result.success || !result.data?.online) {
+      result = await getServerStatus(server.ipAddress, server.port, false);
     }
 
-    const data = await res.json();
-    const servers = (data.servers || []) as any[];
-    return servers.find((s: any) => s.id === id) ?? null;
+    const data = result?.data;
+
+    // 3. Normalize data (copied logic from api/servers/status/route.ts)
+    const version = data?.version?.name_clean ?? data?.version?.name_raw ?? null;
+    const playerList = (data?.players?.list || []).map((p: any) => ({
+      name: p.name_clean || p.name_raw || 'Unknown',
+      uuid: p.uuid || '',
+    }));
+
+    let motd = '';
+    const cleanMotd: string | string[] | undefined = data?.motd?.clean as any;
+    const rawMotd: string | string[] | undefined = data?.motd?.raw as any;
+
+    if (cleanMotd) {
+      motd = Array.isArray(cleanMotd) ? cleanMotd.join(' ') : String(cleanMotd);
+    } else if (rawMotd) {
+      motd = Array.isArray(rawMotd) ? rawMotd.join(' ') : String(rawMotd);
+    }
+
+    let icon: string | null = data?.icon ?? null;
+    if (icon && icon.startsWith('data:image')) {
+      const commaIndex = icon.indexOf(',');
+      icon = commaIndex !== -1 ? icon.slice(commaIndex + 1) : icon;
+    }
+
+    return {
+      id: server.id,
+      name: server.name,
+      description: server.description,
+      address: server.ipAddress,
+      port: server.port,
+      hidePort: server.hidePort,
+      modpackName: server.modpackName,
+      bluemapUrl: server.bluemapUrl,
+      curseforgeUrl: server.curseforgeUrl,
+      orderIndex: server.orderIndex,
+      apiKey: server.apiKey,
+      pterodactylServerId: server.pterodactylServerId,
+      pterodactylPanelUrl: server.pterodactylPanelUrl,
+      online: data?.online ?? false,
+      version,
+      players: {
+        online: data?.players?.online ?? 0,
+        max: data?.players?.max ?? 0,
+        list: playerList,
+      },
+      motd,
+      icon,
+      cachedAt: result?.cachedAt,
+    };
+
   } catch (error: any) {
-    console.error('Error fetching server status:', error);
+    console.error('Error fetching server detail:', error);
     return null;
   }
 }
