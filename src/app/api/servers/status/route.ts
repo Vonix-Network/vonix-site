@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Ping all servers in parallel using hybrid approach
-    const statusPromises = allServers.map(async (server) => {
+    const statusPromises = allServers.map(async (server: any) => {
       // Try native ping first
       let result = await pingServerNative(server.ipAddress, server.port);
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         ?? null;
 
       // Normalize player list to { name, uuid }
-      const playerList = (data?.players?.list || []).map((p) => ({
+      const playerList = (data?.players?.list || []).map((p: any) => ({
         name: p.name_clean || p.name_raw || 'Unknown',
         uuid: p.uuid || '',
       }));

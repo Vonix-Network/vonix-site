@@ -54,7 +54,7 @@ export default function NotificationsPage() {
     }
   }, [status, router]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -85,7 +85,7 @@ export default function NotificationsPage() {
         body: JSON.stringify({ ids: [id] }),
       });
       if (res.ok) {
-        setNotifications(notifications.map(n =>
+        setNotifications(notifications.map((n: any) =>
           n.id === id ? { ...n, read: true } : n
         ));
       }
@@ -102,7 +102,7 @@ export default function NotificationsPage() {
         body: JSON.stringify({ all: true }),
       });
       if (res.ok) {
-        setNotifications(notifications.map(n => ({ ...n, read: true })));
+        setNotifications(notifications.map((n: any) => ({ ...n, read: true })));
       }
     } catch (err: any) {
       console.error('Failed to mark all as read:', err);
@@ -117,7 +117,7 @@ export default function NotificationsPage() {
         body: JSON.stringify({ ids: [id] }),
       });
       if (res.ok) {
-        setNotifications(notifications.filter(n => n.id !== id));
+        setNotifications(notifications.filter((n: any) => n.id !== id));
       }
     } catch (err: any) {
       console.error('Failed to delete notification:', err);
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
         <CardContent className="p-0">
           {notifications.length > 0 ? (
             <div className="divide-y divide-border">
-              {notifications.map((notification) => (
+              {notifications.map((notification: any) => (
                 <div
                   key={notification.id}
                   className={`flex items-start gap-4 p-4 hover:bg-secondary/50 transition-colors ${!notification.read ? 'bg-neon-cyan/5' : ''

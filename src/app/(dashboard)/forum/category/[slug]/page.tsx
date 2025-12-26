@@ -80,7 +80,7 @@ async function getCategoryPosts(categoryId: number) {
 
     // Get reply counts for each post
     const postsWithReplies = await Promise.all(
-      posts.map(async (post) => {
+      posts.map(async (post: any) => {
         const [replyCount] = await db
           .select({ count: sql<number>`count(*)` })
           .from(forumReplies)
@@ -160,7 +160,7 @@ export default async function CategoryPage({ params }: PageProps) {
         <CardContent>
           {posts.length > 0 ? (
             <div className="space-y-6">
-              {posts.map((post) => (
+              {posts.map((post: any) => (
                 <Link key={post.id} href={`/forum/post/${post.id}`} className="block">
                   <div className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group border border-transparent hover:border-white/5">
                     <div className="flex-1 min-w-0">

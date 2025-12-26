@@ -140,7 +140,7 @@ export default function AdminHelpdeskPage() {
 
     // Filter and sort tickets
     const filteredTickets = tickets
-        .filter(ticket => {
+        .filter((ticket: any) => {
             const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
             const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
             const matchesSearch = searchQuery === '' ||
@@ -149,7 +149,7 @@ export default function AdminHelpdeskPage() {
                 ticket.id.toString().includes(searchQuery);
             return matchesStatus && matchesPriority && matchesSearch;
         })
-        .sort((a, b) => {
+        .sort((a: any, b: any) => {
             if (sortBy === 'priority') {
                 const priorityA = priorityConfig[a.priority]?.order ?? 3;
                 const priorityB = priorityConfig[b.priority]?.order ?? 3;
@@ -381,7 +381,7 @@ export default function AdminHelpdeskPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredTickets.map((ticket) => {
+                                    {filteredTickets.map((ticket: any) => {
                                         const statusInfo = statusConfig[ticket.status] || statusConfig.open;
                                         const priorityInfo = priorityConfig[ticket.priority] || priorityConfig.normal;
                                         const StatusIcon = statusInfo.icon;

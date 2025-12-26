@@ -51,7 +51,7 @@ export async function GET(
             socket: data.data.socket,
             token: data.data.token,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching WebSocket credentials:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to get WebSocket credentials' },

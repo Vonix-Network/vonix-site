@@ -126,7 +126,7 @@ export default function NewForumPostPage() {
                 required
               >
                 <option value="" disabled>Select a category</option>
-                {categories.map((cat) => (
+                {categories.map((cat: any) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>

@@ -63,7 +63,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
                 setMessages(data.messages || []);
                 setIsStaff(data.isStaff);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching ticket:', error);
         } finally {
             setIsLoading(false);
@@ -85,7 +85,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
                 setReply('');
                 fetchTicket(); // Refresh messages
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending reply:', error);
         } finally {
             setIsSending(false);
@@ -156,7 +156,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
             <Card variant="glass" className="mb-6">
                 <CardContent className="p-0">
                     <div className="divide-y divide-border">
-                        {messages.map((msg) => (
+                        {messages.map((msg: any) => (
                             <div key={msg.id} className={`p-4 ${msg.isStaffReply ? 'bg-neon-cyan/5' : ''}`}>
                                 <div className="flex items-start gap-3">
                                     <Avatar className="w-8 h-8">

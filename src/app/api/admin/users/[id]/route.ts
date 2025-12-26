@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Don't return password
         const { password, ...userData } = user;
         return NextResponse.json(userData);
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         const { password, ...userData } = updated;
         return NextResponse.json({ success: true, user: userData });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await db.delete(users).where(eq(users.id, userId));
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

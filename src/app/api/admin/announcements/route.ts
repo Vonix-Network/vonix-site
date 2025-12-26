@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
             const allUsers = await db.select({ id: users.id }).from(users);
 
             // Create notifications in batches
-            const notificationValues = allUsers.map(user => ({
+            const notificationValues = allUsers.map((user: any) => ({
                 userId: user.id,
                 type: 'system' as const,
                 title: `📢 ${title}`,

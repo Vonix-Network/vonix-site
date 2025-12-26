@@ -24,7 +24,7 @@ export async function GET(request: Request) {
             ]));
 
         const settingsMap = Object.fromEntries(
-            settings.map(s => [s.key, s.value])
+            settings.map((s: any) => [s.key, s.value])
         );
 
         const clientId = settingsMap['discord_oauth_client_id'];

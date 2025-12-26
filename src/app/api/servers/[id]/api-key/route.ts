@@ -75,7 +75,7 @@ export async function POST(
             message: 'API key generated successfully',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to generate API key:', error);
         return NextResponse.json(
             { error: 'Failed to generate API key' },
@@ -126,7 +126,7 @@ export async function GET(
             maskedKey,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to get API key:', error);
         return NextResponse.json(
             { error: 'Failed to get API key' },
@@ -166,7 +166,7 @@ export async function DELETE(
             message: 'API key revoked',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to revoke API key:', error);
         return NextResponse.json(
             { error: 'Failed to revoke API key' },

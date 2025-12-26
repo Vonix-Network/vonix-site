@@ -83,7 +83,7 @@ export function HomeStats({ initialData }: HomeStatsProps) {
     if (isLoading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-4xl mx-auto">
-                {[...Array(4)].map((_, i) => (
+                {[...Array(4)].map((_: any, i: any) => (
                     <div key={i} className="stat-card p-5 text-center h-28 flex items-center justify-center">
                         <Loader2 className="w-6 h-6 animate-spin text-neon-cyan/50" />
                     </div>
@@ -94,7 +94,7 @@ export function HomeStats({ initialData }: HomeStatsProps) {
 
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-4xl mx-auto">
-            {statCards.map((stat, index) => (
+            {statCards.map((stat: any, index: any) => (
                 <div
                     key={index}
                     className={`group stat-card p-5 text-center transition-all duration-300 ${stat.glowColor}`}

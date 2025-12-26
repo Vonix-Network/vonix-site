@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userIds parameter' }, { status: 400 });
     }
 
-    const userIds = userIdsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+    const userIds = userIdsParam.split(',').map((id: any) => parseInt(id)).filter((id: any) => !isNaN(id));
 
     if (userIds.length === 0) {
       return NextResponse.json({ presence: {} });

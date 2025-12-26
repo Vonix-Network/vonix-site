@@ -35,7 +35,7 @@ async function getCategories() {
 
     // Get post counts for each category
     const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
+      categories.map(async (category: any) => {
         const postCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(forumPosts)
@@ -143,7 +143,7 @@ export default async function ForumPage() {
               </CardHeader>
               <CardContent className="grid gap-4">
                 {categories.length > 0 ? (
-                  categories.map((category) => (
+                  categories.map((category: any) => (
                     <Link key={category.id} href={`/forum/category/${category.slug}`}>
                       <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group">
                         <div className="flex items-center gap-4">
@@ -189,7 +189,7 @@ export default async function ForumPage() {
               </CardHeader>
               <CardContent className="grid gap-4">
                 {recentPosts.length > 0 ? (
-                  recentPosts.map((post) => (
+                  recentPosts.map((post: any) => (
                     <Link key={post.id} href={`/forum/post/${post.id}`}>
                       <div className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group">
                         <div className="flex-1 min-w-0">

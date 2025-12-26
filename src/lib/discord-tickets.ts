@@ -69,17 +69,17 @@ export async function getDiscordTicketSettings(): Promise<DiscordTicketSettings>
             ])
         );
 
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+    const settingsMap = new Map(settings.map((s: any) => [s.key, s.value]));
 
     return {
-        botToken: settingsMap.get('discord_bot_token') || null,
-        clientId: settingsMap.get('discord_client_id') || null,
-        guildId: settingsMap.get('discord_guild_id') || null,
-        ticketForumId: settingsMap.get('discord_ticket_forum_id') || null,
-        ticketCategoryId: settingsMap.get('discord_ticket_category_id') || null,
-        staffRoleId: settingsMap.get('discord_ticket_staff_role_id') || null,
-        pingRoleId: settingsMap.get('discord_ticket_ping_role_id') || null,
-        logChannelId: settingsMap.get('discord_ticket_log_channel_id') || null,
+        botToken: (settingsMap.get('discord_bot_token') as string) || null,
+        clientId: (settingsMap.get('discord_client_id') as string) || null,
+        guildId: (settingsMap.get('discord_guild_id') as string) || null,
+        ticketForumId: (settingsMap.get('discord_ticket_forum_id') as string) || null,
+        ticketCategoryId: (settingsMap.get('discord_ticket_category_id') as string) || null,
+        staffRoleId: (settingsMap.get('discord_ticket_staff_role_id') as string) || null,
+        pingRoleId: (settingsMap.get('discord_ticket_ping_role_id') as string) || null,
+        logChannelId: (settingsMap.get('discord_ticket_log_channel_id') as string) || null,
     };
 }
 
@@ -326,7 +326,7 @@ export async function registerTicketCommands() {
         new SlashCommandBuilder()
             .setName('help')
             .setDescription('Show ticket commands help'),
-    ].map(command => command.toJSON());
+    ].map((command: any) => command.toJSON());
 
     try {
         await discordRest.put(
@@ -1046,7 +1046,7 @@ export async function listTickets(interaction: any): Promise<void> {
         return;
     }
 
-    const ticketList = tickets.map(t =>
+    const ticketList = tickets.map((t: any) =>
         `${getStatusEmoji(t.status)} **#${t.id}** - ${t.subject}\n` +
         `   ${getPriorityEmoji(t.priority)} ${t.priority} | <t:${Math.floor(new Date(t.createdAt).getTime() / 1000)}:R>`
     ).join('\n\n');
@@ -1418,7 +1418,7 @@ export async function createTicketPanel(
         .setTimestamp();
 
     if (categories.length > 0) {
-        const categoryList = categories.map(c =>
+        const categoryList = categories.map((c: any) =>
             `${c.emoji || '🎫'} **${c.name}**${c.description ? ` - ${c.description}` : ''}`
         ).join('\n');
         embed.addFields({ name: 'Categories', value: categoryList });
@@ -1432,7 +1432,7 @@ export async function createTicketPanel(
             .setCustomId('ticket_category_select')
             .setPlaceholder('Select a category...')
             .addOptions(
-                categories.map(c => ({
+                categories.map((c: any) => ({
                     label: c.name,
                     description: c.description?.substring(0, 100) || 'Create a ticket',
                     value: c.id.toString(),
@@ -1633,13 +1633,13 @@ export async function setupTicketEventHandlers(): Promise<void> {
                 const focused = interaction.options.getFocused(true);
                 if (focused.name === 'category') {
                     const categories = await db.select().from(ticketCategories).where(eq(ticketCategories.enabled, true));
-                    await interaction.respond(categories.map(c => ({ name: c.name, value: c.id })));
+                    await interaction.respond(categories.map((c: any) => ({ name: c.name, value: c.id })));
                 } else if (focused.name === 'tag') {
                     const tags = await db.select().from(ticketTags).where(eq(ticketTags.enabled, true));
-                    await interaction.respond(tags.map(t => ({ name: t.name, value: t.id })));
+                    await interaction.respond(tags.map((t: any) => ({ name: t.name, value: t.id })));
                 } else if (focused.name === 'ticket') {
                     const tickets = await db.select().from(supportTickets).where(eq(supportTickets.status, 'open')).limit(25);
-                    await interaction.respond(tickets.map(t => ({ name: `#${t.number} - ${t.subject.substring(0, 50)}`, value: t.id.toString() })));
+                    await interaction.respond(tickets.map((t: any) => ({ name: `#${t.number} - ${t.subject.substring(0, 50)}`, value: t.id.toString() })));
                 }
                 return;
             }

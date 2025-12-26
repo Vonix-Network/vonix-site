@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Filter upcoming if requested
     const filteredEvents = upcoming
-      ? allEvents.filter((e) => e.startTime && e.startTime > new Date())
+      ? allEvents.filter((e: any) => e.startTime && e.startTime > new Date())
       : allEvents;
 
     return NextResponse.json(filteredEvents);

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         // Send email with access link
         try {
             await sendTicketAccessEmail(email, name, ticket.id, accessToken);
-        } catch (emailError) {
+        } catch (emailError: any) {
             console.error('Failed to send ticket access email:', emailError);
             // Continue even if email fails - they can still access via token
         }

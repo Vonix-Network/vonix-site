@@ -48,13 +48,13 @@ export function ContactList() {
 
   if (!showContactList) return null;
 
-  const filteredConversations = conversations.filter((c) =>
+  const filteredConversations = conversations.filter((c: any) =>
     c.user.username.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredFriends = friends.filter((f) =>
+  const filteredFriends = friends.filter((f: any) =>
     f.username.toLowerCase().includes(search.toLowerCase()) &&
-    !conversations.some((c) => c.user.id === f.id)
+    !conversations.some((c: any) => c.user.id === f.id)
   );
 
   return (
@@ -117,7 +117,7 @@ export function ContactList() {
               No conversations yet
             </div>
           ) : (
-            filteredConversations.map((conv) => (
+            filteredConversations.map((conv: any) => (
               <ContactItem key={conv.id} user={conv.user} subtitle={conv.lastMessage} time={conv.lastMessageTime} onClick={() => openChat(conv.user)} />
             ))
           )
@@ -127,7 +127,7 @@ export function ContactList() {
             No friends to message
           </div>
         ) : (
-          filteredFriends.map((friend) => (
+          filteredFriends.map((friend: any) => (
             <ContactItem key={friend.id} user={friend} subtitle="Start a conversation" onClick={() => openChat(friend)} />
           ))
         )}

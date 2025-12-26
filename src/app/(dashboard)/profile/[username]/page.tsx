@@ -99,7 +99,7 @@ async function getUser(username: string) {
       .limit(1);
 
     return user;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching user:', error);
     return null;
   }
@@ -120,8 +120,7 @@ async function getUserStats(userId: number) {
     ]);
 
     // Sum up playtime from all servers
-    const totalPlaytimeSeconds = serverXpData.reduce(
-      (acc, record) => acc + (record.playtimeSeconds || 0),
+    const totalPlaytimeSeconds = serverXpData.reduce((acc: any, record: any) => acc + (record.playtimeSeconds || 0),
       0
     );
 
@@ -130,7 +129,7 @@ async function getUserStats(userId: number) {
       forumPosts: forumPostsCount[0]?.count || 0,
       playtimeSeconds: totalPlaytimeSeconds,
     };
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error fetching user stats:', err);
     return { socialPosts: 0, forumPosts: 0, playtimeSeconds: 0 };
   }
@@ -334,7 +333,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <CardContent>
               {recentPosts.length > 0 ? (
                 <div className="space-y-4">
-                  {recentPosts.map((post) => (
+                  {recentPosts.map((post: any) => (
                     <div key={post.id} className="p-4 rounded-lg bg-secondary/50">
                       <p className="mb-2">{post.content}</p>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">

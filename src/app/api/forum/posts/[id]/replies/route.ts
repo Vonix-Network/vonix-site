@@ -96,7 +96,7 @@ export async function POST(
         authorRole: authorInfo?.role || 'user',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating reply:', error);
     return NextResponse.json({ error: 'Failed to post reply' }, { status: 500 });
   }
@@ -130,7 +130,7 @@ export async function GET(
       .orderBy(forumReplies.createdAt);
 
     return NextResponse.json(replies);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching replies:', error);
     return NextResponse.json({ error: 'Failed to fetch replies' }, { status: 500 });
   }

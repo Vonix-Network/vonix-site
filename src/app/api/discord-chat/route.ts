@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            messages: messages.map(m => ({
+            messages: messages.map((m: any) => ({
                 id: m.id,
                 discordMessageId: m.discordMessageId,
                 authorId: m.authorId,

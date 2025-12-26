@@ -66,7 +66,7 @@ export async function POST(
     }
 
     return NextResponse.json({ liked: true, message: 'Post liked' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error toggling like:', error);
     return NextResponse.json({ error: 'Failed to toggle like' }, { status: 500 });
   }
@@ -88,7 +88,7 @@ export async function GET(
       .limit(1);
 
     return NextResponse.json({ likes: post?.likesCount || 0 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting likes:', error);
     return NextResponse.json({ likes: 0 });
   }

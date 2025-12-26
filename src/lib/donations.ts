@@ -208,7 +208,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
                         const { updateUserDiscordRole } = await import('@/lib/discord-integration');
                         await updateUserDiscordRole(resolvedUserId, rankId, oldRankId);
                         console.log(`✅ Updated Discord role for user ${resolvedUserId}`);
-                    } catch (discordError) {
+                    } catch (discordError: any) {
                         console.error('Failed to update Discord role:', discordError);
                         // Continue even if Discord role update fails
                     }
@@ -264,7 +264,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
                 message: data.message || (isGuest ? `Guest donation from ${data.guestName}` : null),
             });
             console.log('✅ Sent Discord donation notification');
-        } catch (discordError) {
+        } catch (discordError: any) {
             console.error('Failed to send Discord notification:', discordError);
         }
 
@@ -276,7 +276,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
                 rankName || undefined
             );
             console.log('✅ Sent admin donation alert email');
-        } catch (emailError) {
+        } catch (emailError: any) {
             console.error('Failed to send donation alert email:', emailError);
         }
 

@@ -136,13 +136,13 @@ export default function AdminEventsPage() {
     });
   };
 
-  const filteredEvents = events.filter(event =>
+  const filteredEvents = events.filter((event: any) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const upcomingEvents = filteredEvents.filter(e => new Date(e.startTime) > new Date());
-  const pastEvents = filteredEvents.filter(e => new Date(e.startTime) <= new Date());
+  const upcomingEvents = filteredEvents.filter((e: any) => new Date(e.startTime) > new Date());
+  const pastEvents = filteredEvents.filter((e: any) => new Date(e.startTime) <= new Date());
 
   const getEventStatus = (startTime: string, endTime: string | null) => {
     const now = new Date();
@@ -209,7 +209,7 @@ export default function AdminEventsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {events.reduce((sum, e) => sum + (e.attendeeCount || 0), 0)}
+                  {events.reduce((sum: any, e: any) => sum + (e.attendeeCount || 0), 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">Total RSVPs</p>
               </div>
@@ -246,7 +246,7 @@ export default function AdminEventsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredEvents.map((event) => {
+              {filteredEvents.map((event: any) => {
                 const status = getEventStatus(event.startTime, event.endTime);
                 return (
                   <div

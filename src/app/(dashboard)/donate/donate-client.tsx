@@ -440,7 +440,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
   // Calculate price for a rank and duration
   const calculatePrice = (rank: DonationRank, days: number): number => {
     const pricePerDay = rank.minAmount / 30;
-    const option = durationOptions.find(o => o.days === days);
+    const option = durationOptions.find((o: any) => o.days === days);
     const discount = option?.discount || 0;
     const basePrice = pricePerDay * days;
     return Math.round(basePrice * (1 - discount / 100) * 100) / 100;
@@ -870,7 +870,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                 : 'Subscribe for auto-renewal or buy a one-time rank'}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {displayRanks.map((rank) => {
+              {displayRanks.map((rank: any) => {
                 const isCurrentRank = userHasRank(rank.id);
 
                 return (
@@ -917,7 +917,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
 
                     <CardContent className="relative">
                       <ul className="space-y-2 mb-6">
-                        {rank.perks.map((perk, i) => (
+                        {rank.perks.map((perk: any, i: any) => (
                           <li key={i} className="flex items-start gap-2 text-sm">
                             <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
                             <span className="text-muted-foreground">{perk}</span>
@@ -1042,7 +1042,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               )}
 
               <div className="flex flex-wrap justify-center gap-4">
-                {[5, 10, 25, 50, 100].map((amount) => (
+                {[5, 10, 25, 50, 100].map((amount: any) => (
                   <Button
                     key={amount}
                     variant="glass"
@@ -1113,7 +1113,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
           <CardContent>
             {recentDonations.length > 0 ? (
               <div className="space-y-3">
-                {recentDonations.map((donation) => (
+                {recentDonations.map((donation: any) => (
                   <div
                     key={donation.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
@@ -1229,7 +1229,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 mb-6">
-                  {durationOptions.map((option) => {
+                  {durationOptions.map((option: any) => {
                     const price = calculatePrice(selectedRank, option.days);
                     return (
                       <button
@@ -1367,7 +1367,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                   Complete Your Purchase
                 </CardTitle>
                 <CardDescription>
-                  {selectedRank.name} Rank - {durationOptions.find(o => o.days === selectedDuration)?.label}
+                  {selectedRank.name} Rank - {durationOptions.find((o: any) => o.days === selectedDuration)?.label}
                   <span className="block text-neon-cyan font-medium mt-1">
                     ${calculatePrice(selectedRank, selectedDuration).toFixed(2)}
                   </span>

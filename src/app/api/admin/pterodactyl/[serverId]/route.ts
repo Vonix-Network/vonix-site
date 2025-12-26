@@ -96,7 +96,7 @@ export async function GET(
             details,
             resources,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Pterodactyl server info:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch server info' },
@@ -170,7 +170,7 @@ export async function POST(
             { error: 'Either action or command is required' },
             { status: 400 }
         );
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error executing Pterodactyl action:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to execute action' },

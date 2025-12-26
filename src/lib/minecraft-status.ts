@@ -192,7 +192,7 @@ export async function getMultipleServerStatus(
     const batch = servers.slice(i, i + batchSize);
 
     await Promise.all(
-      batch.map(async (server) => {
+      batch.map(async (server: any) => {
         const key = `${server.address}:${server.port}`;
         const result = await getServerStatus(server.address, server.port, server.isBedrock);
         results.set(key, result);

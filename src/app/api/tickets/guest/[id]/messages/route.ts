@@ -84,7 +84,7 @@ export async function POST(
                     `${ticket.guestName} (Guest)`,
                     false
                 );
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to send message to Discord thread:', error);
             }
         }
@@ -99,7 +99,7 @@ export async function POST(
                 createdAt: newMessage.createdAt,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error adding guest message:', error);
         return NextResponse.json({ error: 'Failed to add message' }, { status: 500 });
     }

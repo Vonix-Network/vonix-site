@@ -21,7 +21,7 @@ let RANK_PRICING: Record<string, number> = { ...DEFAULT_RANK_PRICING };
  * Update pricing from database ranks
  */
 export function updatePricingFromRanks(ranks: Array<{ id: string; minAmount: number; duration?: number }>) {
-  ranks.forEach(rank => {
+  ranks.forEach((rank: any) => {
     const duration = rank.duration || 30;
     RANK_PRICING[rank.id.toLowerCase()] = rank.minAmount / duration;
   });

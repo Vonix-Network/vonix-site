@@ -63,7 +63,7 @@ export default function ServersPage() {
                 { step: '1', title: 'Copy Server IP', desc: 'Click the copy button next to the server address' },
                 { step: '2', title: 'Open Minecraft', desc: 'Launch Minecraft with the correct version/modpack' },
                 { step: '3', title: 'Add Server', desc: 'Go to Multiplayer > Add Server and paste the IP' },
-              ].map((item) => (
+              ].map((item: any) => (
                 <div key={item.step} className="text-center group">
                   <div className="w-14 h-14 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-neon-cyan/20 group-hover:border-neon-cyan/50 group-hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all duration-300">
                     <span className="text-2xl font-bold text-neon-cyan">{item.step}</span>

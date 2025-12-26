@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
 
         // Ping each server with retry logic
         const results = await Promise.all(
-            allServers.map(server => pingServerWithRetry({
+            allServers.map((server: any) => pingServerWithRetry({
                 id: server.id,
                 name: server.name,
                 ipAddress: server.ipAddress,
@@ -274,7 +274,7 @@ export async function GET(request: NextRequest) {
 
         // Store results in database
         await db.insert(serverUptimeRecords).values(
-            results.map(result => ({
+            results.map((result: any) => ({
                 serverId: result.serverId,
                 online: result.online,
                 playersOnline: result.playersOnline,
@@ -305,10 +305,10 @@ export async function GET(request: NextRequest) {
                 .where(sql`${servers.id} = ${result.serverId}`);
         }
 
-        const onlineCount = results.filter(r => r.online).length;
-        const offlineCount = results.filter(r => !r.online).length;
-        const nativeCount = results.filter(r => r.method === 'native').length;
-        const apiCount = results.filter(r => r.method === 'api').length;
+        const onlineCount = results.filter((r: any) => r.online).length;
+        const offlineCount = results.filter((r: any) => !r.online).length;
+        const nativeCount = results.filter((r: any) => r.method === 'native').length;
+        const apiCount = results.filter((r: any) => r.method === 'api').length;
 
         console.log(`✅ Uptime check complete: ${onlineCount} online, ${offlineCount} offline`);
         console.log(`   Methods used: ${nativeCount} native, ${apiCount} API fallback`);
@@ -322,9 +322,9 @@ export async function GET(request: NextRequest) {
             methods: {
                 native: nativeCount,
                 api: apiCount,
-                failed: results.filter(r => r.method === 'none').length,
+                failed: results.filter((r: any) => r.method === 'none').length,
             },
-            results: results.map(r => ({
+            results: results.map((r: any) => ({
                 server: r.serverName,
                 online: r.online,
                 players: r.playersOnline,

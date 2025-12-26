@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
 
     // Create a map of userId -> playtime
     const playtimeMap = new Map<number, number>();
-    playtimeData.forEach(p => {
+    playtimeData.forEach((p: any) => {
       playtimeMap.set(p.userId, p.totalPlaytime || 0);
     });
 
     const now = new Date();
 
     // Combine users with their playtime and filter rank expiration
-    const usersWithPlaytime = usersData.map(user => ({
+    const usersWithPlaytime = usersData.map((user: any) => ({
       ...user,
       playtimeSeconds: playtimeMap.get(user.id) || 0,
       // Only include rank if not expired
@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
 
     // Sort based on type
     if (type === 'playtime') {
-      usersWithPlaytime.sort((a, b) => (b.playtimeSeconds || 0) - (a.playtimeSeconds || 0));
+      usersWithPlaytime.sort((a: any, b: any) => (b.playtimeSeconds || 0) - (a.playtimeSeconds || 0));
     } else {
-      usersWithPlaytime.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+      usersWithPlaytime.sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0));
     }
 
     // Apply pagination

@@ -113,7 +113,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                 const data = await res.json();
                 toast.error(data.error || 'Failed to post reply');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to post reply:', error);
             toast.error('Failed to post reply');
         } finally {
@@ -145,7 +145,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                 const data = await res.json();
                 toast.error(data.error || 'Failed to update post');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update post:', error);
             toast.error('Failed to update post');
         } finally {
@@ -166,7 +166,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
             } else {
                 toast.error('Failed to delete post');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete post:', error);
             toast.error('Failed to delete post');
         }
@@ -198,7 +198,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
             });
 
             if (res.ok) {
-                setReplies(replies.map(r => r.id === replyId ? { ...r, content: editReplyContent } : r));
+                setReplies(replies.map((r: any) => r.id === replyId ? { ...r, content: editReplyContent } : r));
                 setEditingReplyId(null);
                 setEditReplyContent('');
                 toast.success('Reply updated!');
@@ -206,7 +206,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                 const data = await res.json();
                 toast.error(data.error || 'Failed to update reply');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update reply:', error);
             toast.error('Failed to update reply');
         } finally {
@@ -221,12 +221,12 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
         try {
             const res = await fetch(`/api/forum/posts/${post.id}/replies/${replyId}`, { method: 'DELETE' });
             if (res.ok) {
-                setReplies(replies.filter(r => r.id !== replyId));
+                setReplies(replies.filter((r: any) => r.id !== replyId));
                 toast.success('Reply deleted');
             } else {
                 toast.error('Failed to delete reply');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete reply:', error);
             toast.error('Failed to delete reply');
         }
@@ -367,7 +367,7 @@ export function ForumPostClient({ post: initialPost, replies: initialReplies }: 
                     Replies ({replies.length})
                 </h3>
 
-                {replies.map((reply) => (
+                {replies.map((reply: any) => (
                     <Card key={reply.id} variant="default">
                         <CardContent className="p-4">
                             <div className="flex items-start gap-3">

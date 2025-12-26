@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(rank);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching rank:', error);
     return NextResponse.json({ error: 'Failed to fetch rank' }, { status: 500 });
   }
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(updated);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating rank:', error);
     return NextResponse.json({ error: 'Failed to update rank' }, { status: 500 });
   }
@@ -103,7 +103,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting rank:', error);
     return NextResponse.json({ error: 'Failed to delete rank' }, { status: 500 });
   }

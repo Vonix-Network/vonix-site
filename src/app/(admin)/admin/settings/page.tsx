@@ -341,7 +341,7 @@ export default function AdminSettingsPage() {
         <Card variant="glass" className="lg:col-span-1">
           <CardContent className="p-2">
             <nav className="space-y-1">
-              {tabs.map((tab) => (
+              {tabs.map((tab: any) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}

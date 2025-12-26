@@ -39,7 +39,7 @@ export async function loadKofiConfig(): Promise<{
             .where(like(siteSettings.key, 'kofi_%'));
 
         const dbSettings: Record<string, string> = {};
-        settings.forEach(s => {
+        settings.forEach((s: any) => {
             if (s.value) dbSettings[s.key] = s.value;
         });
 

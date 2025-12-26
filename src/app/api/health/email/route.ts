@@ -17,9 +17,9 @@ export async function GET() {
             .from(siteSettings)
             .where(like(siteSettings.key, 'smtp_%'));
 
-        const smtpHost = smtpSettings.find(s => s.key === 'smtp_host')?.value;
-        const smtpPort = smtpSettings.find(s => s.key === 'smtp_port')?.value;
-        const smtpUser = smtpSettings.find(s => s.key === 'smtp_user')?.value;
+        const smtpHost = smtpSettings.find((s: any) => s.key === 'smtp_host')?.value;
+        const smtpPort = smtpSettings.find((s: any) => s.key === 'smtp_port')?.value;
+        const smtpUser = smtpSettings.find((s: any) => s.key === 'smtp_user')?.value;
 
         // Check if core SMTP settings are present
         const configured = !!(smtpHost && smtpPort);

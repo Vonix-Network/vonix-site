@@ -55,7 +55,7 @@ export default function Loading() {
         
         {/* Loading dots */}
         <div className="mt-4 flex justify-center gap-2">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(3)].map((_: any, i: any) => (
             <div
               key={i}
               className="w-2 h-2 rounded-full bg-neon-cyan animate-bounce"

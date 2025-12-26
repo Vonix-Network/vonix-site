@@ -53,7 +53,7 @@ export function MessengerPanel({ isMobile }: MessengerPanelProps) {
 
     // If a chat is selected in mobile, show full chat
     if (selectedChat) {
-        const chatData = openChats.find(c => c.user.id === selectedChat.id);
+        const chatData = openChats.find((c: any) => c.user.id === selectedChat.id);
         if (chatData) {
             return (
                 <div className="h-full flex flex-col">
@@ -75,13 +75,13 @@ export function MessengerPanel({ isMobile }: MessengerPanelProps) {
         }
     };
 
-    const filteredConversations = conversations.filter((c) =>
+    const filteredConversations = conversations.filter((c: any) =>
         c.user.username.toLowerCase().includes(search.toLowerCase())
     );
 
-    const filteredFriends = friends.filter((f) =>
+    const filteredFriends = friends.filter((f: any) =>
         f.username.toLowerCase().includes(search.toLowerCase()) &&
-        !conversations.some((c) => c.user.id === f.id)
+        !conversations.some((c: any) => c.user.id === f.id)
     );
 
     return (
@@ -136,7 +136,7 @@ export function MessengerPanel({ isMobile }: MessengerPanelProps) {
                             No conversations yet
                         </div>
                     ) : (
-                        filteredConversations.map((conv) => (
+                        filteredConversations.map((conv: any) => (
                             <ContactItem
                                 key={conv.id}
                                 user={conv.user}
@@ -152,7 +152,7 @@ export function MessengerPanel({ isMobile }: MessengerPanelProps) {
                         No friends to message
                     </div>
                 ) : (
-                    filteredFriends.map((friend) => (
+                    filteredFriends.map((friend: any) => (
                         <ContactItem
                             key={friend.id}
                             user={friend}

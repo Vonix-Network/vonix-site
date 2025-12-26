@@ -13,7 +13,7 @@ export function getIO(): SocketIOServer | undefined {
 
 // Get consistent room ID for a conversation between two users
 export function getConversationRoom(userId1: number, userId2: number): string {
-    const sorted = [userId1, userId2].sort((a, b) => a - b);
+    const sorted = [userId1, userId2].sort((a: any, b: any) => a - b);
     return `conversation:${sorted[0]}:${sorted[1]}`;
 }
 

@@ -134,7 +134,7 @@ export default function AnnouncementsPage() {
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">
-                                    {announcements.filter(a => a.published).length}
+                                    {announcements.filter((a: any) => a.published).length}
                                 </p>
                                 <p className="text-sm text-muted-foreground">Published</p>
                             </div>
@@ -149,7 +149,7 @@ export default function AnnouncementsPage() {
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">
-                                    {announcements.filter(a => !a.published).length}
+                                    {announcements.filter((a: any) => !a.published).length}
                                 </p>
                                 <p className="text-sm text-muted-foreground">Draft</p>
                             </div>
@@ -179,7 +179,7 @@ export default function AnnouncementsPage() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {announcements.map((announcement) => {
+                            {announcements.map((announcement: Announcement) => {
                                 const TypeIcon = typeIcons[announcement.type];
                                 return (
                                     <div

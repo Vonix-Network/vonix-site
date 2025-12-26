@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
 
         // Filter by server if specified
         if (serverId && serverId !== 'all') {
-            records = records.filter(r => r.serverId === parseInt(serverId));
+            records = records.filter((r: any) => r.serverId === parseInt(serverId));
         }
 
         // Calculate uptime percentage per server
         const serverStats: Record<number, { total: number; online: number; avgResponseTime: number }> = {};
 
-        records.forEach(record => {
+        records.forEach((record: any) => {
             if (!serverStats[record.serverId]) {
                 serverStats[record.serverId] = { total: 0, online: 0, avgResponseTime: 0 };
             }
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         // Group records by the appropriate time interval
         const chartData: Record<string, { timestamp: string; online: number; offline: number }> = {};
 
-        records.forEach(record => {
+        records.forEach((record: any) => {
             const recordTime = new Date(record.checkedAt);
             // Round down to the nearest interval
             const intervalMs = granularityMinutes * 60 * 1000;
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Sort chart data chronologically
-        const sortedChartData = Object.values(chartData).sort((a, b) =>
+        const sortedChartData = Object.values(chartData).sort((a: any, b: any) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
 

@@ -63,7 +63,7 @@ async function getPost(id: number) {
       .orderBy(forumReplies.createdAt);
 
     return { post, replies };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching post:', error);
     return null;
   }
@@ -75,7 +75,7 @@ async function incrementViews(id: number) {
       .update(forumPosts)
       .set({ views: sql`${forumPosts.views} + 1` })
       .where(eq(forumPosts.id, id));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error incrementing views:', error);
   }
 }

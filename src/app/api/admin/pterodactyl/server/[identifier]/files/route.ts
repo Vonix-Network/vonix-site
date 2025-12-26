@@ -53,7 +53,7 @@ export async function GET(
                 modifiedAt: f.attributes.modified_at,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error listing files:', error);
         return NextResponse.json({ error: 'Failed to list files' }, { status: 500 });
     }
@@ -129,7 +129,7 @@ export async function POST(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error performing file action:', error);
         return NextResponse.json({ error: 'Failed to perform file action' }, { status: 500 });
     }

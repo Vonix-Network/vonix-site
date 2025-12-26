@@ -218,7 +218,7 @@ export default async function AdminAnalyticsPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {stats.map((stat: any) => (
           <Card key={stat.title} variant="glass">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">

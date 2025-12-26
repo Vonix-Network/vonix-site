@@ -97,8 +97,8 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                 if (afterId && newMessages.length > 0) {
                     // Append new messages
                     setMessages(prev => {
-                        const existingIds = new Set(prev.map(m => m.id));
-                        const uniqueNew = newMessages.filter(m => !existingIds.has(m.id));
+                        const existingIds = new Set(prev.map((m: any) => m.id));
+                        const uniqueNew = newMessages.filter((m: any) => !existingIds.has(m.id));
                         return [...prev, ...uniqueNew];
                     });
                 } else if (!afterId) {
@@ -107,7 +107,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                 }
 
                 if (newMessages.length > 0) {
-                    const maxId = Math.max(...newMessages.map(m => m.id));
+                    const maxId = Math.max(...newMessages.map((m: any) => m.id));
                     setLastMessageId(prev => (prev === null || maxId > prev) ? maxId : prev);
                 }
             }
@@ -154,7 +154,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
 
             setMessages(prev => {
                 // Check if message already exists
-                if (prev.some(m => m.id === newMessage.id)) {
+                if (prev.some((m: any) => m.id === newMessage.id)) {
                     return prev;
                 }
                 return [...prev, newMessage];
@@ -206,7 +206,7 @@ export function DiscordChatProvider({ children }: { children: ReactNode }) {
                     // Add message locally immediately (optimistic update)
                     // Socket will also broadcast it, so we check for duplicates above
                     setMessages(prev => {
-                        if (prev.some(m => m.id === data.message.id)) {
+                        if (prev.some((m: any) => m.id === data.message.id)) {
                             return prev;
                         }
                         return [...prev, {

@@ -224,7 +224,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {quickLinks.map((link) => (
+                  {quickLinks.map((link: any) => (
                     <Link key={link.href} href={link.href}>
                       <Card variant="default" hover className="h-full">
                         <CardContent className="p-4 flex flex-col items-center justify-center text-center">
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {activities.map((activity) => {
+                    {activities.map((activity: any) => {
                       const IconComponent = getActivityIcon(activity.icon);
                       return (
                         <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50">
@@ -363,7 +363,7 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {notifications.map((notif, i) => (
+                    {notifications.map((notif: any, i: any) => (
                       <div
                         key={notif.id}
                         className={`p-3 rounded-lg ${i === 0 ? 'bg-neon-cyan/10 border border-neon-cyan/20' : 'bg-secondary/50'}`}

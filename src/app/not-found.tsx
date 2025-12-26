@@ -42,7 +42,7 @@ export default function NotFound() {
 
         {/* Decorative elements */}
         <div className="mt-16 flex justify-center gap-4">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(5)].map((_: any, i: any) => (
             <div
               key={i}
               className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"

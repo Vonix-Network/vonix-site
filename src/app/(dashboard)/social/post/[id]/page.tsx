@@ -67,7 +67,7 @@ export default function PostDetailPage() {
       }
       const data = await response.json();
       setPost(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching post:', err);
       setError('Failed to load post');
     } finally {
@@ -117,7 +117,7 @@ export default function PostDetailPage() {
       });
 
       toast.success(data.liked ? 'Post liked!' : 'Like removed');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to update like');
     } finally {
       setIsLiking(false);
@@ -143,7 +143,7 @@ export default function PostDetailPage() {
       await fetchPost();
       setNewComment('');
       toast.success('Comment posted!');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to post comment');
     } finally {
       setIsSubmitting(false);
@@ -164,7 +164,7 @@ export default function PostDetailPage() {
 
       toast.success('Post deleted');
       router.push('/social');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to delete post');
     }
   };
@@ -365,7 +365,7 @@ export default function PostDetailPage() {
             </CardContent>
           </Card>
         ) : (
-          post.comments.map((comment) => (
+          post.comments.map((comment: any) => (
             <Card key={comment.id} variant="glass">
               <CardContent className="p-4">
                 <div className="flex gap-3">

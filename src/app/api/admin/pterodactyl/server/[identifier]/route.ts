@@ -62,7 +62,7 @@ export async function GET(
                 },
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching Pterodactyl server resources:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch server resources' },

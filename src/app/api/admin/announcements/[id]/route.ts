@@ -39,7 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
 
         return NextResponse.json(announcement);
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
 
         return NextResponse.json({ success: true, announcement: updated });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -100,7 +100,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         await db.delete(announcements).where(eq(announcements.id, announcementId));
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof Error && error.message === 'Unauthorized') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

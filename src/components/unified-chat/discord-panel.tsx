@@ -116,7 +116,7 @@ export function DiscordPanel({ isMobile }: DiscordPanelProps) {
                         <p className="text-xs mt-1">Say hi to the Discord community! 👋</p>
                     </div>
                 ) : (
-                    messages.map((msg) => {
+                    messages.map((msg: any) => {
                         const isOwn = currentUserId !== null && msg.isFromWeb && msg.webUserId === currentUserId;
                         return (
                             <div key={msg.id} className="group">

@@ -119,15 +119,15 @@ export default function AdminUptimePage() {
     };
 
     const overallUptime = uptimeStats.length > 0
-        ? uptimeStats.reduce((sum, s) => sum + s.uptimePercentage, 0) / uptimeStats.length
+        ? uptimeStats.reduce((sum: any, s: any) => sum + s.uptimePercentage, 0) / uptimeStats.length
         : 0;
 
     const avgResponseTime = uptimeStats.length > 0
-        ? uptimeStats.reduce((sum, s) => sum + s.avgResponseTime, 0) / uptimeStats.length
+        ? uptimeStats.reduce((sum: any, s: any) => sum + s.avgResponseTime, 0) / uptimeStats.length
         : 0;
 
-    const totalChecks = uptimeStats.reduce((sum, s) => sum + s.totalChecks, 0);
-    const maxChartValue = Math.max(...chartData.map(d => d.online + d.offline), 1);
+    const totalChecks = uptimeStats.reduce((sum: any, s: any) => sum + s.totalChecks, 0);
+    const maxChartValue = Math.max(...chartData.map((d: any) => d.online + d.offline), 1);
 
     if (isLoading) {
         return (
@@ -169,7 +169,7 @@ export default function AdminUptimePage() {
                             <Server className="w-4 h-4" />
                             {selectedServer === 'all'
                                 ? 'All Servers'
-                                : servers.find(s => s.id.toString() === selectedServer)?.name || 'Select Server'
+                                : servers.find((s: any) => s.id.toString() === selectedServer)?.name || 'Select Server'
                             }
                         </span>
                         <ChevronDown className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function AdminUptimePage() {
                                 >
                                     All Servers
                                 </button>
-                                {servers.map(server => (
+                                {servers.map((server: any) => (
                                     <button
                                         key={server.id}
                                         onClick={() => { setSelectedServer(server.id.toString()); setShowServerDropdown(false); }}
@@ -205,7 +205,7 @@ export default function AdminUptimePage() {
                         { label: '7d', days: 7 },
                         { label: '30d', days: 30 },
                         { label: '90d', days: 90 },
-                    ].map(option => (
+                    ].map((option: any) => (
                         <button
                             key={option.days}
                             onClick={() => setSelectedDays(option.days)}
@@ -299,7 +299,7 @@ export default function AdminUptimePage() {
                 <CardContent>
                     {chartData.length > 0 ? (
                         <div className="h-64 flex items-end gap-px overflow-x-auto">
-                            {chartData.map((point, index) => {
+                            {chartData.map((point: any, index: any) => {
                                 const total = point.online + point.offline;
                                 const onlineHeight = total > 0 ? (point.online / maxChartValue) * 100 : 0;
                                 const offlineHeight = total > 0 ? (point.offline / maxChartValue) * 100 : 0;
@@ -364,8 +364,8 @@ export default function AdminUptimePage() {
                 <CardContent>
                     {uptimeStats.length > 0 ? (
                         <div className="space-y-4">
-                            {uptimeStats.map(stat => {
-                                const server = servers.find(s => s.id === stat.serverId);
+                            {uptimeStats.map((stat: any) => {
+                                const server = servers.find((s: any) => s.id === stat.serverId);
                                 if (!server) return null;
 
                                 return (
@@ -422,8 +422,8 @@ export default function AdminUptimePage() {
                 <CardContent>
                     {records.length > 0 ? (
                         <div className="space-y-2">
-                            {records.slice(0, 20).map(record => {
-                                const server = servers.find(s => s.id === record.serverId);
+                            {records.slice(0, 20).map((record: any) => {
+                                const server = servers.find((s: any) => s.id === record.serverId);
                                 return (
                                     <div
                                         key={record.id}

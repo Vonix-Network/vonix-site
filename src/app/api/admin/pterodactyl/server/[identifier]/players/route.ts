@@ -71,7 +71,7 @@ export async function GET(
                     source: 'native'
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.log(`[players] Native ping failed: ${e}`);
         }
 
@@ -93,7 +93,7 @@ export async function GET(
                     source: 'mcstatus.io'
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.log(`[players] mcstatus.io failed: ${e}`);
         }
 
@@ -112,7 +112,7 @@ export async function GET(
                     source: 'mcsrvstat.us'
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.log(`[players] mcsrvstat.us failed: ${e}`);
         }
 
@@ -123,7 +123,7 @@ export async function GET(
             source: 'none'
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching players:', error);
         return NextResponse.json({
             error: 'Failed to fetch player data',
@@ -164,7 +164,7 @@ function extractPlayerNames(players: any): string[] {
         }
     }
 
-    return names.filter(n => n && n !== 'Unknown');
+    return names.filter((n: any) => n && n !== 'Unknown');
 }
 
 // Fetch from mcsrvstat.us API

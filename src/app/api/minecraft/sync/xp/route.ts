@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
                     where: eq(serverXp.userId, user.id),
                 });
 
-                const totalMinecraftXp = allServerXp.reduce((sum, s) => sum + (s.xp || 0), 0);
+                const totalMinecraftXp = allServerXp.reduce((sum: any, s: any) => sum + (s.xp || 0), 0);
 
                 // Calculate new total XP and level
                 const totalXp = totalMinecraftXp + (user.websiteXp || 0);
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
                     .where(eq(users.id, user.id));
 
                 syncedCount++;
-            } catch (playerError) {
+            } catch (playerError: any) {
                 console.error(`Error syncing player ${player.uuid}:`, playerError);
                 errors.push(player.uuid);
             }

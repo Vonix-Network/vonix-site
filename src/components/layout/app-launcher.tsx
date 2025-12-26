@@ -116,14 +116,14 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
     const isLoggedIn = !!session?.user;
 
     // Filter items based on auth state
-    const availableItems = launcherItems.filter(item => {
+    const availableItems = launcherItems.filter((item: any) => {
         if (item.requiresAdmin && !isAdmin) return false;
         if (item.requiresAuth && !isLoggedIn) return false;
         return true;
     });
 
     // Filter by category and search
-    const filteredItems = availableItems.filter(item => {
+    const filteredItems = availableItems.filter((item: any) => {
         const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
         const matchesSearch = searchQuery === '' ||
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,8 +166,8 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
     }, [isOpen]);
 
     // Filter categories to only show those with items
-    const availableCategories = categories.filter(cat =>
-        cat.id === 'all' || availableItems.some(item => item.category === cat.id)
+    const availableCategories = categories.filter((cat: any) =>
+        cat.id === 'all' || availableItems.some((item: any) => item.category === cat.id)
     );
 
     return (
@@ -224,7 +224,7 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
 
                             {/* Category tabs */}
                             <div className="flex flex-wrap justify-center gap-2 px-4 sm:px-0">
-                                {availableCategories.map((cat, i) => (
+                                {availableCategories.map((cat: any, i: any) => (
                                     <motion.button
                                         key={cat.id}
                                         initial={{ opacity: 0, y: 10 }}
@@ -264,7 +264,7 @@ export function AppLauncher({ isOpen, onClose }: AppLauncherProps) {
                                     </motion.div>
                                 ) : (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 pb-20">
-                                        {filteredItems.map((item) => {
+                                        {filteredItems.map((item: any) => {
                                             const isActive = pathname === item.href;
                                             return (
                                                 <Link

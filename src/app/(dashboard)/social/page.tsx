@@ -59,7 +59,7 @@ export default function SocialPage() {
       const data: APIPost[] = await response.json();
       
       // Transform API response to match component interface
-      const transformedPosts: SocialPost[] = data.map(post => ({
+      const transformedPosts: SocialPost[] = data.map((post: any) => ({
         id: post.id,
         userId: post.userId,
         user: {
@@ -123,7 +123,7 @@ export default function SocialPage() {
       return;
     }
 
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p: any) => p.id === postId);
     if (!post) return;
 
     // Prevent liking own post
@@ -149,7 +149,7 @@ export default function SocialPage() {
       }
 
       // Update local state
-      setPosts(posts.map(p => {
+      setPosts(posts.map((p: any) => {
         if (p.id === postId) {
           return {
             ...p,
@@ -268,7 +268,7 @@ export default function SocialPage() {
       {/* Posts Feed */}
       {!isLoading && (
       <div className="space-y-4">
-        {posts.map((post) => (
+        {posts.map((post: any) => (
           <Card key={post.id} variant="glass" hover>
             <CardContent className="p-4">
               {/* Post Header */}

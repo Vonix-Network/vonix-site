@@ -29,13 +29,13 @@ export async function getDiscordIntegrationSettings() {
             ])
         );
 
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+    const settingsMap = new Map(settings.map((s: any) => [s.key, s.value]));
 
     return {
-        botToken: settingsMap.get('discord_bot_token') || null,
-        guildId: settingsMap.get('discord_guild_id') || null,
-        ticketForumId: settingsMap.get('discord_ticket_forum_id') || null,
-        clientId: settingsMap.get('discord_client_id') || null,
+        botToken: (settingsMap.get('discord_bot_token') as string) || null,
+        guildId: (settingsMap.get('discord_guild_id') as string) || null,
+        ticketForumId: (settingsMap.get('discord_ticket_forum_id') as string) || null,
+        clientId: (settingsMap.get('discord_client_id') as string) || null,
     };
 }
 
@@ -373,7 +373,7 @@ export async function registerSlashCommands() {
                         .setDescription('Reason for closing')
                         .setRequired(false)
                 ),
-        ].map(command => command.toJSON());
+        ].map((command: any) => command.toJSON());
 
         await discordRest.put(
             Routes.applicationGuildCommands(settings.clientId, settings.guildId),
@@ -443,12 +443,12 @@ export async function handleTicketCreatorCommand(interaction: any): Promise<void
     try {
         const channel = interaction.options.getChannel('channel') || interaction.channel;
         const title = interaction.options.getString('title') || '🎫 Support Tickets';
-        const description = interaction.options.getString('description') || 
+        const description = interaction.options.getString('description') ||
             'Need help? Click the button below to create a support ticket and our team will assist you as soon as possible.';
 
         // Get ticket categories from database
         const categories = await db.select().from(ticketCategories).where(eq(ticketCategories.enabled, true));
-        
+
         // Build the embed
         const embed = new EmbedBuilder()
             .setTitle(title)
@@ -459,7 +459,7 @@ export async function handleTicketCreatorCommand(interaction: any): Promise<void
 
         // Add category info if categories exist
         if (categories.length > 0) {
-            const categoryList = categories.map(cat => 
+            const categoryList = categories.map((cat: any) =>
                 `${cat.emoji || '🎫'} **${cat.name}**${cat.description ? ` - ${cat.description}` : ''}`
             ).join('\n');
             embed.addFields({ name: 'Available Departments', value: categoryList });
@@ -467,7 +467,7 @@ export async function handleTicketCreatorCommand(interaction: any): Promise<void
 
         // Build components
         const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = await import('discord.js');
-        
+
         const components: any[] = [];
 
         // Add category selector if there are multiple categories
@@ -476,7 +476,7 @@ export async function handleTicketCreatorCommand(interaction: any): Promise<void
                 .setCustomId('ticket_category_select')
                 .setPlaceholder('Select a department...')
                 .addOptions(
-                    categories.map(cat => ({
+                    categories.map((cat: any) => ({
                         label: cat.name,
                         description: cat.description?.substring(0, 100) || 'Create a ticket in this category',
                         value: cat.id.toString(),
@@ -793,7 +793,7 @@ export async function setupDiscordIntegrationListeners() {
         console.log('Discord listeners already initialized, skipping...');
         return;
     }
-    
+
     const client = await getDiscordClient();
     if (!client) return;
 
@@ -824,12 +824,12 @@ export async function setupDiscordIntegrationListeners() {
         // Handle button interactions
         if (interaction.isButton()) {
             const customId = interaction.customId;
-            
+
             if (customId === 'ticket_create') {
                 await handleTicketButtonInteraction(interaction);
                 return;
             }
-            
+
             // Handle close button
             if (customId === 'ticket_close') {
                 // Check if in a ticket channel
@@ -837,14 +837,14 @@ export async function setupDiscordIntegrationListeners() {
                     .select()
                     .from(supportTickets)
                     .where(eq(supportTickets.discordThreadId, interaction.channel.id));
-                
+
                 if (ticket) {
                     await db.update(supportTickets)
                         .set({ status: 'closed', closedAt: new Date(), updatedAt: new Date() })
                         .where(eq(supportTickets.id, ticket.id));
-                    
+
                     await closeTicketThread(interaction.channel.id);
-                    
+
                     await interaction.reply({
                         content: '🔒 Ticket closed.',
                         ephemeral: true,
@@ -857,7 +857,7 @@ export async function setupDiscordIntegrationListeners() {
         // Handle select menu interactions
         if (interaction.isStringSelectMenu()) {
             const customId = interaction.customId;
-            
+
             if (customId === 'ticket_category_select') {
                 const categoryId = interaction.values[0];
                 await handleTicketButtonInteraction(interaction, categoryId);
@@ -868,7 +868,7 @@ export async function setupDiscordIntegrationListeners() {
         // Handle modal submissions
         if (interaction.isModalSubmit()) {
             const customId = interaction.customId;
-            
+
             if (customId.startsWith('ticket_create_modal')) {
                 const categoryId = customId.includes(':') ? customId.split(':')[1] : null;
                 await handleTicketModalSubmitWithCategory(interaction, categoryId);

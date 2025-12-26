@@ -144,7 +144,7 @@ export function sleep(ms: number): Promise<void> {
 export function getInitials(name: string): string {
   return name
     .split(' ')
-    .map(word => word[0])
+    .map((word: any) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);

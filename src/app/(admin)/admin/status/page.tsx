@@ -366,7 +366,7 @@ export default function AdminStatusPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {services.map((service) => (
+            {services.map((service: any) => (
               <div
                 key={service.name}
                 className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"

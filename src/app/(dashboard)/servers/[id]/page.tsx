@@ -105,8 +105,8 @@ async function getServerWithStatus(id: number) {
 
     const data = await res.json();
     const servers = (data.servers || []) as any[];
-    return servers.find((s) => s.id === id) ?? null;
-  } catch (error) {
+    return servers.find((s: any) => s.id === id) ?? null;
+  } catch (error: any) {
     console.error('Error fetching server status:', error);
     return null;
   }

@@ -60,7 +60,7 @@ export async function PUT(
             .returning();
 
         return NextResponse.json({ success: true, reply: updatedReply });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating reply:', error);
         return NextResponse.json({ error: 'Failed to update reply' }, { status: 500 });
     }
@@ -108,7 +108,7 @@ export async function DELETE(
         await db.delete(forumReplies).where(eq(forumReplies.id, replyIdNum));
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting reply:', error);
         return NextResponse.json({ error: 'Failed to delete reply' }, { status: 500 });
     }

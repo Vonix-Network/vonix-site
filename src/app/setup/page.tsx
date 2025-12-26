@@ -231,7 +231,7 @@ export default function SetupPage() {
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            {steps.map((step, index) => (
+            {steps.map((step: any, index: any) => (
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
                   <div 

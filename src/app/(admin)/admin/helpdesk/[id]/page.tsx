@@ -91,7 +91,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
             } else if (res.status === 403) {
                 router.push('/admin/helpdesk');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching ticket:', error);
         } finally {
             setIsLoading(false);
@@ -120,7 +120,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
                 const data = await res.json();
                 setError(data.error || 'Failed to send reply');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('An error occurred. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -137,7 +137,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
             if (res.ok) {
                 fetchTicket();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating status:', error);
         }
     };
@@ -152,7 +152,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
             if (res.ok) {
                 fetchTicket();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating priority:', error);
         }
     };
@@ -241,7 +241,7 @@ export default function AdminTicketDetailPage({ params }: { params: Promise<{ id
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
-                            {ticket.messages.map((msg) => (
+                            {ticket.messages.map((msg: any) => (
                                 <div
                                     key={msg.id}
                                     className={`p-4 rounded-lg border ${msg.isStaffReply

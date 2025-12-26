@@ -31,7 +31,7 @@ export async function reportError(
 
         // Send email alert (async, won't block)
         await sendAdminErrorAlert(errorType, errorMessage, errorStack, requestInfo);
-    } catch (reportingError) {
+    } catch (reportingError: any) {
         // Don't let error reporting cause additional issues
         console.error('Failed to report error:', reportingError);
     }

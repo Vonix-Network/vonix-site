@@ -257,7 +257,7 @@ export default function AdminModerationPage() {
           <CardContent>
             {reports.length > 0 ? (
               <div className="space-y-3">
-                {reports.map((report) => (
+                {reports.map((report: any) => (
                   <div
                     key={report.id}
                     className="p-4 rounded-lg bg-secondary/50"
@@ -331,7 +331,7 @@ export default function AdminModerationPage() {
           <CardContent>
             {auditLogs.length > 0 ? (
               <div className="space-y-3">
-                {auditLogs.slice(0, 10).map((log) => (
+                {auditLogs.slice(0, 10).map((log: any) => (
                   <div
                     key={log.id}
                     className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50"
@@ -507,7 +507,7 @@ export default function AdminModerationPage() {
             </CardHeader>
             <CardContent className="overflow-y-auto flex-1">
               <div className="space-y-2">
-                {auditLogs.map((log) => (
+                {auditLogs.map((log: any) => (
                   <div key={log.id} className="p-3 rounded-lg bg-secondary/50">
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary">{log.action}</Badge>

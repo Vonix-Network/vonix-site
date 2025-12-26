@@ -194,7 +194,7 @@ export function parseDiscordMarkdown(text: string): ParsedPart[] {
     }
 
     // Sort matches by start position
-    matches.sort((a, b) => a.start - b.start);
+    matches.sort((a: any, b: any) => a.start - b.start);
 
     // Remove overlapping matches (keep first match)
     const filteredMatches: typeof matches = [];
@@ -235,7 +235,7 @@ export function parseDiscordMarkdown(text: string): ParsedPart[] {
  * Convert parsed parts to HTML string
  */
 export function partsToHtml(parts: ParsedPart[]): string {
-    return parts.map(part => {
+    return parts.map((part: any) => {
         const escaped = escapeHtml(part.content);
 
         switch (part.type) {

@@ -60,7 +60,7 @@ export async function POST(
             success: true,
             message: 'Command sent successfully',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending command:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to send command' },

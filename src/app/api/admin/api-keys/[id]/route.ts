@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await db.delete(apiKeys).where(eq(apiKeys.id, keyId));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting API key:', error);
     return NextResponse.json(
       { error: 'Failed to delete API key' },

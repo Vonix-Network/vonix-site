@@ -48,7 +48,7 @@ export async function getSmtpConfig(): Promise<SmtpConfig | null> {
       .where(like(siteSettings.key, 'smtp_%'));
 
     const getValue = (key: string) =>
-      settings.find(s => s.key === key)?.value || '';
+      settings.find((s: any) => s.key === key)?.value || '';
 
     const host = getValue('smtp_host');
     const user = getValue('smtp_user');
@@ -636,7 +636,7 @@ export function getTicketAccessEmailTemplate(
   accessToken: string
 ): EmailTemplate {
   const accessUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vonix.network'}/helpdesk/guest?token=${accessToken}`;
-  
+
   const content = `
     <h2 style="color: #00ffff; font-size: 20px; margin: 0 0 16px 0;">
       🎫 Your Support Ticket Has Been Created
@@ -699,7 +699,7 @@ export function getTicketReplyEmailTemplate(
   replyPreview: string
 ): EmailTemplate {
   const accessUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vonix.network'}/helpdesk/guest?token=${accessToken}`;
-  
+
   const content = `
     <h2 style="color: #00ffff; font-size: 20px; margin: 0 0 16px 0;">
       💬 New Reply on Your Ticket #${ticketId}

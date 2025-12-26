@@ -251,7 +251,7 @@ export default function HostingPage() {
 
                 {/* Feature Cards (3-up) */}
                 <div className="grid md:grid-cols-3 gap-6 mb-24 max-w-5xl mx-auto">
-                    {(isMC ? features.minecraft : features.dartnode).map((feat, i) => (
+                    {(isMC ? features.minecraft : features.dartnode).map((feat: any, i: any) => (
                         <Card key={i} className="bg-white/5 border-white/5 backdrop-blur-sm">
                             <CardContent className="p-6">
                                 <feat.icon className={cn("w-8 h-8 mb-4", accentColor)} />
@@ -276,7 +276,7 @@ export default function HostingPage() {
                     {isMC ? (
                         // MINECRAFT PLANS GRID
                         <div className="grid md:grid-cols-4 gap-6">
-                            {mcPlans.map((plan, i) => (
+                            {mcPlans.map((plan: any, i: any) => (
                                 <Card key={i} className={cn(
                                     "bg-[#0A0A0A] border-white/5 overflow-hidden group relative hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/10",
                                     plan.popular ? "border-green-500/50 ring-1 ring-green-500/20" : ""
@@ -323,7 +323,7 @@ export default function HostingPage() {
                     ) : (
                         // DARTNODE PRODUCTS GRID (Based on Request & Screenshot)
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {dartNodeProducts.map((prod, i) => (
+                            {dartNodeProducts.map((prod: any, i: any) => (
                                 <Card key={i} className={cn(
                                     "bg-[#0A0A0A] border-white/5 overflow-hidden group relative hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-900/10",
                                     prod.popular ? "border-orange-500/50 ring-1 ring-orange-500/20" : ""

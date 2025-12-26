@@ -37,7 +37,7 @@ export function removeUserSocket(userId: number, socketId: string) {
 // Emit message to specific user
 export function emitToUser(io: SocketIOServer, userId: number, event: string, data: any) {
     const sockets = getUserSockets(userId);
-    sockets.forEach(socketId => {
+    sockets.forEach((socketId: any) => {
         io.to(socketId).emit(event, data);
     });
 }

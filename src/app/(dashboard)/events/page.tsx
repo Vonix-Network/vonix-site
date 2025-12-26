@@ -218,7 +218,7 @@ export default async function EventsPage() {
                 { name: 'PvP Tournaments', color: 'bg-neon-pink' },
                 { name: 'Community Nights', color: 'bg-neon-purple' },
                 { name: 'Special Events', color: 'bg-neon-orange' },
-              ].map((type) => (
+              ].map((type: any) => (
                 <div key={type.name} className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${type.color}`} />
                   <span className="text-sm">{type.name}</span>
@@ -235,7 +235,7 @@ export default async function EventsPage() {
             <CardContent>
               {pastEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {pastEvents.map((event) => (
+                  {pastEvents.map((event: any) => (
                     <div
                       key={event.id}
                       className="p-3 rounded-lg bg-secondary/50"

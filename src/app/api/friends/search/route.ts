@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const targetIds = matchedUsers.map((u) => u.id);
+    const targetIds = matchedUsers.map((u: any) => u.id);
 
     const friendshipRows = await db
       .select({
@@ -56,10 +56,9 @@ export async function GET(request: NextRequest) {
         ),
       );
 
-    const results = matchedUsers.map((u) => {
+    const results = matchedUsers.map((u: any) => {
       let status: 'none' | 'pending' | 'friends' = 'none';
-      const rel = friendshipRows.find(
-        (f) => (f.userId === viewerId && f.friendId === u.id) || (f.friendId === viewerId && f.userId === u.id),
+      const rel = friendshipRows.find((f: any) => (f.userId === viewerId && f.friendId === u.id) || (f.friendId === viewerId && f.userId === u.id),
       );
       if (rel) {
         if (rel.status === 'accepted') status = 'friends';

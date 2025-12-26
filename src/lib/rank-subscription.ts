@@ -202,7 +202,7 @@ export async function removeExpiredRanks(): Promise<{ removed: number; users: st
           const { updateUserDiscordRole } = await import('@/lib/discord-integration');
           await updateUserDiscordRole(user.id, null, oldRankId);
           console.log(`✅ Removed Discord role for user ${user.username}`);
-        } catch (discordError) {
+        } catch (discordError: any) {
           console.error('Failed to remove Discord role:', discordError);
           // Continue even if Discord role removal fails
         }

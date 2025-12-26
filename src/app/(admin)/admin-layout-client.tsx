@@ -79,7 +79,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
 
     const toggleGroup = (label: string) => {
         setExpandedGroups(prev =>
-            prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]
+            prev.includes(label) ? prev.filter((g: any) => g !== label) : [...prev, label]
         );
     };
 
@@ -126,9 +126,9 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                 </div>
 
                 <nav className="px-3 overflow-y-auto max-h-[calc(100vh-180px)]">
-                    {adminNavGroups.map((group) => {
+                    {adminNavGroups.map((group: any) => {
                         const isExpanded = expandedGroups.includes(group.label);
-                        const hasActiveItem = group.items.some(item => isActive(item.href));
+                        const hasActiveItem = group.items.some((item: any) => isActive(item.href));
 
                         return (
                             <div key={group.label} className="mb-1">
@@ -142,7 +142,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                                 </button>
                                 {isExpanded && (
                                     <div className="ml-2 space-y-0.5">
-                                        {group.items.map((item) => (
+                                        {group.items.map((item: any) => (
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
@@ -171,7 +171,7 @@ export function AdminLayoutClient({ children, username, role, isSuperadmin }: Ad
                                     Pterodactyl
                                 </p>
                             </div>
-                            {superadminNav.map((item) => (
+                            {superadminNav.map((item: any) => (
                                 <Link
                                     key={item.href}
                                     href={item.href}

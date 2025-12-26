@@ -31,7 +31,7 @@ export function RankPurchaseCard({ rank }: RankPurchaseCardProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const packages = getDurationPackages(rank.id);
-  const selectedPackage = packages.find(p => p.days === selectedDuration) || packages[0];
+  const selectedPackage = packages.find((p: any) => p.days === selectedDuration) || packages[0];
 
   const handlePurchase = async () => {
     if (!session) {
@@ -145,7 +145,7 @@ export function RankPurchaseCard({ rank }: RankPurchaseCardProps) {
             Select Duration
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {packages.map((pkg) => (
+            {packages.map((pkg: any) => (
               <button
                 key={pkg.days}
                 onClick={() => setSelectedDuration(pkg.days)}
@@ -173,7 +173,7 @@ export function RankPurchaseCard({ rank }: RankPurchaseCardProps) {
 
         {/* Perks */}
         <ul className="space-y-2">
-          {rank.perks.slice(0, 4).map((perk, i) => (
+          {rank.perks.slice(0, 4).map((perk: any, i: any) => (
             <li key={i} className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: rank.color }} />
               <span className="text-muted-foreground">{perk}</span>

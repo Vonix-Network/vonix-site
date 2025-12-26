@@ -57,9 +57,9 @@ export function MessengerProvider({ children }: { children: ReactNode }) {
 
   const openChat = useCallback((user: MessengerUser) => {
     setOpenChats((prev) => {
-      const existing = prev.find((c) => c.conversationId === user.id);
+      const existing = prev.find((c: any) => c.conversationId === user.id);
       if (existing) {
-        return prev.map((c) =>
+        return prev.map((c: any) =>
           c.conversationId === user.id ? { ...c, minimized: false } : c
         );
       }
@@ -74,18 +74,18 @@ export function MessengerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closeChat = useCallback((conversationId: number) => {
-    setOpenChats((prev) => prev.filter((c) => c.conversationId !== conversationId));
+    setOpenChats((prev) => prev.filter((c: any) => c.conversationId !== conversationId));
   }, []);
 
   const toggleMinimize = useCallback((conversationId: number) => {
     setOpenChats((prev) =>
-      prev.map((c) =>
+      prev.map((c: any) =>
         c.conversationId === conversationId ? { ...c, minimized: !c.minimized } : c
       )
     );
   }, []);
 
-  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+  const totalUnread = conversations.reduce((sum: any, c: any) => sum + c.unreadCount, 0);
 
   return (
     <MessengerContext.Provider

@@ -51,7 +51,7 @@ export async function GET() {
     'DATABASE_URL',
   ];
   
-  const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+  const missingEnvVars = requiredEnvVars.filter((v: any) => !process.env[v]);
   
   if (missingEnvVars.length === 0) {
     checks.checks.environment = { status: 'healthy' };

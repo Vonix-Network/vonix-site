@@ -77,7 +77,7 @@ export default function AdminDonorRanksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          perks: perksInput ? JSON.stringify(perksInput.split('\n').filter(p => p.trim())) : null,
+          perks: perksInput ? JSON.stringify(perksInput.split('\n').filter((p: any) => p.trim())) : null,
         }),
       });
 
@@ -103,7 +103,7 @@ export default function AdminDonorRanksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          perks: perksInput ? JSON.stringify(perksInput.split('\n').filter(p => p.trim())) : null,
+          perks: perksInput ? JSON.stringify(perksInput.split('\n').filter((p: any) => p.trim())) : null,
         }),
       });
 
@@ -190,7 +190,7 @@ export default function AdminDonorRanksPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  ${ranks.length > 0 ? Math.min(...ranks.map(r => r.minAmount)) : 0}
+                  ${ranks.length > 0 ? Math.min(...ranks.map((r: any) => r.minAmount)) : 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Starting Price</p>
               </div>
@@ -205,7 +205,7 @@ export default function AdminDonorRanksPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {ranks.filter(r => r.glow).length}
+                  {ranks.filter((r: any) => r.glow).length}
                 </p>
                 <p className="text-sm text-muted-foreground">With Glow Effect</p>
               </div>
@@ -235,7 +235,7 @@ export default function AdminDonorRanksPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {ranks.sort((a, b) => a.minAmount - b.minAmount).map((rank) => (
+              {ranks.sort((a: any, b: any) => a.minAmount - b.minAmount).map((rank: any) => (
                 <div
                   key={rank.id}
                   className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"

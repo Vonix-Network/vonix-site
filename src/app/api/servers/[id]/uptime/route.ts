@@ -68,7 +68,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 .orderBy(sql`hour_bucket DESC`);
 
             // Transform aggregated data into a format compatible with the frontend
-            records = aggregatedRecords.map(row => ({
+            records = aggregatedRecords.map((row: any) => ({
                 id: 0, // Aggregated record
                 serverId,
                 online: row.online > 0, // At least one online check in this hour
@@ -125,17 +125,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         } else {
             // Stats from raw data
             totalChecks = records.length;
-            onlineChecks = records.filter(r => r.online).length;
-            responseTimes = records.filter(r => r.responseTimeMs).map(r => r.responseTimeMs!);
-            playerCounts = records.filter(r => r.playersOnline !== null).map(r => r.playersOnline!);
+            onlineChecks = records.filter((r: any) => r.online).length;
+            responseTimes = records.filter((r: any) => r.responseTimeMs).map((r: any) => r.responseTimeMs!);
+            playerCounts = records.filter((r: any) => r.playersOnline !== null).map((r: any) => r.playersOnline!);
         }
 
         const uptimePercentage = totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0;
         const avgResponseTime = responseTimes.length > 0
-            ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+            ? Math.round(responseTimes.reduce((a: any, b: any) => a + b, 0) / responseTimes.length)
             : 0;
         const avgPlayers = playerCounts.length > 0
-            ? Math.round(playerCounts.reduce((a, b) => a + b, 0) / playerCounts.length)
+            ? Math.round(playerCounts.reduce((a: any, b: any) => a + b, 0) / playerCounts.length)
             : 0;
         const maxPlayers = playerCounts.length > 0 ? Math.max(...playerCounts) : 0;
 
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             records,
             aggregated: shouldAggregate,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching server uptime:', error);
         return NextResponse.json({ error: 'Failed to fetch uptime data' }, { status: 500 });
     }

@@ -225,7 +225,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
                         </div>
                     ) : tickets.length > 0 ? (
                         <div className="divide-y divide-white/5">
-                            {tickets.map((ticket) => {
+                            {tickets.map((ticket: any) => {
                                 const status = statusConfig[ticket.status] || statusConfig.open;
                                 const StatusIcon = status.icon;
 
@@ -358,7 +358,7 @@ export function SupportPanel({ isMobile, onBack }: SupportPanelProps) {
 
             {/* Messages */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3">
-                {messages.map((msg) => (
+                {messages.map((msg: any) => (
                     <div key={msg.id} className={cn('flex gap-2', msg.isStaffReply ? 'flex-row' : 'flex-row-reverse')}>
                         <Avatar className="w-7 h-7 shrink-0">
                             {msg.avatarUrl && <AvatarImage src={msg.avatarUrl} alt={msg.username} />}

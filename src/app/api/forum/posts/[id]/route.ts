@@ -78,7 +78,7 @@ export async function GET(
       .orderBy(forumReplies.createdAt);
 
     return NextResponse.json({ post, replies: repliesWithRanks });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching forum post:', error);
     return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 });
   }
@@ -127,7 +127,7 @@ export async function DELETE(
     await db.delete(forumPosts).where(eq(forumPosts.id, postId));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting forum post:', error);
     return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 });
   }
@@ -199,7 +199,7 @@ export async function PUT(
       .returning();
 
     return NextResponse.json({ success: true, post: updatedPost });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating forum post:', error);
     return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
   }

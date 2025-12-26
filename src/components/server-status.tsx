@@ -158,8 +158,8 @@ export function ServerStatusList({
     }
   };
 
-  const totalPlayers = servers.reduce((sum, s) => sum + (s.players?.online || 0), 0);
-  const onlineServers = servers.filter((s) => s.online).length;
+  const totalPlayers = servers.reduce((sum: any, s: any) => sum + (s.players?.online || 0), 0);
+  const onlineServers = servers.filter((s: any) => s.online).length;
 
   const getServerAddress = (server: ServerData) =>
     server.hidePort || server.port === 25565 ? server.address : `${server.address}:${server.port}`;
@@ -183,13 +183,13 @@ export function ServerStatusList({
         {/* Content skeletons */}
         {variant === 'full' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Array.from({ length: skeletonCount }).map((_, i) => (
+            {Array.from({ length: skeletonCount }).map((_: any, i: any) => (
               <ServerCardSkeleton key={i} variant={variant} />
             ))}
           </div>
         ) : (
           <div className="space-y-3">
-            {Array.from({ length: skeletonCount }).map((_, i) => (
+            {Array.from({ length: skeletonCount }).map((_: any, i: any) => (
               <ServerCardSkeleton key={i} variant={variant} />
             ))}
           </div>
@@ -319,7 +319,7 @@ export function ServerStatusList({
               </Button>
 
               <div className="flex items-center gap-2">
-                {servers.map((_, index) => (
+                {servers.map((_: any, index: any) => (
                   <button
                     key={index}
                     onClick={() => setCarouselIndex(index)}
@@ -383,7 +383,7 @@ export function ServerStatusList({
         </div>
 
         <Accordion type="single" defaultValue={servers[0]?.id.toString()}>
-          {servers.map((server) => (
+          {servers.map((server: any) => (
             <AccordionItem key={server.id} value={server.id.toString()}>
               <AccordionTrigger>
                 <div className="flex items-center gap-3 flex-1">
@@ -463,7 +463,7 @@ export function ServerStatusList({
             </Button>
           )}
         </div>
-        {servers.slice(0, 3).map((server) => (
+        {servers.slice(0, 3).map((server: any) => (
           <div key={server.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
             <div className="flex items-center gap-3">
               <div className={cn("w-2 h-2 rounded-full", server.online ? "bg-success animate-pulse" : "bg-error")} />
@@ -494,7 +494,7 @@ export function ServerStatusList({
           )}
         </div>
         <div className="grid gap-3">
-          {servers.map((server) => (
+          {servers.map((server: any) => (
             <div key={server.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
               <div className="flex items-center gap-4">
                 {server.icon ? (
@@ -553,7 +553,7 @@ export function ServerStatusList({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {servers.map((server) => (
+        {servers.map((server: any) => (
           <Card key={server.id} variant="premium" className={cn("overflow-hidden group", !server.online && "opacity-80")}>
             <div className={cn("h-[2px]", server.online ? "bg-success" : "bg-error")} />
             <CardHeader className="pb-2">

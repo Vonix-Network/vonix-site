@@ -47,7 +47,7 @@ export async function loadSquareConfig(): Promise<{
             .where(like(siteSettings.key, 'square_%'));
 
         const dbSettings: Record<string, string> = {};
-        settings.forEach(s => {
+        settings.forEach((s: any) => {
             if (s.value) dbSettings[s.key] = s.value;
         });
 

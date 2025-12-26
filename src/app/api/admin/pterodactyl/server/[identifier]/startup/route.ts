@@ -47,7 +47,7 @@ export async function GET(
                 rules: v.attributes.rules,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error getting startup variables:', error);
         return NextResponse.json({ error: 'Failed to get startup variables' }, { status: 500 });
     }
@@ -95,7 +95,7 @@ export async function PUT(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating startup variable:', error);
         return NextResponse.json({ error: 'Failed to update startup variable' }, { status: 500 });
     }

@@ -266,7 +266,7 @@ export function sanitizeStringArray(
     return input
         .filter((item): item is string => typeof item === 'string')
         .slice(0, maxItems)
-        .map(item => sanitizeForDb(item, itemMaxLength));
+        .map((item: any) => sanitizeForDb(item, itemMaxLength));
 }
 
 /**
@@ -292,7 +292,7 @@ export function containsMaliciousContent(input: string | null | undefined): bool
         /url\s*\(/i, // CSS url (can be dangerous in some contexts)
     ];
 
-    return maliciousPatterns.some(pattern => pattern.test(input));
+    return maliciousPatterns.some((pattern: any) => pattern.test(input));
 }
 
 /**

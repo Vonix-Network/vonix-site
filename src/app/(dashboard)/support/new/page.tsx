@@ -111,7 +111,7 @@ export default function NewTicketPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Category</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {categories.map((cat) => (
+                                {categories.map((cat: any) => (
                                     <button
                                         key={cat.value}
                                         type="button"
@@ -132,7 +132,7 @@ export default function NewTicketPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Priority</label>
                             <div className="flex gap-2">
-                                {priorities.map((p) => (
+                                {priorities.map((p: any) => (
                                     <button
                                         key={p.value}
                                         type="button"

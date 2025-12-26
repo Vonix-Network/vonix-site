@@ -82,7 +82,7 @@ export default function RulesPage() {
                     </div>
 
                     <div className="grid gap-6">
-                        {rulesCategories.map((category, index) => (
+                        {rulesCategories.map((category: any, index: any) => (
                             <Card key={index} variant="glass" className="p-6">
                                 <div className="flex items-start gap-4">
                                     <div className={`p-3 rounded-xl bg-background/50 ${category.color}`}>
@@ -91,7 +91,7 @@ export default function RulesPage() {
                                     <div className="space-y-4 flex-1">
                                         <h2 className="text-xl font-bold">{category.title}</h2>
                                         <ul className="grid gap-3">
-                                            {category.rules.map((rule, ruleIndex) => (
+                                            {category.rules.map((rule: any, ruleIndex: any) => (
                                                 <li key={ruleIndex} className="flex items-start gap-3 text-muted-foreground">
                                                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-border flex-shrink-0" />
                                                     <span>{rule}</span>

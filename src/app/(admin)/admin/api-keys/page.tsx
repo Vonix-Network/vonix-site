@@ -94,7 +94,7 @@ export default function ApiKeysPage() {
     try {
       const res = await fetch(`/api/admin/api-keys/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setApiKeys(apiKeys.filter(k => k.id !== id));
+        setApiKeys(apiKeys.filter((k: any) => k.id !== id));
       }
     } catch (err: any) {
       console.error('Failed to delete API key:', err);
@@ -332,7 +332,7 @@ export default function ApiKeysPage() {
         <CardContent>
           {apiKeys.length > 0 ? (
             <div className="space-y-3">
-              {apiKeys.map((apiKey) => (
+              {apiKeys.map((apiKey: any) => (
                 <div
                   key={apiKey.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"

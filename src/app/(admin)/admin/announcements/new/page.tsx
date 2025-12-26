@@ -129,8 +129,8 @@ export default function NewAnnouncementPage() {
                                                 key={type}
                                                 onClick={() => setFormData({ ...formData, type })}
                                                 className={`p-3 rounded-lg border transition-all flex items-center justify-center gap-2 capitalize ${formData.type === type
-                                                        ? typeColors[type]
-                                                        : 'border-border hover:border-muted-foreground'
+                                                    ? typeColors[type]
+                                                    : 'border-border hover:border-muted-foreground'
                                                     }`}
                                             >
                                                 <Icon className="w-4 h-4" />

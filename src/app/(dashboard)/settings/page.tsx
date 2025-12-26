@@ -416,7 +416,7 @@ export default function SettingsPage() {
           <Card variant="glass">
             <CardContent className="p-2">
               <nav className="space-y-1">
-                {tabs.map((tab) => (
+                {tabs.map((tab: any) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
@@ -698,7 +698,7 @@ export default function SettingsPage() {
                         </div>
                       ) : donations.length > 0 ? (
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                          {donations.map((donation) => (
+                          {donations.map((donation: any) => (
                             <div
                               key={donation.id}
                               className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50"
@@ -1190,7 +1190,7 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <h3 className="font-semibold">Theme</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    {['dark', 'light', 'system'].map((theme) => (
+                    {['dark', 'light', 'system'].map((theme: any) => (
                       <button
                         key={theme}
                         className={`p-4 rounded-lg border-2 transition-colors ${theme === 'dark'

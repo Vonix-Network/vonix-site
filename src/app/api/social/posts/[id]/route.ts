@@ -43,7 +43,7 @@ export async function GET(
       comments: [],
       userLiked: false, // Can't track without socialLikes table
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching post:', error);
     return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 });
   }
@@ -82,7 +82,7 @@ export async function DELETE(
     await db.delete(socialPosts).where(eq(socialPosts.id, postId));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting post:', error);
     return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 });
   }

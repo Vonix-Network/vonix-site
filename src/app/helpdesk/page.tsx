@@ -86,8 +86,8 @@ export default function UserHelpdeskPage() {
         );
     }
 
-    const activeTickets = tickets.filter(t => !['closed', 'resolved'].includes(t.status));
-    const closedTickets = tickets.filter(t => ['closed', 'resolved'].includes(t.status));
+    const activeTickets = tickets.filter((t: any) => !['closed', 'resolved'].includes(t.status));
+    const closedTickets = tickets.filter((t: any) => ['closed', 'resolved'].includes(t.status));
 
     return (
         <div className="min-h-screen bg-background">
@@ -130,7 +130,7 @@ export default function UserHelpdeskPage() {
                 <div className="mb-12">
                     <h2 className="text-2xl font-bold mb-6 text-center">How can we help you?</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {categories.map((cat) => (
+                        {categories.map((cat: any) => (
                             <Link key={cat.id} href={`/helpdesk/new?category=${cat.id}`}>
                                 <Card variant="glass" className="h-full hover:border-neon-cyan/50 transition-all cursor-pointer group">
                                     <CardContent className="p-6 text-center">
@@ -159,7 +159,7 @@ export default function UserHelpdeskPage() {
                             </h2>
                         </div>
                         <div className="grid gap-4">
-                            {activeTickets.map((ticket) => {
+                            {activeTickets.map((ticket: any) => {
                                 const statusInfo = statusConfig[ticket.status] || statusConfig.open;
                                 const priorityInfo = priorityConfig[ticket.priority] || priorityConfig.normal;
                                 const StatusIcon = statusInfo.icon;
@@ -216,7 +216,7 @@ export default function UserHelpdeskPage() {
                             </h2>
                         </div>
                         <div className="grid gap-3">
-                            {closedTickets.slice(0, 5).map((ticket) => {
+                            {closedTickets.slice(0, 5).map((ticket: any) => {
                                 const statusInfo = statusConfig[ticket.status] || statusConfig.closed;
                                 const StatusIcon = statusInfo.icon;
 

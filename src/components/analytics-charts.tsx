@@ -62,7 +62,7 @@ export function RevenueChart({ data, total }: RevenueChartProps) {
               Total: {formatCurrency(total)}
             </span>
             <div className="inline-flex rounded-full border border-border bg-background/40 p-0.5">
-              {ranges.map((days) => (
+              {ranges.map((days: any) => (
                 <button
                   key={days}
                   type="button"
@@ -149,7 +149,7 @@ export function UserGrowthChart({ data, totalUsers, newThisWeek }: UserGrowthCha
               +{newThisWeek} this week
             </span>
             <div className="inline-flex rounded-full border border-border bg-background/40 p-0.5">
-              {ranges.map((days) => (
+              {ranges.map((days: any) => (
                 <button
                   key={days}
                   type="button"

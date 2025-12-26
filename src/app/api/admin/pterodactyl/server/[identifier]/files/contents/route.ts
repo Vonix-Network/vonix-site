@@ -43,7 +43,7 @@ export async function GET(
 
         const content = await response.text();
         return NextResponse.json({ success: true, content });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading file:', error);
         return NextResponse.json({ error: 'Failed to read file' }, { status: 500 });
     }
@@ -92,7 +92,7 @@ export async function POST(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error writing file:', error);
         return NextResponse.json({ error: 'Failed to write file' }, { status: 500 });
     }

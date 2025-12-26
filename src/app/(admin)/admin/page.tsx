@@ -128,7 +128,7 @@ export default async function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat) => (
+        {statCards.map((stat: any) => (
           <Card key={stat.title} variant="glass">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export default async function AdminDashboard() {
               { label: 'Announcement', icon: MessageSquare, href: '/admin/announcements/new' },
               { label: 'View Reports', icon: AlertTriangle, href: '/admin/moderation' },
               { label: 'System Status', icon: Activity, href: '/admin/status' },
-            ].map((action) => (
+            ].map((action: any) => (
               <a
                 key={action.label}
                 href={action.href}
@@ -263,7 +263,7 @@ export default async function AdminDashboard() {
               { name: 'Database', status: 'operational' },
               { name: 'Authentication', status: 'operational' },
               { name: 'Payment System', status: 'operational' },
-            ].map((service) => (
+            ].map((service: any) => (
               <div
                 key={service.name}
                 className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"

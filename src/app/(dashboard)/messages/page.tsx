@@ -163,7 +163,7 @@ export default function MessagesPage() {
       }));
       setMessages(msgs);
 
-      let conv = conversations.find((c) => c.user.id === otherUserId) || null;
+      let conv = conversations.find((c: any) => c.user.id === otherUserId) || null;
       if (!conv) {
         // Fetch basic user info to build a conversation header
         const userRes = await fetch(`/api/users/${otherUserId}`);
@@ -182,7 +182,7 @@ export default function MessagesPage() {
             unread: 0,
           };
           setConversations((prev) => {
-            if (prev.find((c) => c.user.id === u.id)) return prev;
+            if (prev.find((c: any) => c.user.id === u.id)) return prev;
             return [conv as Conversation, ...prev];
           });
         }
@@ -247,7 +247,7 @@ export default function MessagesPage() {
       ) {
         setMessages((prev) => {
           // Avoid duplicates
-          if (prev.some(m => m.id === message.id)) return prev;
+          if (prev.some((m: any) => m.id === message.id)) return prev;
           return [...prev, {
             id: message.id,
             senderId: message.senderId,
@@ -258,7 +258,7 @@ export default function MessagesPage() {
 
         // Also update conversation list
         setConversations((prev) =>
-          prev.map((c) =>
+          prev.map((c: any) =>
             c.user.id === selectedConversation.user.id
               ? { ...c, lastMessage: message.content, lastMessageTime: new Date(message.createdAt) }
               : c
@@ -299,13 +299,13 @@ export default function MessagesPage() {
       };
       setMessages((prev) => [...prev, msg]);
       setConversations((prev) => {
-        const updated = prev.map((c) =>
+        const updated = prev.map((c: any) =>
           c.user.id === selectedConversation.user.id
             ? { ...c, lastMessage: msg.content, lastMessageTime: msg.time }
             : c,
         );
         // If conversation wasn't in the list yet, add it
-        if (!updated.find((c) => c.user.id === selectedConversation.user.id)) {
+        if (!updated.find((c: any) => c.user.id === selectedConversation.user.id)) {
           return [
             {
               id: selectedConversation.user.id,
@@ -355,7 +355,7 @@ export default function MessagesPage() {
 
           <CardContent className="flex-1 overflow-y-auto p-0">
             <div className="divide-y divide-border">
-              {conversations.map((conv) => (
+              {conversations.map((conv: any) => (
                 <button
                   key={conv.id}
                   onClick={() => selectConversation(conv)}
@@ -440,7 +440,7 @@ export default function MessagesPage() {
 
               {/* Messages */}
               <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
-                {messages.map((message) => (
+                {messages.map((message: any) => (
                   <div
                     key={message.id}
                     className={`flex ${message.senderId === myId ? 'justify-end' : 'justify-start'}`}

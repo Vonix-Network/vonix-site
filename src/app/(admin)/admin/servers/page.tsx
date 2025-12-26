@@ -76,7 +76,7 @@ export default function AdminServersPage() {
       const res = await fetch(`/api/servers/${serverId}/api-key`, { method: 'POST' });
       if (res.ok) {
         const { apiKey } = await res.json();
-        setServers(prev => prev.map(s => s.id === serverId ? { ...s, apiKey } : s));
+        setServers(prev => prev.map((s: any) => s.id === serverId ? { ...s, apiKey } : s));
         setShowApiKey(serverId);
       }
     } catch (err: any) {
@@ -160,7 +160,7 @@ export default function AdminServersPage() {
     try {
       const res = await fetch(`/api/servers/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setServers(servers.filter(s => s.id !== id));
+        setServers(servers.filter((s: any) => s.id !== id));
       }
     } catch (err: any) {
       console.error('Failed to delete server:', err);
@@ -195,7 +195,7 @@ export default function AdminServersPage() {
 
       if (res.ok) {
         const updated = await res.json();
-        setServers(prev => prev.map(s => (s.id === updated.id ? { ...s, ...updated } : s)));
+        setServers(prev => prev.map((s: any) => (s.id === updated.id ? { ...s, ...updated } : s)));
         setEditingServer(null);
       }
     } catch (err: any) {
@@ -492,7 +492,7 @@ export default function AdminServersPage() {
 
       {/* Servers List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {servers.map((server) => (
+        {servers.map((server: any) => (
           <Card key={server.id} variant="glass">
             <div className={`h-1 ${server.status === 'online' ? 'bg-success' : 'bg-error'}`} />
             <CardHeader>

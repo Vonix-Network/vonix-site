@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
             .where(inArray(siteSettings.key, keysToFetch));
 
         const settingsMap = Object.fromEntries(
-            settings.map(s => [s.key, s.value])
+            settings.map((s: any) => [s.key, s.value])
         );
 
         if (isAdmin) {

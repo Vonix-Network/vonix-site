@@ -106,7 +106,7 @@ export default function SupportPage() {
                         </div>
                     ) : tickets.length > 0 ? (
                         <div className="space-y-3">
-                            {tickets.map((ticket) => {
+                            {tickets.map((ticket: any) => {
                                 const status = statusConfig[ticket.status] || statusConfig.open;
                                 const StatusIcon = status.icon;
 

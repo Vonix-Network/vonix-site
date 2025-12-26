@@ -81,8 +81,8 @@ export default function FriendsPage() {
     reloadFriends();
   }, []);
 
-  const onlineFriends = friends.filter((f) => f.status === 'online');
-  const offlineFriends = friends.filter((f) => f.status === 'offline');
+  const onlineFriends = friends.filter((f: any) => f.status === 'online');
+  const offlineFriends = friends.filter((f: any) => f.status === 'offline');
 
   const runSearch = async () => {
     const q = searchQuery.trim();
@@ -137,7 +137,7 @@ export default function FriendsPage() {
           { id: 'friends', label: 'Friends', count: friends.length },
           { id: 'pending', label: 'Pending', count: pendingRequests.length },
           { id: 'search', label: 'Find Friends', count: null },
-        ].map((tab) => (
+        ].map((tab: any) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as Tab)}
@@ -177,7 +177,7 @@ export default function FriendsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {onlineFriends.map((friend) => (
+                {onlineFriends.map((friend: any) => (
                   <div
                     key={friend.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
@@ -228,7 +228,7 @@ export default function FriendsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {offlineFriends.map((friend) => (
+                {offlineFriends.map((friend: any) => (
                   <div
                     key={friend.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors opacity-75"
@@ -292,7 +292,7 @@ export default function FriendsPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {pendingRequests.length > 0 ? (
-              pendingRequests.map((request) => (
+              pendingRequests.map((request: any) => (
                 <div
                   key={request.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
@@ -407,7 +407,7 @@ export default function FriendsPage() {
             )}
             {searchResults.length > 0 && (
               <div className="space-y-2">
-                {searchResults.map((user) => (
+                {searchResults.map((user: any) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
@@ -441,7 +441,7 @@ export default function FriendsPage() {
                               });
                               if (res.ok) {
                                 setSearchResults((prev) =>
-                                  prev.map((u) =>
+                                  prev.map((u: any) =>
                                     u.id === user.id ? { ...u, status: 'pending' } : u,
                                   ),
                                 );

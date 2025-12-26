@@ -154,7 +154,7 @@ export function DiscordChatWindow() {
                                     <p className="text-xs mt-1">Say hi to the Discord community! 👋</p>
                                 </div>
                             ) : (
-                                messages.map((msg) => {
+                                messages.map((msg: any) => {
                                     // Only mark messages as own when session is fully loaded and IDs match
                                     const isOwn = currentUserId !== null && msg.isFromWeb && msg.webUserId === currentUserId;
 

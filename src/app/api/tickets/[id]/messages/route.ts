@@ -93,14 +93,14 @@ export async function POST(
                     user.username,
                     isStaff
                 );
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to send message to Discord thread:', error);
                 // Continue even if Discord sync fails
             }
         }
 
         return NextResponse.json({ success: true, message: newMessage });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error adding message:', error);
         return NextResponse.json({ error: 'Failed to add message' }, { status: 500 });
     }

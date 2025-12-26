@@ -219,7 +219,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
+            {features.map((feature: any, index: any) => (
               <div
                 key={index}
                 className="group relative p-1 rounded-2xl bg-gradient-to-b from-white/10 to-transparent hover:from-neon-cyan/50 transition-all duration-300"
@@ -267,7 +267,7 @@ export default async function HomePage() {
               </p>
 
               <div className="grid sm:grid-cols-2 gap-4 pt-4">
-                {perks.map((perk, index) => (
+                {perks.map((perk: any, index: any) => (
                   <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center shadow-lg shadow-neon-cyan/20">
                       <Check className="h-4 w-4 text-white font-bold" />

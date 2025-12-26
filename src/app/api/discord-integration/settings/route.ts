@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
                 ])
             );
 
-        const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+        const settingsMap = new Map(settings.map((s: any) => [s.key, s.value]));
 
         return NextResponse.json({
             clientId: settingsMap.get('discord_client_id') || '',

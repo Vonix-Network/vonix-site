@@ -34,7 +34,7 @@ export async function GET(
 
     // Comments table doesn't exist in schema - return empty array
     return NextResponse.json([]);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching comments:', error);
     return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
   }
@@ -72,7 +72,7 @@ export async function POST(
       { error: 'Comments feature not available. Schema needs to be extended.' },
       { status: 501 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating comment:', error);
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(server);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching server:', error);
     return NextResponse.json({ error: 'Failed to fetch server' }, { status: 500 });
   }
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(updated);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating server:', error);
     return NextResponse.json({ error: 'Failed to update server' }, { status: 500 });
   }
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting server:', error);
     return NextResponse.json({ error: 'Failed to delete server' }, { status: 500 });
   }

@@ -227,7 +227,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                 // For 1h view, filter to last hour only (API returns full day)
                 if (currentRange.hours === 1) {
                     const oneHourAgo = Date.now() - 60 * 60 * 1000;
-                    fetchedRecords = fetchedRecords.filter(r => {
+                    fetchedRecords = fetchedRecords.filter((r: any) => {
                         const date = parseDate(r.checkedAt);
                         return date.getTime() >= oneHourAgo;
                     });
@@ -264,7 +264,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         let responseTimes: number[] = [];
         let playerCounts: number[] = [];
 
-        records.forEach(r => {
+        records.forEach((r: any) => {
             if (isAggregated && r._aggregated) {
                 totalChecks += r._totalChecks || 1;
                 onlineChecks += r._onlineCount || 0;
@@ -279,10 +279,10 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         return {
             uptimePercentage: totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0,
             avgResponseTime: responseTimes.length > 0
-                ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+                ? Math.round(responseTimes.reduce((a: any, b: any) => a + b, 0) / responseTimes.length)
                 : 0,
             avgPlayers: playerCounts.length > 0
-                ? Math.round(playerCounts.reduce((a, b) => a + b, 0) / playerCounts.length)
+                ? Math.round(playerCounts.reduce((a: any, b: any) => a + b, 0) / playerCounts.length)
                 : 0,
             peakPlayers: playerCounts.length > 0 ? Math.max(...playerCounts) : 0,
         };
@@ -293,7 +293,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         if (records.length === 0) return [];
 
         // Sort records by time (oldest first)
-        const sorted = [...records].sort((a, b) => {
+        const sorted = [...records].sort((a: any, b: any) => {
             const dateA = parseDate(a.checkedAt);
             const dateB = parseDate(b.checkedAt);
             return dateA.getTime() - dateB.getTime();
@@ -308,7 +308,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
             const limit = currentRange.maxMinutelyBars;
             const sliced = sorted.slice(-limit);
 
-            return sliced.map(record => {
+            return sliced.map((record: any) => {
                 const date = parseDate(record.checkedAt);
                 return {
                     label: formatLabel(date, 'minutely', currentRange.hours),
@@ -333,7 +333,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
             const limit = currentRange.maxHourlyBars;
             const sliced = sorted.slice(-limit);
 
-            return sliced.map(record => {
+            return sliced.map((record: any) => {
                 const date = parseDate(record.checkedAt);
                 return {
                     label: formatLabel(date, 'hourly', currentRange.hours),
@@ -358,7 +358,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                 date: Date;
             }>();
 
-            sorted.forEach(record => {
+            sorted.forEach((record: any) => {
                 const date = parseDate(record.checkedAt);
                 // Create hour key: YYYY-MM-DDTHH
                 const hourKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}`;
@@ -391,11 +391,11 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
             const result: ChartDataPoint[] = [];
             const sortedKeys = Array.from(hourlyMap.keys()).sort();
 
-            sortedKeys.forEach(key => {
+            sortedKeys.forEach((key: any) => {
                 const bucket = hourlyMap.get(key)!;
                 const total = bucket.online + bucket.offline;
                 const avgPlayers = bucket.players.length > 0
-                    ? Math.round(bucket.players.reduce((a, b) => a + b, 0) / bucket.players.length)
+                    ? Math.round(bucket.players.reduce((a: any, b: any) => a + b, 0) / bucket.players.length)
                     : 0;
 
                 result.push({
@@ -512,7 +512,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
                         {/* Time Range */}
                         <div className="inline-flex rounded-full border border-border bg-background/40 p-0.5">
-                            {TIME_RANGES.map((range, index) => (
+                            {TIME_RANGES.map((range: any, index: any) => (
                                 <button
                                     key={range.label}
                                     onClick={() => setSelectedRangeIndex(index)}
@@ -585,7 +585,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                                 />
                                 {dataView === 'uptime' ? (
                                     <Bar dataKey="uptimePercent" radius={[4, 4, 0, 0]} maxBarSize={30}>
-                                        {chartData.map((entry, index) => (
+                                        {chartData.map((entry: any, index: any) => (
                                             <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
                                         ))}
                                     </Bar>

@@ -197,7 +197,7 @@ export default function AdminDonationsPage() {
         body: JSON.stringify({ displayed: !displayed }),
       });
       if (res.ok) {
-        setDonations(donations.map(d => d.id === id ? { ...d, displayed: !displayed } : d));
+        setDonations(donations.map((d: any) => d.id === id ? { ...d, displayed: !displayed } : d));
       }
     } catch (err: any) {
       console.error('Failed to toggle visibility:', err);
@@ -209,7 +209,7 @@ export default function AdminDonationsPage() {
     try {
       const res = await fetch(`/api/admin/donations/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setDonations(donations.filter(d => d.id !== id));
+        setDonations(donations.filter((d: any) => d.id !== id));
         fetchDonations();
       }
     } catch (err: any) {
@@ -378,7 +378,7 @@ export default function AdminDonationsPage() {
                   className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
                 >
                   <option value="">No Rank</option>
-                  {ranks.map(rank => (
+                  {ranks.map((rank: any) => (
                     <option key={rank.id} value={rank.id}>{rank.name}</option>
                   ))}
                 </select>
@@ -591,7 +591,7 @@ export default function AdminDonationsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {donations.map((donation) => (
+              {donations.map((donation: any) => (
                 <div
                   key={donation.id}
                   className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
@@ -765,7 +765,7 @@ export default function AdminDonationsPage() {
                     className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
                   >
                     <option value="">No Rank</option>
-                    {ranks.map(rank => (
+                    {ranks.map((rank: any) => (
                       <option key={rank.id} value={rank.id}>{rank.name}</option>
                     ))}
                   </select>

@@ -49,7 +49,7 @@ export async function GET(
                 completedAt: b.attributes.completed_at,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error listing backups:', error);
         return NextResponse.json({ error: 'Failed to list backups' }, { status: 500 });
     }
@@ -106,7 +106,7 @@ export async function POST(
                 createdAt: data.attributes.created_at,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating backup:', error);
         return NextResponse.json({ error: 'Failed to create backup' }, { status: 500 });
     }
@@ -152,7 +152,7 @@ export async function DELETE(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting backup:', error);
         return NextResponse.json({ error: 'Failed to delete backup' }, { status: 500 });
     }

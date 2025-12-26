@@ -37,14 +37,14 @@ async function getDiscordSettings() {
         );
 
     // Build a map for easy lookup
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+    const settingsMap = new Map(settings.map((s: any) => [s.key, s.value]));
 
     if (settingsMap.get('discord_chat_enabled') !== 'true') {
         return null;
     }
 
-    const token = settingsMap.get('discord_bot_token');
-    const chatChannel = settingsMap.get('discord_chat_channel_id');
+    const token = settingsMap.get('discord_bot_token') as string | undefined;
+    const chatChannel = settingsMap.get('discord_chat_channel_id') as string | undefined;
 
     if (!token) {
         return null;
@@ -58,7 +58,7 @@ async function getDiscordSettings() {
     return {
         token,
         chatChannelId: chatChannel || null,
-        viscordChannelId: settingsMap.get('discord_viscord_channel_id') || null,
+        viscordChannelId: (settingsMap.get('discord_viscord_channel_id') as string) || null,
     };
 }
 
@@ -96,7 +96,7 @@ async function handleMessage(message: Message) {
         const avatarUrl = message.author.displayAvatarURL({ size: 64 });
 
         // Extract embeds
-        const embeds = message.embeds.map(embed => ({
+        const embeds = message.embeds.map((embed: any) => ({
             title: embed.title,
             description: embed.description,
             url: embed.url,
@@ -104,7 +104,7 @@ async function handleMessage(message: Message) {
             image: embed.image ? { url: embed.image.url } : null,
             thumbnail: embed.thumbnail ? { url: embed.thumbnail.url } : null,
             // Include fields for Viscord-style messages
-            fields: embed.fields?.map(f => ({
+            fields: embed.fields?.map((f: any) => ({
                 name: f.name,
                 value: f.value,
                 inline: f.inline,
@@ -118,7 +118,7 @@ async function handleMessage(message: Message) {
         }));
 
         // Extract attachments
-        const attachments = message.attachments.map(att => ({
+        const attachments = message.attachments.map((att: any) => ({
             url: att.url,
             filename: att.name,
             contentType: att.contentType,
@@ -193,14 +193,14 @@ async function handleMessageUpdate(message: Message) {
     if (!isChatChannel && !isViscordChannel) return;
 
     try {
-        const embeds = message.embeds.map(embed => ({
+        const embeds = message.embeds.map((embed: any) => ({
             title: embed.title,
             description: embed.description,
             url: embed.url,
             color: embed.color,
             image: embed.image ? { url: embed.image.url } : null,
             thumbnail: embed.thumbnail ? { url: embed.thumbnail.url } : null,
-            fields: embed.fields?.map(f => ({
+            fields: embed.fields?.map((f: any) => ({
                 name: f.name,
                 value: f.value,
                 inline: f.inline,

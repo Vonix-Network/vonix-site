@@ -47,7 +47,7 @@ export async function GET(
                 maxConnections: db.attributes.max_connections,
             })),
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error listing databases:', error);
         return NextResponse.json({ error: 'Failed to list databases' }, { status: 500 });
     }
@@ -106,7 +106,7 @@ export async function POST(
                 port: data.attributes.host?.port,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating database:', error);
         return NextResponse.json({ error: 'Failed to create database' }, { status: 500 });
     }
@@ -152,7 +152,7 @@ export async function DELETE(
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting database:', error);
         return NextResponse.json({ error: 'Failed to delete database' }, { status: 500 });
     }

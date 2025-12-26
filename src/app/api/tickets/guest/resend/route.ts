@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         // Send email
         try {
             await sendTicketAccessEmail(email, ticket.guestName || 'Guest', ticket.id, accessToken);
-        } catch (emailError) {
+        } catch (emailError: any) {
             console.error('Failed to send ticket access email:', emailError);
             return NextResponse.json(
                 { error: 'Failed to send email. Please try again.' },

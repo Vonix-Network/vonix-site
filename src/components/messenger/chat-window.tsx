@@ -100,7 +100,7 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
       ) {
         setMessages((prev) => {
           // Avoid duplicates
-          if (prev.some(m => m.id === message.id)) return prev;
+          if (prev.some((m: any) => m.id === message.id)) return prev;
           return [...prev, {
             id: message.id,
             senderId: message.senderId,
@@ -212,7 +212,7 @@ export function ChatWindow({ chat, index }: ChatWindowProps) {
                   No messages yet. Say hi! 👋
                 </div>
               ) : (
-                messages.map((msg) => {
+                messages.map((msg: any) => {
                   const isOwn = msg.senderId === currentUserId;
                   return (
                     <div key={msg.id} className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>

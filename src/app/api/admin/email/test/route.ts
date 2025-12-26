@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
             .where(like(siteSettings.key, 'smtp_%'));
 
         const getValue = (key: string) =>
-            smtpSettings.find(s => s.key === key)?.value || '';
+            smtpSettings.find((s: any) => s.key === key)?.value || '';
 
         const smtpHost = getValue('smtp_host');
         const smtpPort = parseInt(getValue('smtp_port')) || 587;

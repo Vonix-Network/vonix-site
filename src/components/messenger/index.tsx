@@ -26,7 +26,7 @@ function MessengerContent() {
     <>
       <MessengerBar />
       <ContactList />
-      {openChats.map((chat, index) => (
+      {openChats.map((chat: any, index: any) => (
         <ChatWindow key={chat.conversationId} chat={chat} index={index} />
       ))}
     </>

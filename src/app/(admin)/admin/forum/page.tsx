@@ -215,7 +215,7 @@ export default function AdminForumPage() {
     newCategories.splice(targetIndex, 0, draggedItem);
 
     // Update orderIndex for all items
-    const reordered = newCategories.map((cat, idx) => ({
+    const reordered = newCategories.map((cat: any, idx: any) => ({
       ...cat,
       orderIndex: idx,
     }));
@@ -228,7 +228,7 @@ export default function AdminForumPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          categoryOrder: reordered.map(c => ({ id: c.id, orderIndex: c.orderIndex })),
+          categoryOrder: reordered.map((c: any) => ({ id: c.id, orderIndex: c.orderIndex })),
         }),
       });
 
@@ -283,7 +283,7 @@ export default function AdminForumPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {categories.reduce((sum, c) => sum + (c.postCount || 0), 0)}
+                  {categories.reduce((sum: any, c: any) => sum + (c.postCount || 0), 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Posts</p>
               </div>
@@ -298,7 +298,7 @@ export default function AdminForumPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {categories.filter(c => c.viewPermission === 'user').length}
+                  {categories.filter((c: any) => c.viewPermission === 'user').length}
                 </p>
                 <p className="text-sm text-muted-foreground">Public Categories</p>
               </div>
@@ -328,7 +328,7 @@ export default function AdminForumPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {categories.sort((a, b) => a.orderIndex - b.orderIndex).map((category, index) => (
+              {categories.sort((a: any, b: any) => a.orderIndex - b.orderIndex).map((category: any, index: any) => (
                 <div
                   key={category.id}
                   draggable

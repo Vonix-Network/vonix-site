@@ -189,7 +189,7 @@ export async function PUT(
             try {
                 const { closeTicketThread } = await import('@/lib/discord-integration');
                 await closeTicketThread(updatedTicket.discordThreadId);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to close Discord thread:', error);
                 // Continue even if Discord sync fails
             }

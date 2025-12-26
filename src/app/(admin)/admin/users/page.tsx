@@ -361,7 +361,7 @@ export default function AdminUsersPage() {
           { label: 'Admins', value: stats.admins, color: 'text-neon-pink' },
           { label: 'Moderators', value: stats.mods, color: 'text-neon-purple' },
           { label: 'New Today', value: stats.today, color: 'text-success' },
-        ].map((stat) => (
+        ].map((stat: any) => (
           <Card key={stat.label} variant="glass">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -416,7 +416,7 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user) => (
+                  {filteredUsers.map((user: any) => (
                     <tr key={user.id} className="border-b border-border hover:bg-secondary/50">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
@@ -519,7 +519,7 @@ export default function AdminUsersPage() {
               <button
                 className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
                 onClick={() => {
-                  const user = users.find(u => u.id === actionMenuOpen);
+                  const user = users.find((u: any) => u.id === actionMenuOpen);
                   if (user) openEditModal(user);
                 }}
               >
@@ -528,7 +528,7 @@ export default function AdminUsersPage() {
               <button
                 className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
                 onClick={() => {
-                  const user = users.find(u => u.id === actionMenuOpen);
+                  const user = users.find((u: any) => u.id === actionMenuOpen);
                   if (user) {
                     const newRole = user.role === 'user' ? 'moderator' : user.role === 'moderator' ? 'admin' : 'user';
                     setSelectedUser(user);
@@ -548,7 +548,7 @@ export default function AdminUsersPage() {
               <button
                 className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-neon-cyan"
                 onClick={() => {
-                  const user = users.find(u => u.id === actionMenuOpen);
+                  const user = users.find((u: any) => u.id === actionMenuOpen);
                   if (user) {
                     setPasswordUserId(user.id);
                     setPasswordUsername(user.username);
@@ -709,7 +709,7 @@ export default function AdminUsersPage() {
                       className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-neon-cyan"
                     >
                       <option value="">No Rank</option>
-                      {ranks.map(rank => (
+                      {ranks.map((rank: any) => (
                         <option key={rank.id} value={rank.id}>{rank.name}</option>
                       ))}
                     </select>

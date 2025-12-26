@@ -63,7 +63,7 @@ export async function GET(
                     isClosed = true;
                     try {
                         controller.close();
-                    } catch (e) {
+                    } catch (e: any) {
                         // Controller already closed, ignore
                     }
                 }
@@ -90,7 +90,7 @@ export async function GET(
                 const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
                 try {
                     controller.enqueue(encoder.encode(message));
-                } catch (e) {
+                } catch (e: any) {
                     // Stream closed
                 }
             };
@@ -138,7 +138,7 @@ export async function GET(
                             ws.close();
                             break;
                     }
-                } catch (e) {
+                } catch (e: any) {
                     console.error('[Console SSE] Parse error:', e);
                 }
             });

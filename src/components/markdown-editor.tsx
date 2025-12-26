@@ -90,7 +90,7 @@ export function MarkdownEditor({
             {/* Toolbar */}
             <div className="flex items-center justify-between px-2 py-1.5 border-b border-white/10 bg-black/20">
                 <div className="flex items-center gap-0.5 flex-wrap">
-                    {toolbarButtons.map((btn) => (
+                    {toolbarButtons.map((btn: any) => (
                         <button
                             key={btn.label}
                             type="button"

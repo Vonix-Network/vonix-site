@@ -78,10 +78,10 @@ export default function LeaderboardPage() {
   }, [leaderboardType]);
 
   // Calculate stats
-  const totalXP = leaderboard.reduce((sum, user) => sum + (user.xp || 0), 0);
-  const totalPlaytime = leaderboard.reduce((sum, user) => sum + (user.playtimeSeconds || 0), 0);
+  const totalXP = leaderboard.reduce((sum: any, user: any) => sum + (user.xp || 0), 0);
+  const totalPlaytime = leaderboard.reduce((sum: any, user: any) => sum + (user.playtimeSeconds || 0), 0);
   const avgLevel = leaderboard.length > 0
-    ? Math.round(leaderboard.reduce((sum, user) => sum + (user.level || 1), 0) / leaderboard.length)
+    ? Math.round(leaderboard.reduce((sum: any, user: any) => sum + (user.level || 1), 0) / leaderboard.length)
     : 1;
 
   return (
@@ -185,7 +185,7 @@ export default function LeaderboardPage() {
               </div>
             ) : leaderboard.length > 0 ? (
               <div className="space-y-2">
-                {leaderboard.map((player, index) => (
+                {leaderboard.map((player: any, index: any) => (
                   <div
                     key={player.id}
                     className={`flex items-center gap-4 p-4 rounded-lg border transition-colors hover:bg-secondary/80 ${getRankBg(index + 1)}`}
@@ -272,7 +272,7 @@ export default function LeaderboardPage() {
                 { icon: MessageSquare, title: 'Forum Posts', xp: '+5 XP', desc: 'Create discussions' },
                 { icon: Heart, title: 'Social Activity', xp: '+2 XP', desc: 'Like and comment' },
                 { icon: Trophy, title: 'Achievements', xp: 'Varies', desc: 'Complete challenges' },
-              ].map((item) => (
+              ].map((item: any) => (
                 <div key={item.title} className="text-center">
                   <div className="w-12 h-12 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center mx-auto mb-3">
                     <item.icon className="w-6 h-6 text-neon-cyan" />

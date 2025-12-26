@@ -211,7 +211,7 @@ function SparklineChart({ data, color, height = 140, formatValue, maxLimit }: { 
     const chartHeight = 100 - paddingTop - paddingBottom;
     const width = 100;
 
-    const points = data.map((value, i) => {
+    const points = data.map((value: any, i: any) => {
         const x = (i / (data.length - 1)) * width;
         const normalized = (value - min) / range;
         const y = paddingTop + chartHeight - (normalized * chartHeight);
@@ -246,7 +246,7 @@ function SparklineChart({ data, color, height = 140, formatValue, maxLimit }: { 
                         </defs>
 
                         {/* Grid lines */}
-                        {gridLines.map((grid, i) => (
+                        {gridLines.map((grid: any, i: any) => (
                             <line
                                 key={i}
                                 x1="0"
@@ -332,7 +332,7 @@ function DualSparklineChart({
     const chartHeight = 100 - paddingTop - paddingBottom;
     const width = 100;
 
-    const getPoints = (data: number[]) => data.map((value, i) => {
+    const getPoints = (data: number[]) => data.map((value: any, i: any) => {
         const x = (i / (data.length - 1)) * width;
         const normalized = (value - min) / range;
         const y = paddingTop + chartHeight - (normalized * chartHeight);
@@ -373,7 +373,7 @@ function DualSparklineChart({
                         </defs>
 
                         {/* Grid lines */}
-                        {gridLines.map((grid, i) => (
+                        {gridLines.map((grid: any, i: any) => (
                             <line
                                 key={i}
                                 x1="0"
@@ -477,21 +477,21 @@ export function PanelClient() {
     const { userBackups, systemBackups, hourlyBackups, weeklyBackups, dailyBackups } = useMemo(() => {
         const now = Date.now();
         // User backups have human-readable names, system backups have hash-like or empty names
-        const user = backups.filter(b => b.name && !/^[a-f0-9]{32,}$/i.test(b.name));
-        const system = backups.filter(b => !b.name || /^[a-f0-9]{32,}$/i.test(b.name));
+        const user = backups.filter((b: any) => b.name && !/^[a-f0-9]{32,}$/i.test(b.name));
+        const system = backups.filter((b: any) => !b.name || /^[a-f0-9]{32,}$/i.test(b.name));
 
         return {
             userBackups: user,
             systemBackups: system,
-            hourlyBackups: system.filter(b => {
+            hourlyBackups: system.filter((b: any) => {
                 const age = now - new Date(b.createdAt).getTime();
                 return age < 24 * 60 * 60 * 1000; // Last 24 hours
             }),
-            weeklyBackups: system.filter(b => {
+            weeklyBackups: system.filter((b: any) => {
                 const age = now - new Date(b.createdAt).getTime();
                 return age >= 24 * 60 * 60 * 1000 && age < 7 * 24 * 60 * 60 * 1000; // 1-7 days
             }),
-            dailyBackups: system.filter(b => {
+            dailyBackups: system.filter((b: any) => {
                 const age = now - new Date(b.createdAt).getTime();
                 return age >= 7 * 24 * 60 * 60 * 1000; // Older than 7 days
             }),
@@ -1163,7 +1163,7 @@ export function PanelClient() {
                     </button>
                     {showServerDropdown && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-50 max-h-64 overflow-auto">
-                            {servers.map((server) => (
+                            {servers.map((server: any) => (
                                 <button key={server.identifier} onClick={() => { setSelectedServer(server); setShowServerDropdown(false); }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-neon-cyan/10 transition-colors ${selectedServer?.identifier === server.identifier ? 'bg-neon-cyan/20' : ''}`}>
                                     <Server className="w-4 h-4 text-neon-purple" />
@@ -1323,7 +1323,7 @@ export function PanelClient() {
                                 {/* Player List */}
                                 {playerData?.players?.list && playerData.players.list.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-border space-y-1 max-h-24 overflow-auto">
-                                        {playerData.players.list.map((player, i) => (
+                                        {playerData.players.list.map((player: any, i: any) => (
                                             <div key={i} className="flex items-center gap-2 text-xs">
                                                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0" />
                                                 <span className="truncate">{player}</span>
@@ -1430,7 +1430,7 @@ export function PanelClient() {
 
                     {/* Nav Items - horizontal scroll on mobile */}
                     <div className="flex items-center gap-1 overflow-x-auto flex-1">
-                        {navItems.map((item) => (
+                        {navItems.map((item: any) => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
@@ -1534,7 +1534,7 @@ export function PanelClient() {
                                             <div className="text-muted-foreground text-center py-8 space-y-2">
                                                 {wsConnected ? <p>Waiting for console output...</p> : wsError ? <><p className="text-yellow-500">⚠️ {wsError}</p><p className="text-xs">You can still send commands below.</p></> : wsConnecting ? <p>Connecting...</p> : <p>Console not connected</p>}
                                             </div>
-                                        ) : consoleLines.map((line, i) => (
+                                        ) : consoleLines.map((line: any, i: any) => (
                                             <ConsoleLine key={i} line={line} />
                                         ))}
                                         <div ref={consoleEndRef} />
@@ -1585,7 +1585,7 @@ export function PanelClient() {
                                                 <span className="h-4 w-16 bg-muted-foreground/20 rounded animate-pulse" />
                                             )}
                                         </div>
-                                        <SparklineChart data={statsHistory.map(s => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} maxLimit={selectedServer.limits?.cpu || 100} />
+                                        <SparklineChart data={statsHistory.map((s: any) => s.cpu)} color="#eab308" height={120} formatValue={(v) => `${v.toFixed(1)}%`} maxLimit={selectedServer.limits?.cpu || 100} />
                                     </div>
 
                                     {/* Memory Graph Card */}
@@ -1601,7 +1601,7 @@ export function PanelClient() {
                                                 <span className="h-4 w-20 bg-muted-foreground/20 rounded animate-pulse" />
                                             )}
                                         </div>
-                                        <SparklineChart data={statsHistory.map(s => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} maxLimit={selectedServer.limits?.memory ? selectedServer.limits.memory * 1024 * 1024 : undefined} />
+                                        <SparklineChart data={statsHistory.map((s: any) => s.memory)} color="#22c55e" height={120} formatValue={(v) => formatBytes(v)} maxLimit={selectedServer.limits?.memory ? selectedServer.limits.memory * 1024 * 1024 : undefined} />
                                     </div>
 
                                     {/* Network Graph Card with dual lines */}
@@ -1624,8 +1624,8 @@ export function PanelClient() {
                                             )}
                                         </div>
                                         <DualSparklineChart
-                                            data1={statsHistory.map(s => s.networkRx)}
-                                            data2={statsHistory.map(s => s.networkTx)}
+                                            data1={statsHistory.map((s: any) => s.networkRx)}
+                                            data2={statsHistory.map((s: any) => s.networkTx)}
                                             color1="#22d3ee"
                                             color2="#eab308"
                                             height={120}
@@ -1679,7 +1679,7 @@ export function PanelClient() {
                                     )}
                                     {filesLoading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin" /></div> : files.length === 0 ? (
                                         <div className="text-center py-8 text-muted-foreground">Empty directory</div>
-                                    ) : files.sort((a, b) => (a.isFile === b.isFile ? a.name.localeCompare(b.name) : a.isFile ? 1 : -1)).map((file) => (
+                                    ) : files.sort((a: any, b: any) => (a.isFile === b.isFile ? a.name.localeCompare(b.name) : a.isFile ? 1 : -1)).map((file: any) => (
                                         <div key={file.name} className="flex items-center gap-3 p-2 rounded hover:bg-card transition-colors group">
                                             <button onClick={() => file.isFile ? openFile(file.name) : fetchFiles(currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`)}
                                                 className="flex-1 flex items-center gap-3 text-left">
@@ -1717,7 +1717,7 @@ export function PanelClient() {
                                     <div className="text-center py-12 text-muted-foreground"><Database className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>No databases</p></div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {databases.map((db) => (
+                                        {databases.map((db: any) => (
                                             <div key={db.id} className="p-4 bg-card rounded-lg">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="font-semibold text-neon-cyan">{db.name}</span>
@@ -1775,7 +1775,7 @@ export function PanelClient() {
                                             <div className="text-center py-12 text-muted-foreground"><Archive className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>No user backups</p><p className="text-xs mt-1">Create a backup to save your server data</p></div>
                                         ) : (
                                             <div className="space-y-3">
-                                                {userBackups.map((backup) => (
+                                                {userBackups.map((backup: any) => (
                                                     <div key={backup.uuid} className="p-4 bg-card rounded-lg">
                                                         <div className="flex items-center justify-between mb-2">
                                                             <div className="flex items-center gap-2">
@@ -1812,7 +1812,7 @@ export function PanelClient() {
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mb-3">Backups created every hour (last 24 hours)</p>
                                                     <div className="space-y-2 max-h-[400px] overflow-auto">
-                                                        {hourlyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-4">No hourly backups</p> : hourlyBackups.map((backup) => (
+                                                        {hourlyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-4">No hourly backups</p> : hourlyBackups.map((backup: any) => (
                                                             <div key={backup.uuid} className="p-3 bg-card/50 rounded-lg flex items-center justify-between">
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     <Archive className="w-4 h-4 text-blue-400 flex-shrink-0" />
@@ -1838,7 +1838,7 @@ export function PanelClient() {
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mb-3">Weekly backups for longer-term retention</p>
                                                         <div className="space-y-2">
-                                                            {weeklyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-2">No weekly backups</p> : weeklyBackups.map((backup) => (
+                                                            {weeklyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-2">No weekly backups</p> : weeklyBackups.map((backup: any) => (
                                                                 <div key={backup.uuid} className="p-3 bg-card/50 rounded-lg flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         <Archive className="w-4 h-4 text-green-400" />
@@ -1859,7 +1859,7 @@ export function PanelClient() {
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mb-3">Daily backups retained for reference</p>
                                                         <div className="space-y-2">
-                                                            {dailyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-2">No daily backups</p> : dailyBackups.map((backup) => (
+                                                            {dailyBackups.length === 0 ? <p className="text-sm text-muted-foreground py-2">No daily backups</p> : dailyBackups.map((backup: any) => (
                                                                 <div key={backup.uuid} className="p-3 bg-card/50 rounded-lg flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         <Archive className="w-4 h-4 text-yellow-400" />
@@ -1891,7 +1891,7 @@ export function PanelClient() {
                                     <div className="text-center py-12 text-muted-foreground"><Settings2 className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>No startup variables</p></div>
                                 ) : (
                                     <div className="space-y-4">
-                                        {startupVariables.map((variable) => (
+                                        {startupVariables.map((variable: any) => (
                                             <div key={variable.envVariable} className="p-4 bg-card rounded-lg">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div>

@@ -313,7 +313,7 @@ function GuestTicketContent() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {messages.map((msg) => (
+                                {messages.map((msg: any) => (
                                     <div
                                         key={msg.id}
                                         className={`p-4 rounded-lg border ${msg.isStaffReply

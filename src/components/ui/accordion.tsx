@@ -36,7 +36,7 @@ export function Accordion({
         return prev.includes(value) ? [] : [value];
       }
       return prev.includes(value)
-        ? prev.filter((item) => item !== value)
+        ? prev.filter((item: any) => item !== value)
         : [...prev, value];
     });
   }, [type]);

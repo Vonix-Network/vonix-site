@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Convert to simple key-value object for frontend consumption
     const settingsObject: Record<string, any> = {};
 
-    settings.forEach((setting) => {
+    settings.forEach((setting: any) => {
       // Try to parse JSON values, fallback to string
       try {
         if (setting.value?.startsWith('{') || setting.value?.startsWith('[')) {

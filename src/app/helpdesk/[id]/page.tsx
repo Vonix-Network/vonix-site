@@ -88,7 +88,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             } else if (res.status === 403) {
                 router.push('/helpdesk');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching ticket:', error);
         } finally {
             setIsLoading(false);
@@ -116,7 +116,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 const data = await res.json();
                 setError(data.error || 'Failed to send reply');
             }
-        } catch (err) {
+        } catch (err: any) {
             setError('An error occurred. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -133,7 +133,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             if (res.ok) {
                 fetchTicket();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating status:', error);
         }
     };
@@ -224,7 +224,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {ticket.messages.map((msg, index) => (
+                                {ticket.messages.map((msg: any, index: any) => (
                                     <div
                                         key={msg.id}
                                         className={`p-4 rounded-lg border ${msg.isStaffReply
