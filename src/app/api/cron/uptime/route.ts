@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { servers, serverUptimeRecords, siteSettings } from '@/db/schema';
-import { sql, lt, eq } from 'drizzle-orm';
+import { sql, lt, eq, inArray } from 'drizzle-orm';
 import { pingServerNative } from '@/lib/minecraft-ping';
+
+// Track consecutive offline counts per server (in-memory, resets on restart)
+// Key: serverId, Value: consecutive offline count
+const consecutiveOfflineCounts: Map<number, number> = new Map();
+
+// Track which servers have already triggered a notification (to avoid spam)
+const notifiedServers: Set<number> = new Set();
+
+// Threshold for sending notifications
+const OFFLINE_THRESHOLD = 3;
 
 interface PingResult {
     serverId: number;
@@ -13,6 +23,125 @@ interface PingResult {
     responseTimeMs: number | null;
     method: 'native' | 'api' | 'none';
     attempts: number;
+}
+
+/**
+ * Send DM notifications to users with the manager role about server downtime
+ */
+async function sendDowntimeNotifications(
+    serverName: string,
+    serverId: number,
+    botToken: string,
+    guildId: string,
+    roleId: string
+): Promise<void> {
+    try {
+        console.log(`🔔 Sending downtime DM notifications for server: ${serverName}`);
+
+        // Fetch guild members with the specified role using Discord API
+        const membersResponse = await fetch(
+            `https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`,
+            {
+                headers: {
+                    'Authorization': `Bot ${botToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!membersResponse.ok) {
+            console.error(`Failed to fetch guild members: ${membersResponse.status}`);
+            return;
+        }
+
+        const members = await membersResponse.json();
+
+        // Filter members who have the manager role
+        const managersToNotify = members.filter((member: any) =>
+            member.roles && member.roles.includes(roleId)
+        );
+
+        console.log(`Found ${managersToNotify.length} managers to notify`);
+
+        // Send DM to each manager
+        for (const manager of managersToNotify) {
+            try {
+                // Create DM channel
+                const dmChannelResponse = await fetch(
+                    'https://discord.com/api/v10/users/@me/channels',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            recipient_id: manager.user.id,
+                        }),
+                    }
+                );
+
+                if (!dmChannelResponse.ok) {
+                    console.warn(`Could not create DM channel for ${manager.user.username}`);
+                    continue;
+                }
+
+                const dmChannel = await dmChannelResponse.json();
+
+                // Send the alert message
+                const messageResponse = await fetch(
+                    `https://discord.com/api/v10/channels/${dmChannel.id}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '🚨 Server Downtime Alert',
+                                description: `**${serverName}** has been detected as offline 3 times in a row.`,
+                                color: 0xFF0000, // Red
+                                fields: [
+                                    {
+                                        name: '🔧 Action Required',
+                                        value: 'Please check the server status and investigate the issue.',
+                                        inline: false,
+                                    },
+                                    {
+                                        name: '⏰ Detected At',
+                                        value: new Date().toLocaleString(),
+                                        inline: true,
+                                    },
+                                ],
+                                footer: {
+                                    text: 'Vonix Network Server Monitor',
+                                },
+                                timestamp: new Date().toISOString(),
+                            }],
+                        }),
+                    }
+                );
+
+                if (messageResponse.ok) {
+                    console.log(`✅ Sent downtime DM to ${manager.user.username}`);
+                } else {
+                    console.warn(`Failed to send DM to ${manager.user.username}: ${messageResponse.status}`);
+                }
+
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (dmError) {
+                console.error(`Error sending DM to manager ${manager.user?.username}:`, dmError);
+            }
+        }
+
+        // Mark this server as notified to avoid spam
+        notifiedServers.add(serverId);
+        console.log(`✅ Downtime notifications sent for ${serverName}`);
+    } catch (error) {
+        console.error('Error sending downtime notifications:', error);
+    }
 }
 
 /**
@@ -303,6 +432,68 @@ export async function GET(request: NextRequest) {
                     updatedAt: new Date(),
                 })
                 .where(sql`${servers.id} = ${result.serverId}`);
+        }
+
+        // Track consecutive offline counts and send notifications
+        const serversToNotify: { id: number; name: string }[] = [];
+
+        for (const result of results) {
+            if (!result.online) {
+                // Increment consecutive offline count
+                const currentCount = consecutiveOfflineCounts.get(result.serverId) || 0;
+                const newCount = currentCount + 1;
+                consecutiveOfflineCounts.set(result.serverId, newCount);
+
+                console.log(`   ⚠️ ${result.serverName}: offline ${newCount}/${OFFLINE_THRESHOLD} times`);
+
+                // Check if we've hit the threshold and haven't already notified
+                if (newCount >= OFFLINE_THRESHOLD && !notifiedServers.has(result.serverId)) {
+                    serversToNotify.push({ id: result.serverId, name: result.serverName });
+                }
+            } else {
+                // Server is back online - reset counters
+                if (consecutiveOfflineCounts.has(result.serverId)) {
+                    console.log(`   ✅ ${result.serverName}: back online, resetting counter`);
+                }
+                consecutiveOfflineCounts.delete(result.serverId);
+                notifiedServers.delete(result.serverId); // Allow future notifications
+            }
+        }
+
+        // Send notifications if any servers hit the threshold
+        if (serversToNotify.length > 0) {
+            // Fetch Discord settings for notifications
+            const discordSettings = await db
+                .select()
+                .from(siteSettings)
+                .where(inArray(siteSettings.key, [
+                    'discord_bot_token',
+                    'discord_guild_id',
+                    'discord_downtime_manager_role_id'
+                ]));
+
+            const settingsMap = Object.fromEntries(
+                discordSettings.map((s: any) => [s.key, s.value])
+            );
+
+            const botToken = settingsMap['discord_bot_token'];
+            const guildId = settingsMap['discord_guild_id'];
+            const roleId = settingsMap['discord_downtime_manager_role_id'];
+
+            if (botToken && guildId && roleId) {
+                for (const server of serversToNotify) {
+                    await sendDowntimeNotifications(
+                        server.name,
+                        server.id,
+                        botToken,
+                        guildId,
+                        roleId
+                    );
+                }
+            } else {
+                console.warn('⚠️ Downtime notifications skipped - Discord settings not configured');
+                console.warn(`   Bot Token: ${botToken ? '✓' : '✗'}, Guild ID: ${guildId ? '✓' : '✗'}, Role ID: ${roleId ? '✓' : '✗'}`);
+            }
         }
 
         const onlineCount = results.filter((r: any) => r.online).length;

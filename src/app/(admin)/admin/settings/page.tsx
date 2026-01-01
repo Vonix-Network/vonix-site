@@ -169,6 +169,8 @@ export default function AdminSettingsPage() {
     // Donation events webhook (optional)
     donationWebhookUrl: '',
     donationWebhookAvatarUrl: '',
+    // Server downtime notifications
+    downtimeManagerRoleId: '', // Role ID to DM when servers go down 3 times
   });
   const [discordLoading, setDiscordLoading] = useState(true);
   const [discordSaving, setDiscordSaving] = useState(false);
@@ -213,6 +215,7 @@ export default function AdminSettingsPage() {
             viscordChannelName: discordData.viscordChannelName || '',
             donationWebhookUrl: discordData.donationWebhookUrl || '',
             donationWebhookAvatarUrl: discordData.donationWebhookAvatarUrl || '',
+            downtimeManagerRoleId: discordData.downtimeManagerRoleId || '',
           });
         }
       } catch (err: any) {
@@ -1888,6 +1891,49 @@ export default function AdminSettingsPage() {
                         ⚠️ Save a Donation Webhook URL first to enable testing
                       </p>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-warning" />
+                    Server Downtime Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Get notified when Minecraft servers are detected as offline
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+                    <p className="text-sm text-warning font-medium">
+                      🔔 DM notifications for server downtime
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When a server is detected as offline 3 times in a row, all users with the specified role will receive a DM alert.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Manager Role ID</label>
+                    <Input
+                      value={discordSettings.downtimeManagerRoleId}
+                      onChange={(e) => setDiscordSettings({ ...discordSettings, downtimeManagerRoleId: e.target.value })}
+                      placeholder="123456789012345678"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Discord role ID for managers who should receive DM alerts. Right-click the role → Copy ID.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                    <p className="text-sm text-neon-cyan font-medium">
+                      💡 How it works
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The uptime cron job checks servers every minute. If a server fails 3 consecutive checks, users with the configured role will receive a DM notification.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

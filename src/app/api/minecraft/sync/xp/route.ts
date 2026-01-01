@@ -103,13 +103,22 @@ export async function POST(request: NextRequest) {
                 const newXp = player.totalExperience || 0;
 
                 if (existingServerXp) {
-                    // UPDATE existing record (replaces, not adds)
+                    // HIGH-WATER MARK PROTECTION: Only update XP if new value is higher
+                    // This prevents XP from decreasing when players die or spend XP
+                    const currentXp = Number(existingServerXp.xp || 0);
+                    const xpToStore = Math.max(currentXp, newXp);
+
+                    // Always update playtime (it should always increase)
+                    // Only update XP if it's higher
+                    const newPlaytime = player.playtimeSeconds || 0;
+                    const currentPlaytime = Number(existingServerXp.playtimeSeconds || 0);
+
                     await db
                         .update(serverXp)
                         .set({
-                            xp: newXp,
-                            level: player.level || 0,
-                            playtimeSeconds: player.playtimeSeconds || 0,
+                            xp: xpToStore,
+                            level: newXp > currentXp ? (player.level || 0) : existingServerXp.level,
+                            playtimeSeconds: Math.max(currentPlaytime, newPlaytime),
                             lastSyncedAt: new Date(),
                         })
                         .where(eq(serverXp.id, existingServerXp.id));

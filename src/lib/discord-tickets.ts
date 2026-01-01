@@ -326,6 +326,12 @@ export async function registerTicketCommands() {
         new SlashCommandBuilder()
             .setName('help')
             .setDescription('Show ticket commands help'),
+
+        // /ticketstatus - Diagnostic command (admin only)
+        new SlashCommandBuilder()
+            .setName('ticketstatus')
+            .setDescription('Check ticket system configuration and status')
+            .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     ].map((command: any) => command.toJSON());
 
     try {
@@ -1387,6 +1393,95 @@ async function showHelp(interaction: any): Promise<void> {
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
+/**
+ * Show ticket system status and diagnostics (admin only)
+ */
+async function showTicketStatus(interaction: any): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const settings = await getDiscordTicketSettings();
+
+    // Get ticket counts
+    const openTickets = await db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(eq(supportTickets.status, 'open'));
+    const totalTickets = await db.select({ count: sql<number>`count(*)` }).from(supportTickets);
+    const categories = await db.select().from(ticketCategories).where(eq(ticketCategories.enabled, true));
+
+    // Check bot permissions in ticket category
+    let categoryPermissions = '❓ Unknown';
+    let categoryName = 'Not Set';
+    if (settings.ticketCategoryId && discordClient) {
+        try {
+            const category = await discordClient.channels.fetch(settings.ticketCategoryId);
+            if (category) {
+                categoryName = (category as any).name || settings.ticketCategoryId;
+                const botMember = interaction.guild.members.me;
+                if (botMember) {
+                    const perms = (category as any).permissionsFor?.(botMember);
+                    if (perms) {
+                        const hasManageChannels = perms.has(PermissionFlagsBits.ManageChannels);
+                        const hasViewChannel = perms.has(PermissionFlagsBits.ViewChannel);
+                        const hasSendMessages = perms.has(PermissionFlagsBits.SendMessages);
+                        if (hasManageChannels && hasViewChannel && hasSendMessages) {
+                            categoryPermissions = '✅ All required permissions';
+                        } else {
+                            categoryPermissions = `⚠️ Missing: ${!hasManageChannels ? 'Manage Channels, ' : ''}${!hasViewChannel ? 'View Channel, ' : ''}${!hasSendMessages ? 'Send Messages' : ''}`;
+                        }
+                    }
+                }
+            } else {
+                categoryPermissions = '❌ Category not found';
+            }
+        } catch (e) {
+            categoryPermissions = '❌ Cannot access category';
+        }
+    }
+
+    // Check staff role
+    let staffRoleName = 'Not Set';
+    if (settings.staffRoleId && interaction.guild) {
+        try {
+            const role = await interaction.guild.roles.fetch(settings.staffRoleId);
+            if (role) {
+                staffRoleName = role.name;
+            } else {
+                staffRoleName = '❌ Role not found';
+            }
+        } catch {
+            staffRoleName = '❌ Cannot access role';
+        }
+    }
+
+    const embed = new EmbedBuilder()
+        .setColor(0x00FFFF)
+        .setTitle('🔧 Ticket System Status')
+        .setDescription('Current configuration and status of the ticket system')
+        .addFields(
+            { name: '🤖 Bot Status', value: discordClient?.isReady() ? '✅ Connected' : '❌ Disconnected', inline: true },
+            { name: '📊 Open Tickets', value: String(openTickets[0]?.count || 0), inline: true },
+            { name: '📈 Total Tickets', value: String(totalTickets[0]?.count || 0), inline: true },
+            { name: '📁 Ticket Category', value: `${categoryName}\n${categoryPermissions}`, inline: false },
+            { name: '👥 Staff Role', value: staffRoleName, inline: true },
+            { name: '🔔 Ping Role', value: settings.pingRoleId ? `<@&${settings.pingRoleId}>` : 'Not Set', inline: true },
+            { name: '📝 Categories', value: categories.length > 0 ? categories.map((c: any) => `${c.emoji || '🎫'} ${c.name}`).join('\n') : 'No categories configured', inline: false },
+        )
+        .setFooter({ text: 'Use /setup to configure settings' })
+        .setTimestamp();
+
+    // Add troubleshooting tips if issues detected
+    const issues: string[] = [];
+    if (!settings.ticketCategoryId) issues.push('• Run `/setup category:<category>` to set ticket category');
+    if (!settings.staffRoleId) issues.push('• Run `/setup staff_role:<role>` to set staff role');
+    if (categoryPermissions.includes('❌') || categoryPermissions.includes('⚠️')) {
+        issues.push('• Ensure bot has Manage Channels, View Channel, and Send Messages permissions in the ticket category');
+    }
+
+    if (issues.length > 0) {
+        embed.addFields({ name: '⚠️ Recommendations', value: issues.join('\n') });
+    }
+
+    await interaction.editReply({ embeds: [embed] });
+}
+
 // ============================================================================
 // TICKET PANEL
 // ============================================================================
@@ -1623,6 +1718,9 @@ export async function setupTicketEventHandlers(): Promise<void> {
                         break;
                     case 'help':
                         await showHelp(interaction);
+                        break;
+                    case 'ticketstatus':
+                        await showTicketStatus(interaction);
                         break;
                 }
                 return;

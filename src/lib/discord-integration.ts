@@ -364,15 +364,6 @@ export async function registerSlashCommands() {
                             { name: '🔴 Urgent', value: 'urgent' }
                         )
                 ),
-            new SlashCommandBuilder()
-                .setName('close')
-                .setDescription('Close the current ticket')
-                .addStringOption(option =>
-                    option
-                        .setName('reason')
-                        .setDescription('Reason for closing')
-                        .setRequired(false)
-                ),
         ].map((command: any) => command.toJSON());
 
         await discordRest.put(
@@ -814,9 +805,7 @@ export async function setupDiscordIntegrationListeners() {
                 case 'ticket':
                     await handleTicketCommand(interaction);
                     break;
-                case 'close':
-                    await handleCloseCommand(interaction);
-                    break;
+                // Note: /close is handled by discord-tickets.ts
             }
             return;
         }
@@ -885,6 +874,7 @@ export async function setupDiscordIntegrationListeners() {
 
 /**
  * Handle ticket modal submission with category
+ * Creates ticket in database and either forum thread or text channel in Discord
  */
 async function handleTicketModalSubmitWithCategory(interaction: any, categoryId: string | null): Promise<void> {
     try {
@@ -892,6 +882,9 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
 
         const subject = interaction.fields.getTextInputValue('ticket_subject');
         const description = interaction.fields.getTextInputValue('ticket_description');
+
+        // Get settings to determine which channel type to use
+        const settings = await getDiscordIntegrationSettings();
 
         // Get category info if provided
         let categoryName = 'general';
@@ -906,10 +899,25 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
         const result = await db.select({ maxNum: sql<number>`COALESCE(MAX(number), 0)` }).from(supportTickets);
         const ticketNumber = (result[0]?.maxNum || 0) + 1;
 
-        // Create ticket
+        // Try to link to website user by Discord ID (optional - ticket still works without it)
+        let websiteUserId: number | null = null;
+        try {
+            const linkedUser = await db.query.users.findFirst({
+                where: eq(users.discordId, interaction.user.id),
+            });
+            if (linkedUser) {
+                websiteUserId = linkedUser.id;
+                console.log(`[Ticket Panel] Linked ticket to website user: ${linkedUser.username} (ID: ${linkedUser.id})`);
+            }
+        } catch (e) {
+            // User lookup failed, continue without linking - ticket still works
+            console.log(`[Ticket Panel] No website account linked for Discord user ${interaction.user.username}`);
+        }
+
+        // Create ticket in database
         const [ticket] = await db.insert(supportTickets).values({
             number: ticketNumber,
-            userId: null,
+            userId: websiteUserId, // Link if Discord connected to website, null otherwise
             categoryId: categoryId ? parseInt(categoryId) : null,
             subject,
             category: 'general' as const,
@@ -917,33 +925,165 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
             status: 'open' as const,
             discordUserId: interaction.user.id,
             discordUsername: interaction.user.username,
+            lastMessageAt: new Date(),
         }).returning();
 
         // Create initial message
         await db.insert(ticketMessages).values({
             ticketId: ticket.id,
-            userId: null,
+            userId: websiteUserId,
             discordUserId: interaction.user.id,
             discordUsername: interaction.user.username,
             message: description,
             isStaffReply: false,
         });
 
-        // Create Discord thread
-        const threadId = await createTicketThread(
-            ticket.id,
-            subject,
-            interaction.user.username,
-            categoryName,
-            'normal'
-        );
+        let channelId: string | null = null;
+        let channelMention = '';
 
-        if (threadId) {
-            await db.update(supportTickets)
-                .set({ discordThreadId: threadId })
-                .where(eq(supportTickets.id, ticket.id));
+        // Try Forum Channel first (if configured)
+        if (settings.ticketForumId) {
+            channelId = await createTicketThread(
+                ticket.id,
+                subject,
+                interaction.user.username,
+                categoryName,
+                'normal'
+            );
+
+            if (channelId) {
+                await db.update(supportTickets)
+                    .set({ discordThreadId: channelId })
+                    .where(eq(supportTickets.id, ticket.id));
+                channelMention = `<#${channelId}>`;
+            }
         }
 
+        // Fallback: Create text channel if forum not configured or failed
+        if (!channelId) {
+            // Import ticket category settings for text channel fallback
+            const ticketSettings = await db
+                .select()
+                .from(siteSettings)
+                .where(eq(siteSettings.key, 'discord_ticket_category_id'));
+
+            const ticketCategoryId = ticketSettings[0]?.value;
+
+            if (ticketCategoryId && interaction.guild) {
+                try {
+                    const { ChannelType, PermissionFlagsBits } = require('discord.js');
+
+                    // Get staff role for permissions
+                    const staffRoleSettings = await db
+                        .select()
+                        .from(siteSettings)
+                        .where(eq(siteSettings.key, 'discord_ticket_staff_role_id'));
+                    const staffRoleId = staffRoleSettings[0]?.value;
+
+                    const channelName = `ticket-${ticketNumber}-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+                    const channel = await interaction.guild.channels.create({
+                        name: channelName,
+                        type: ChannelType.GuildText,
+                        parent: ticketCategoryId,
+                        permissionOverwrites: [
+                            {
+                                id: interaction.guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel],
+                            },
+                            {
+                                id: interaction.user.id,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.SendMessages,
+                                    PermissionFlagsBits.ReadMessageHistory,
+                                    PermissionFlagsBits.AttachFiles,
+                                    PermissionFlagsBits.EmbedLinks,
+                                ],
+                            },
+                            ...(staffRoleId ? [{
+                                id: staffRoleId,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.SendMessages,
+                                    PermissionFlagsBits.ReadMessageHistory,
+                                    PermissionFlagsBits.AttachFiles,
+                                    PermissionFlagsBits.EmbedLinks,
+                                    PermissionFlagsBits.ManageMessages,
+                                ],
+                            }] : []),
+                        ],
+                        topic: `Ticket #${ticketNumber} | ${interaction.user.tag} | ${subject.substring(0, 100)}`,
+                        reason: `Ticket created by ${interaction.user.tag}`,
+                    });
+
+                    channelId = channel.id;
+                    channelMention = `${channel}`;
+
+                    // Update ticket with channel ID
+                    await db.update(supportTickets)
+                        .set({ discordChannelId: channelId })
+                        .where(eq(supportTickets.id, ticket.id));
+
+                    // Build ping role
+                    const pingRoleSettings = await db
+                        .select()
+                        .from(siteSettings)
+                        .where(eq(siteSettings.key, 'discord_ticket_ping_role_id'));
+                    const pingRoleId = pingRoleSettings[0]?.value;
+
+                    // Send opening message in the ticket channel
+                    const openingEmbed = new EmbedBuilder()
+                        .setColor(0x00FFFF)
+                        .setAuthor({
+                            name: interaction.member?.displayName || interaction.user.username,
+                            iconURL: interaction.user.displayAvatarURL(),
+                        })
+                        .setTitle(`🎫 Ticket #${ticket.id}`)
+                        .setDescription(
+                            `Welcome ${interaction.user}!\n\n` +
+                            `A staff member will be with you shortly.\n` +
+                            `**Your issue:**\n${description}`
+                        )
+                        .addFields(
+                            { name: 'Priority', value: '🔵 Normal', inline: true },
+                            { name: 'Status', value: '🟢 Open', inline: true },
+                            { name: 'Category', value: categoryName, inline: true },
+                        )
+                        .setFooter({ text: `Ticket ID: ${ticket.id}` })
+                        .setTimestamp();
+
+                    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+                    const actionRow = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(JSON.stringify({ action: 'claim', ticketId: ticket.id }))
+                            .setLabel('Claim')
+                            .setEmoji('✋')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId(JSON.stringify({ action: 'close', ticketId: ticket.id }))
+                            .setLabel('Close')
+                            .setEmoji('🔒')
+                            .setStyle(ButtonStyle.Danger),
+                    );
+
+                    const openingMessage = await channel.send({
+                        content: pingRoleId ? `<@&${pingRoleId}> ${interaction.user}` : `${interaction.user}`,
+                        embeds: [openingEmbed],
+                        components: [actionRow],
+                    });
+
+                    // Pin the opening message
+                    await openingMessage.pin().catch(() => { });
+
+                    console.log(`✅ Created ticket text channel ${channel.id} for ticket #${ticket.id}`);
+                } catch (channelError: any) {
+                    console.error('Failed to create ticket text channel:', channelError);
+                }
+            }
+        }
+
+        // Build response for user
         const embed = new EmbedBuilder()
             .setTitle('🎫 Ticket Created!')
             .setDescription(`Your ticket #${ticket.id} has been created.`)
@@ -954,15 +1094,21 @@ async function handleTicketModalSubmitWithCategory(interaction: any, categoryId:
             )
             .setTimestamp();
 
-        if (threadId) {
-            embed.addFields({ name: 'Discussion', value: `<#${threadId}>` });
+        if (channelMention) {
+            embed.addFields({ name: 'Discussion', value: channelMention });
+        } else {
+            embed.setDescription(`Your ticket #${ticket.id} has been created.\n\n⚠️ No Discord channel was created - please check the helpdesk on the website or contact an admin to configure the ticket system.`);
         }
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error: any) {
         console.error('Error handling ticket modal:', error);
-        await interaction.editReply({
-            content: '❌ Failed to create ticket. Please try again.',
-        });
+        try {
+            await interaction.editReply({
+                content: '❌ Failed to create ticket. Please try again or contact an administrator.',
+            });
+        } catch {
+            // Interaction may have timed out
+        }
     }
 }

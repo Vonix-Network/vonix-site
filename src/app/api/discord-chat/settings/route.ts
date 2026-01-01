@@ -31,6 +31,8 @@ const ALL_DISCORD_SETTINGS = [
     // Donation events webhook
     'discord_donation_webhook_url',
     'discord_donation_webhook_avatar_url',
+    // Server downtime notifications
+    'discord_downtime_manager_role_id', // Role ID to DM when servers go down
 ];
 
 // Public settings that can be returned to any user
@@ -92,6 +94,8 @@ export async function GET(request: NextRequest) {
                 // Donation webhook
                 donationWebhookUrl: settingsMap['discord_donation_webhook_url'] || '',
                 donationWebhookAvatarUrl: settingsMap['discord_donation_webhook_avatar_url'] || '',
+                // Server downtime notifications
+                downtimeManagerRoleId: settingsMap['discord_downtime_manager_role_id'] || '',
             });
         }
 
@@ -291,6 +295,15 @@ export async function PATCH(request: NextRequest) {
                 key: 'discord_ticket_ping_role_id',
                 value: body.ticketPingRoleId,
                 description: 'Discord role ID to ping on new tickets',
+            });
+        }
+
+        // Server downtime notification settings
+        if (typeof body.downtimeManagerRoleId === 'string') {
+            updates.push({
+                key: 'discord_downtime_manager_role_id',
+                value: body.downtimeManagerRoleId,
+                description: 'Discord role ID to DM when servers go down 3 times in a row',
             });
         }
 

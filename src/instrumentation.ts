@@ -29,6 +29,13 @@ export async function register() {
       console.error('Failed to initialize Discord integration:', err);
     });
 
+    // Initialize advanced Discord ticket system (slash commands: /new, /claim, /release, etc.)
+    console.log('🎫 Initializing Discord tickets system...');
+    const { initializeDiscordTickets } = await import('./lib/discord-tickets');
+    initializeDiscordTickets().catch(err => {
+      console.error('Failed to initialize Discord tickets:', err);
+    });
+
     console.log('✅ Server initialization complete');
   }
 }

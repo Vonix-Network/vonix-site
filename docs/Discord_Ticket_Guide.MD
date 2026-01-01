@@ -24,6 +24,8 @@ The ticket system allows users to create support tickets through Discord or the 
 
 ### Key Features
 - **Discord Integration**: Tickets create private channels in Discord
+- **No Account Required**: Discord users can create tickets without having a website account
+- **Account Linking**: If a Discord user has linked their account to the website, their tickets are automatically associated
 - **Category System**: Multiple support departments/categories
 - **Priority Levels**: Urgent, High, Normal, Low (with emoji indicators)
 - **Claiming**: Staff can claim tickets to handle exclusively
@@ -35,7 +37,7 @@ The ticket system allows users to create support tickets through Discord or the 
 
 ## User Commands
 
-These commands are available to **all Discord users**:
+These commands are available to **all Discord users** (no website account required):
 
 ### `/new`
 Create a new support ticket.
