@@ -1935,6 +1935,46 @@ export default function AdminSettingsPage() {
                       The uptime cron job checks servers every minute. If a server fails 3 consecutive checks, users with the configured role will receive a DM notification.
                     </p>
                   </div>
+
+                  {/* Test Notification Button */}
+                  <div className="pt-4 border-t border-border">
+                    <label className="text-sm font-medium block mb-3">Test Notifications</label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Send a test DM to all users with the Manager role to verify the configuration works.
+                    </p>
+                    <Button
+                      variant="neon-outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/admin/test-downtime-notification', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                          });
+                          const data = await res.json();
+                          if (res.ok && data.success) {
+                            toast.success(`Test sent to ${data.sent} manager(s)!`);
+                            if (data.failed > 0) {
+                              toast.warning(`${data.failed} notification(s) failed - check console for details`);
+                            }
+                          } else {
+                            toast.error(data.error || 'Failed to send test notifications');
+                          }
+                        } catch {
+                          toast.error('Failed to send test notifications');
+                        }
+                      }}
+                      disabled={!discordSettings.downtimeManagerRoleId || !discordSettings.botToken || !discordSettings.guildId}
+                    >
+                      <Bell className="w-4 h-4 mr-2" />
+                      Send Test Notification
+                    </Button>
+                    {(!discordSettings.downtimeManagerRoleId || !discordSettings.botToken || !discordSettings.guildId) && (
+                      <p className="text-xs text-warning mt-2">
+                        ⚠️ Save Bot Token, Guild ID, and Manager Role ID first to enable testing
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
