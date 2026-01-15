@@ -94,7 +94,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 }
 
                 const bucket = hourlyMap.get(hourKey)!;
-                if (record.online) {
+                // Handle PostgreSQL bigint (1/0) as boolean
+                if (Boolean(record.online)) {
                     bucket.online++;
                 } else {
                     bucket.offline++;
@@ -159,9 +160,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 .orderBy(desc(serverUptimeRecords.checkedAt))
                 .limit(1500);
 
-            // Convert numbers properly
+            // Convert numbers and booleans properly (handles PostgreSQL bigint issues)
             records = rawRecords.map((r: any) => ({
                 ...r,
+                online: Boolean(r.online), // Ensure it's a proper boolean (handles 1/0 from bigint)
                 playersOnline: r.playersOnline != null ? Number(r.playersOnline) : null,
                 playersMax: r.playersMax != null ? Number(r.playersMax) : null,
                 responseTimeMs: r.responseTimeMs != null ? Number(r.responseTimeMs) : null,
