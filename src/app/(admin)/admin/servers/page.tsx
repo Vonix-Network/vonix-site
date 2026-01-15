@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import {
   Server, Plus, Edit, Trash2, RefreshCw,
-  Wifi, WifiOff, Users, Save, X, Key, Copy, Eye, EyeOff, Gamepad2
+  Wifi, WifiOff, Users, Save, X, Key, Copy, Eye, EyeOff, Gamepad2, Wrench
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+
+type GameType = 'minecraft' | 'hytale';
 
 interface ServerData {
   id: number;
@@ -17,6 +19,7 @@ interface ServerData {
   address: string;
   port: number;
   hidePort: boolean;
+  gameType: GameType;
   modpackName: string | null;
   bluemapUrl: string | null;
   curseforgeUrl: string | null;
@@ -28,6 +31,8 @@ interface ServerData {
   apiKey: string | null;
   pterodactylServerId: string | null;
   pterodactylPanelUrl: string | null;
+  maintenanceMode: boolean;
+  maintenanceMessage: string | null;
 }
 
 export default function AdminServersPage() {
@@ -41,11 +46,14 @@ export default function AdminServersPage() {
     address: '',
     port: 25565,
     hidePort: false,
+    gameType: 'minecraft' as GameType,
     modpackName: '',
     bluemapUrl: '',
     curseforgeUrl: '',
     pterodactylServerId: '',
     pterodactylPanelUrl: '',
+    maintenanceMode: false,
+    maintenanceMessage: '',
   });
   const [editServerData, setEditServerData] = useState({
     name: '',
@@ -53,11 +61,14 @@ export default function AdminServersPage() {
     address: '',
     port: 25565,
     hidePort: false,
+    gameType: 'minecraft' as GameType,
     modpackName: '',
     bluemapUrl: '',
     curseforgeUrl: '',
     pterodactylServerId: '',
     pterodactylPanelUrl: '',
+    maintenanceMode: false,
+    maintenanceMessage: '',
   });
   const [showApiKey, setShowApiKey] = useState<number | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState<number | null>(null);
@@ -142,11 +153,14 @@ export default function AdminServersPage() {
           address: '',
           port: 25565,
           hidePort: false,
+          gameType: 'minecraft' as GameType,
           modpackName: '',
           bluemapUrl: '',
           curseforgeUrl: '',
           pterodactylServerId: '',
           pterodactylPanelUrl: '',
+          maintenanceMode: false,
+          maintenanceMessage: '',
         });
       }
     } catch (err: any) {
@@ -175,11 +189,14 @@ export default function AdminServersPage() {
       address: server.address,
       port: server.port,
       hidePort: server.hidePort || false,
+      gameType: server.gameType || 'minecraft',
       modpackName: server.modpackName || '',
       bluemapUrl: server.bluemapUrl || '',
       curseforgeUrl: server.curseforgeUrl || '',
       pterodactylServerId: server.pterodactylServerId || '',
       pterodactylPanelUrl: server.pterodactylPanelUrl || '',
+      maintenanceMode: server.maintenanceMode || false,
+      maintenanceMessage: server.maintenanceMessage || '',
     });
   };
 
@@ -288,6 +305,17 @@ export default function AdminServersPage() {
                   placeholder="e.g., All The Mods 9"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Game Type</label>
+                <select
+                  value={newServer.gameType}
+                  onChange={(e) => setNewServer({ ...newServer, gameType: e.target.value as GameType })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="minecraft">☕ Minecraft Java</option>
+                  <option value="hytale">🎮 Hytale</option>
+                </select>
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-medium">Description</label>
                 <Input
@@ -339,6 +367,32 @@ export default function AdminServersPage() {
                   />
                   <p className="text-xs text-muted-foreground">Leave empty to use the global panel URL</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Maintenance Mode */}
+            <div className="border-t border-border pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-neon-orange" />
+                Maintenance Mode
+              </h4>
+              <div className="space-y-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={newServer.maintenanceMode}
+                    onChange={(e) => setNewServer({ ...newServer, maintenanceMode: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm">Enable maintenance mode (disables status checks)</span>
+                </label>
+                {newServer.maintenanceMode && (
+                  <Input
+                    value={newServer.maintenanceMessage}
+                    onChange={(e) => setNewServer({ ...newServer, maintenanceMessage: e.target.value })}
+                    placeholder="Optional maintenance message"
+                  />
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -420,6 +474,17 @@ export default function AdminServersPage() {
                   placeholder="e.g., All The Mods 9"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Game Type</label>
+                <select
+                  value={editServerData.gameType}
+                  onChange={(e) => setEditServerData({ ...editServerData, gameType: e.target.value as GameType })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="minecraft">☕ Minecraft Java</option>
+                  <option value="hytale">🎮 Hytale</option>
+                </select>
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-medium">Description</label>
                 <Input
@@ -471,6 +536,32 @@ export default function AdminServersPage() {
                   />
                   <p className="text-xs text-muted-foreground">Leave empty to use the global panel URL</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Maintenance Mode */}
+            <div className="border-t border-border pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-neon-orange" />
+                Maintenance Mode
+              </h4>
+              <div className="space-y-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editServerData.maintenanceMode}
+                    onChange={(e) => setEditServerData({ ...editServerData, maintenanceMode: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm">Enable maintenance mode (disables status checks)</span>
+                </label>
+                {editServerData.maintenanceMode && (
+                  <Input
+                    value={editServerData.maintenanceMessage}
+                    onChange={(e) => setEditServerData({ ...editServerData, maintenanceMessage: e.target.value })}
+                    placeholder="Optional maintenance message"
+                  />
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">

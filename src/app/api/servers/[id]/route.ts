@@ -51,6 +51,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       address,
       port,
       hidePort,
+      gameType,
       description,
       modpackName,
       type,
@@ -58,6 +59,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       curseforgeUrl,
       pterodactylServerId,
       pterodactylPanelUrl,
+      maintenanceMode,
+      maintenanceMessage,
     } = body;
 
     const serverAddress = address || ipAddress;
@@ -70,11 +73,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: serverAddress,
         port,
         hidePort: hidePort ?? false,
+        gameType: gameType || 'minecraft',
         modpackName: modpackName || null,
         bluemapUrl: bluemapUrl || null,
         curseforgeUrl: curseforgeUrl || null,
         pterodactylServerId: pterodactylServerId || null,
         pterodactylPanelUrl: pterodactylPanelUrl || null,
+        maintenanceMode: maintenanceMode ?? false,
+        maintenanceMessage: maintenanceMessage || null,
         updatedAt: new Date(),
       })
       .where(eq(servers.id, serverId))
