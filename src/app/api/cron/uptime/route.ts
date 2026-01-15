@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { servers, serverUptimeRecords, siteSettings } from '@/db/schema';
-import { sql, lt, eq, inArray } from 'drizzle-orm';
-import { pingServerNative } from '@/lib/minecraft-ping';
+import { sql, lt, eq, inArray, ne } from 'drizzle-orm';
+import { pingGameServer, GameType } from '@/lib/game-ping';
 
-// Track consecutive offline counts per server (in-memory, resets on restart)
-// Key: serverId, Value: consecutive offline count
-const consecutiveOfflineCounts: Map<number, number> = new Map();
+// Threshold for sending notifications - 5 consecutive failures
+const OFFLINE_THRESHOLD = 5;
 
-// Track which servers have already triggered a notification (to avoid spam)
+// Track which servers have already triggered a notification (to avoid spam during session)
 const notifiedServers: Set<number> = new Set();
-
-// Threshold for sending notifications
-const OFFLINE_THRESHOLD = 3;
 
 interface PingResult {
     serverId: number;
@@ -21,8 +17,10 @@ interface PingResult {
     playersOnline: number;
     playersMax: number;
     responseTimeMs: number | null;
-    method: 'native' | 'api' | 'none';
+    gameType: GameType;
     attempts: number;
+    skipped?: boolean;
+    skipReason?: string;
 }
 
 /**
@@ -31,12 +29,13 @@ interface PingResult {
 async function sendDowntimeNotifications(
     serverName: string,
     serverId: number,
+    consecutiveFailures: number,
     botToken: string,
     guildId: string,
     roleId: string
 ): Promise<void> {
     try {
-        console.log(`🔔 Sending downtime DM notifications for server: ${serverName}`);
+        console.log(`🔔 Sending downtime DM notifications for server: ${serverName} (${consecutiveFailures} consecutive failures)`);
 
         // Fetch guild members with the specified role using Discord API
         const membersResponse = await fetch(
@@ -100,7 +99,7 @@ async function sendDowntimeNotifications(
                         body: JSON.stringify({
                             embeds: [{
                                 title: '🚨 Server Downtime Alert',
-                                description: `**${serverName}** has been detected as offline 3 times in a row.`,
+                                description: `**${serverName}** has been detected as offline ${consecutiveFailures} times in a row.`,
                                 color: 0xFF0000, // Red
                                 fields: [
                                     {
@@ -111,6 +110,11 @@ async function sendDowntimeNotifications(
                                     {
                                         name: '⏰ Detected At',
                                         value: new Date().toLocaleString(),
+                                        inline: true,
+                                    },
+                                    {
+                                        name: '📊 Consecutive Failures',
+                                        value: `${consecutiveFailures}`,
                                         inline: true,
                                     },
                                 ],
@@ -145,192 +149,45 @@ async function sendDowntimeNotifications(
 }
 
 /**
- * Try native ping with retry
+ * Ping a server using native protocol (no external API)
  */
-async function tryNativePing(host: string, port: number, retries: number = 2): Promise<{
-    success: boolean;
-    online: boolean;
-    playersOnline: number;
-    playersMax: number;
-    responseTimeMs: number | null;
-}> {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const startTime = Date.now();
-            const result = await pingServerNative(host, port);
-            const responseTime = Date.now() - startTime;
-
-            if (result.success && result.data && result.data.online) {
-                return {
-                    success: true,
-                    online: true,
-                    playersOnline: result.data.players?.online || 0,
-                    playersMax: result.data.players?.max || 0,
-                    responseTimeMs: responseTime,
-                };
-            }
-
-            // If we got a response but server is offline, that's still valid
-            if (result.success && result.data) {
-                return {
-                    success: true,
-                    online: result.data.online || false,
-                    playersOnline: result.data.players?.online || 0,
-                    playersMax: result.data.players?.max || 0,
-                    responseTimeMs: responseTime,
-                };
-            }
-
-            // Wait a bit before retry
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        } catch (error: any) {
-            console.log(`   Native ping attempt ${attempt}/${retries} failed:`, error);
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-    }
-
-    return {
-        success: false,
-        online: false,
-        playersOnline: 0,
-        playersMax: 0,
-        responseTimeMs: null,
-    };
-}
-
-/**
- * Try mcstatus.io API with retry
- */
-async function tryApiPing(host: string, port: number, retries: number = 2): Promise<{
-    success: boolean;
-    online: boolean;
-    playersOnline: number;
-    playersMax: number;
-    responseTimeMs: number | null;
-}> {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const startTime = Date.now();
-            const response = await fetch(
-                `https://api.mcstatus.io/v2/status/java/${host}:${port}`,
-                {
-                    signal: AbortSignal.timeout(10000),
-                    cache: 'no-store',
-                }
-            );
-            const responseTime = Date.now() - startTime;
-
-            if (response.ok) {
-                const data = await response.json();
-                return {
-                    success: true,
-                    online: data.online || false,
-                    playersOnline: data.players?.online || 0,
-                    playersMax: data.players?.max || 0,
-                    responseTimeMs: responseTime,
-                };
-            }
-
-            // Wait before retry
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        } catch (error: any) {
-            console.log(`   API ping attempt ${attempt}/${retries} failed:`, error);
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-    }
-
-    return {
-        success: false,
-        online: false,
-        playersOnline: 0,
-        playersMax: 0,
-        responseTimeMs: null,
-    };
-}
-
-/**
- * Ping a server using multiple methods with retries
- * Order: Native ping (2 attempts) -> mcstatus.io API (2 attempts)
- * Only marks offline if ALL attempts fail
- */
-async function pingServerWithRetry(
-    server: { id: number; name: string; ipAddress: string; port: number }
+async function pingServer(
+    server: { id: number; name: string; ipAddress: string; port: number; gameType: string | null }
 ): Promise<PingResult> {
     const host = server.ipAddress;
     const port = server.port;
+    const gameType = (server.gameType || 'minecraft') as GameType;
 
-    console.log(`   🔍 Checking ${server.name} (${host}:${port})...`);
+    console.log(`   🔍 Checking ${server.name} (${host}:${port}, ${gameType})...`);
 
-    // Method 1: Try native ping first (preferred - more accurate and faster)
-    console.log(`      Trying native ping...`);
-    const nativeResult = await tryNativePing(host, port, 2);
+    const startTime = Date.now();
+    const result = await pingGameServer(host, port, gameType);
+    const responseTime = Date.now() - startTime;
 
-    if (nativeResult.success && nativeResult.online) {
-        console.log(`      ✓ Native ping: ONLINE (${nativeResult.playersOnline} players)`);
+    if (result.success && result.data?.online) {
+        console.log(`      ✓ ONLINE (${result.data.players?.online || 0} players, ${responseTime}ms)`);
         return {
             serverId: server.id,
             serverName: server.name,
             online: true,
-            playersOnline: nativeResult.playersOnline,
-            playersMax: nativeResult.playersMax,
-            responseTimeMs: nativeResult.responseTimeMs,
-            method: 'native',
-            attempts: 1,
+            playersOnline: result.data.players?.online || 0,
+            playersMax: result.data.players?.max || 0,
+            responseTimeMs: responseTime,
+            gameType,
+            attempts: 3,
         };
     }
 
-    // Method 2: Try mcstatus.io API as fallback
-    console.log(`      Native ping failed, trying mcstatus.io API...`);
-    const apiResult = await tryApiPing(host, port, 2);
-
-    if (apiResult.success && apiResult.online) {
-        console.log(`      ✓ API ping: ONLINE (${apiResult.playersOnline} players)`);
-        return {
-            serverId: server.id,
-            serverName: server.name,
-            online: true,
-            playersOnline: apiResult.playersOnline,
-            playersMax: apiResult.playersMax,
-            responseTimeMs: apiResult.responseTimeMs,
-            method: 'api',
-            attempts: 2,
-        };
-    }
-
-    // If API returned a valid response but server is offline, trust it
-    if (apiResult.success) {
-        console.log(`      ✓ API ping: OFFLINE (server responded but is offline)`);
-        return {
-            serverId: server.id,
-            serverName: server.name,
-            online: false,
-            playersOnline: 0,
-            playersMax: apiResult.playersMax,
-            responseTimeMs: apiResult.responseTimeMs,
-            method: 'api',
-            attempts: 2,
-        };
-    }
-
-    // All methods failed - mark as offline
-    console.log(`      ✗ All ping methods failed - marking as OFFLINE`);
+    console.log(`      ✗ OFFLINE (${result.error || 'ping failed'})`);
     return {
         serverId: server.id,
         serverName: server.name,
         online: false,
         playersOnline: 0,
-        playersMax: 0,
+        playersMax: result.data?.players?.max || 0,
         responseTimeMs: null,
-        method: 'none',
-        attempts: 4, // 2 native + 2 API
+        gameType,
+        attempts: 3,
     };
 }
 
@@ -339,9 +196,11 @@ async function pingServerWithRetry(
  * Ping all servers and record uptime data
  * Should be called every 60 seconds by a cron job
  * 
- * Uses dual-method approach with retries for accuracy:
- * 1. Native direct ping (2 attempts)
- * 2. mcstatus.io API fallback (2 attempts)
+ * Features:
+ * - Native protocol pinging (no external API dependency)
+ * - Skips servers in maintenance mode
+ * - 5 consecutive failures before notification
+ * - Persistent failure tracking in database
  * 
  * Authentication methods (any one of these):
  * - Header: Authorization: Bearer <CRON_SECRET>
@@ -380,8 +239,10 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Get all servers
+        // Get all servers (excluding those in maintenance mode)
         const allServers = await db.select().from(servers);
+        const activeServers = allServers.filter((s: any) => !s.maintenanceMode);
+        const maintenanceServers = allServers.filter((s: any) => s.maintenanceMode);
 
         if (allServers.length === 0) {
             console.log('📡 Uptime check: No servers configured');
@@ -389,29 +250,37 @@ export async function GET(request: NextRequest) {
         }
 
         const timestamp = new Date().toLocaleTimeString();
-        console.log(`\n📡 [${timestamp}] Running uptime check for ${allServers.length} server(s)...`);
+        console.log(`\n📡 [${timestamp}] Running uptime check for ${activeServers.length} server(s) (${maintenanceServers.length} in maintenance)...`);
 
-        // Ping each server with retry logic
+        // Log maintenance servers
+        if (maintenanceServers.length > 0) {
+            console.log(`   🔧 Maintenance mode (skipped): ${maintenanceServers.map((s: any) => s.name).join(', ')}`);
+        }
+
+        // Ping each active server with native protocol
         const results = await Promise.all(
-            allServers.map((server: any) => pingServerWithRetry({
+            activeServers.map((server: any) => pingServer({
                 id: server.id,
                 name: server.name,
                 ipAddress: server.ipAddress,
                 port: server.port,
+                gameType: server.gameType,
             }))
         );
 
-        // Store results in database
-        await db.insert(serverUptimeRecords).values(
-            results.map((result: any) => ({
-                serverId: result.serverId,
-                online: result.online,
-                playersOnline: result.playersOnline,
-                playersMax: result.playersMax,
-                responseTimeMs: result.responseTimeMs,
-                checkedAt: new Date(),
-            }))
-        );
+        // Store results in database for active servers
+        if (results.length > 0) {
+            await db.insert(serverUptimeRecords).values(
+                results.map((result: any) => ({
+                    serverId: result.serverId,
+                    online: result.online,
+                    playersOnline: result.playersOnline,
+                    playersMax: result.playersMax,
+                    responseTimeMs: result.responseTimeMs,
+                    checkedAt: new Date(),
+                }))
+            );
+        }
 
         // Clean up old records (older than 90 days)
         const ninetyDaysAgo = new Date();
@@ -421,41 +290,54 @@ export async function GET(request: NextRequest) {
             .delete(serverUptimeRecords)
             .where(lt(serverUptimeRecords.checkedAt, ninetyDaysAgo));
 
-        // Update server status in servers table
-        for (const result of results) {
-            await db
-                .update(servers)
-                .set({
-                    status: result.online ? 'online' : 'offline',
-                    playersOnline: result.playersOnline,
-                    playersMax: result.playersMax,
-                    updatedAt: new Date(),
-                })
-                .where(sql`${servers.id} = ${result.serverId}`);
-        }
-
-        // Track consecutive offline counts and send notifications
-        const serversToNotify: { id: number; name: string }[] = [];
+        // Track consecutive failures and update server status
+        const serversToNotify: { id: number; name: string; failures: number }[] = [];
 
         for (const result of results) {
+            const server = activeServers.find((s: any) => s.id === result.serverId);
+            if (!server) continue;
+
             if (!result.online) {
-                // Increment consecutive offline count
-                const currentCount = consecutiveOfflineCounts.get(result.serverId) || 0;
-                const newCount = currentCount + 1;
-                consecutiveOfflineCounts.set(result.serverId, newCount);
+                // Increment consecutive failures in database
+                const newFailureCount = (server.consecutiveFailures || 0) + 1;
 
-                console.log(`   ⚠️ ${result.serverName}: offline ${newCount}/${OFFLINE_THRESHOLD} times`);
+                await db
+                    .update(servers)
+                    .set({
+                        status: 'offline',
+                        playersOnline: 0,
+                        consecutiveFailures: newFailureCount,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(servers.id, result.serverId));
+
+                console.log(`   ⚠️ ${result.serverName}: offline ${newFailureCount}/${OFFLINE_THRESHOLD} times`);
 
                 // Check if we've hit the threshold and haven't already notified
-                if (newCount >= OFFLINE_THRESHOLD && !notifiedServers.has(result.serverId)) {
-                    serversToNotify.push({ id: result.serverId, name: result.serverName });
+                if (newFailureCount >= OFFLINE_THRESHOLD && !notifiedServers.has(result.serverId)) {
+                    serversToNotify.push({
+                        id: result.serverId,
+                        name: result.serverName,
+                        failures: newFailureCount,
+                    });
                 }
             } else {
                 // Server is back online - reset counters
-                if (consecutiveOfflineCounts.has(result.serverId)) {
+                if (server.consecutiveFailures > 0) {
                     console.log(`   ✅ ${result.serverName}: back online, resetting counter`);
                 }
-                consecutiveOfflineCounts.delete(result.serverId);
+
+                await db
+                    .update(servers)
+                    .set({
+                        status: 'online',
+                        playersOnline: result.playersOnline,
+                        playersMax: result.playersMax,
+                        consecutiveFailures: 0,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(servers.id, result.serverId));
+
                 notifiedServers.delete(result.serverId); // Allow future notifications
             }
         }
@@ -485,6 +367,7 @@ export async function GET(request: NextRequest) {
                     await sendDowntimeNotifications(
                         server.name,
                         server.id,
+                        server.failures,
                         botToken,
                         guildId,
                         roleId
@@ -498,11 +381,8 @@ export async function GET(request: NextRequest) {
 
         const onlineCount = results.filter((r: any) => r.online).length;
         const offlineCount = results.filter((r: any) => !r.online).length;
-        const nativeCount = results.filter((r: any) => r.method === 'native').length;
-        const apiCount = results.filter((r: any) => r.method === 'api').length;
 
-        console.log(`✅ Uptime check complete: ${onlineCount} online, ${offlineCount} offline`);
-        console.log(`   Methods used: ${nativeCount} native, ${apiCount} API fallback`);
+        console.log(`✅ Uptime check complete: ${onlineCount} online, ${offlineCount} offline, ${maintenanceServers.length} skipped (maintenance)`);
 
         return NextResponse.json({
             success: true,
@@ -510,16 +390,13 @@ export async function GET(request: NextRequest) {
             checked: results.length,
             online: onlineCount,
             offline: offlineCount,
-            methods: {
-                native: nativeCount,
-                api: apiCount,
-                failed: results.filter((r: any) => r.method === 'none').length,
-            },
+            maintenance: maintenanceServers.length,
+            offlineThreshold: OFFLINE_THRESHOLD,
             results: results.map((r: any) => ({
                 server: r.serverName,
                 online: r.online,
                 players: r.playersOnline,
-                method: r.method,
+                gameType: r.gameType,
             })),
         });
     } catch (error: any) {
@@ -527,4 +404,3 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to check servers' }, { status: 500 });
     }
 }
-

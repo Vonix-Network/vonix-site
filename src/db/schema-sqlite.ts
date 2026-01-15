@@ -138,6 +138,7 @@ export const servers = sqliteTable('servers', {
     ipAddress: text('ip_address').notNull(),
     port: integer('port').default(25565).notNull(),
     hidePort: integer('hide_port', { mode: 'boolean' }).default(false).notNull(), // For SRV records - hide port in display but use for status lookup
+    gameType: text('game_type').default('minecraft').notNull(), // 'minecraft' | 'hytale'
     modpackName: text('modpack_name'),
     bluemapUrl: text('bluemap_url'),
     curseforgeUrl: text('curseforge_url'),
@@ -151,6 +152,11 @@ export const servers = sqliteTable('servers', {
     // Pterodactyl Panel Integration (optional)
     pterodactylServerId: text('pterodactyl_server_id'), // Server identifier in Pterodactyl panel
     pterodactylPanelUrl: text('pterodactyl_panel_url'), // Panel URL (e.g., https://panel.example.com)
+    // Maintenance mode - disables status checks and shows maintenance badge
+    maintenanceMode: integer('maintenance_mode', { mode: 'boolean' }).default(false).notNull(),
+    maintenanceMessage: text('maintenance_message'),
+    // Persistent consecutive failure tracking for offline notifications
+    consecutiveFailures: integer('consecutive_failures').default(0).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });

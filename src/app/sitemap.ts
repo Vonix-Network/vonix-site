@@ -3,6 +3,10 @@ import { db } from '@/db';
 import { servers, forumCategories, forumPosts, users, socialPosts } from '@/db/schema';
 import { desc, isNotNull, gt } from 'drizzle-orm';
 
+// Force dynamic generation - sitemap needs database access
+export const dynamic = 'force-dynamic';
+
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vonix.network';
     const threeMonthsAgo = new Date();

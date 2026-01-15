@@ -79,11 +79,9 @@
     "tailwindcss-animate": "^1.0.7",
     "ws": "^8.18.3",
     "zod": "^3.23.8",
-    "zustand": "^5.0.8"
-  },
-  "optionalDependencies": {
-    "mysql2": "^3.16.0",
-    "postgres": "^3.4.7"
+    "zustand": "^5.0.8",
+    "postgres": "^3.4.7",
+    "mysql2": "^3.16.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

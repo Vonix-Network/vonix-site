@@ -88,8 +88,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Packages that should be externalized for server components (discord.js native deps)
-  serverExternalPackages: ['discord.js', '@discordjs/ws', '@discordjs/rest'],
+  // Packages that should be externalized for server components (discord.js native deps, database drivers)
+  serverExternalPackages: ['discord.js', '@discordjs/ws', '@discordjs/rest', 'postgres', 'mysql2'],
 
   // Experimental features
   experimental: {

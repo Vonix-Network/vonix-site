@@ -161,6 +161,7 @@ export const servers = pgTable('servers', {
     ipAddress: varchar('ip_address', { length: 255 }).notNull(),
     port: integer('port').default(25565).notNull(),
     hidePort: boolean('hide_port').default(false).notNull(),
+    gameType: varchar('game_type', { length: 50 }).default('minecraft').notNull(), // 'minecraft' | 'hytale'
     modpackName: varchar('modpack_name', { length: 255 }),
     bluemapUrl: text('bluemap_url'),
     curseforgeUrl: text('curseforge_url'),
@@ -172,6 +173,11 @@ export const servers = pgTable('servers', {
     apiKey: text('api_key').unique(),
     pterodactylServerId: varchar('pterodactyl_server_id', { length: 255 }),
     pterodactylPanelUrl: text('pterodactyl_panel_url'),
+    // Maintenance mode - disables status checks and shows maintenance badge
+    maintenanceMode: boolean('maintenance_mode').default(false).notNull(),
+    maintenanceMessage: text('maintenance_message'),
+    // Persistent consecutive failure tracking for offline notifications
+    consecutiveFailures: integer('consecutive_failures').default(0).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
