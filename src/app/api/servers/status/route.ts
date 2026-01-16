@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { servers } from '@/db/schema';
+import { servers, apiKeys } from '@/db/schema';
 import { getServerStatus, getMultipleServerStatus } from '@/lib/minecraft-status';
 import { pingServerNative } from '@/lib/minecraft-ping';
-import { asc } from 'drizzle-orm';
+import { asc, eq, inArray, like } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // No caching - always fetch fresh
@@ -56,6 +56,22 @@ export async function GET(request: NextRequest) {
         servers: [],
         message: 'No servers configured',
       });
+    }
+
+    // Fetch API keys for all servers
+    const serverKeyNames = allServers.map((s: any) => `server_${s.id}_key`);
+    const allApiKeys = await db
+      .select()
+      .from(apiKeys)
+      .where(inArray(apiKeys.name, serverKeyNames));
+
+    // Create a map of server ID -> API key
+    const apiKeyMap = new Map<number, string>();
+    for (const key of allApiKeys) {
+      const match = key.name.match(/^server_(\d+)_key$/);
+      if (match) {
+        apiKeyMap.set(parseInt(match[1]), key.key);
+      }
     }
 
     // Ping all servers in parallel using hybrid approach
@@ -118,7 +134,7 @@ export async function GET(request: NextRequest) {
         bluemapUrl: server.bluemapUrl,
         curseforgeUrl: server.curseforgeUrl,
         orderIndex: server.orderIndex,
-        apiKey: server.apiKey,
+        apiKey: apiKeyMap.get(server.id) || null,
         pterodactylServerId: server.pterodactylServerId,
         pterodactylPanelUrl: server.pterodactylPanelUrl,
         // Live status data ONLY (no DB fallbacks for dynamic fields)
