@@ -39,6 +39,11 @@ ALTER TABLE users
 ALTER COLUMN updated_at TYPE timestamp 
 USING to_timestamp(updated_at);
 
+-- users.locked_until - critical for login!
+ALTER TABLE users 
+ALTER COLUMN locked_until TYPE timestamp 
+USING to_timestamp(locked_until);
+
 -- ===================================================================
 -- FIX BOOLEAN COLUMNS (bigint → boolean)
 -- ===================================================================
