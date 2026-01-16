@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Activity, Users, Loader2, Wifi, BarChart3, List, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Activity, Users, Loader2, Wifi, BarChart3, List, AlertCircle, ArrowLeft, ZoomIn } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -57,6 +58,7 @@ interface ChartDataPoint {
     avgPlayers: number;
     maxSlots: number;
     isOnline: boolean;
+    hourKey?: string; // For drilldown - format: YYYY-MM-DDTHH
 }
 
 // =============================================================================
@@ -207,14 +209,49 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
     const [granularity, setGranularity] = useState<Granularity>('hourly');
     const [selectedRangeIndex, setSelectedRangeIndex] = useState(1); // Default to 24h
 
+    // Drilldown state
+    const [drilldownHour, setDrilldownHour] = useState<string | null>(null);
+    const [drilldownRecords, setDrilldownRecords] = useState<UptimeRecord[]>([]);
+    const [isDrilldownLoading, setIsDrilldownLoading] = useState(false);
+
     // Get current range config
     const currentRange = TIME_RANGES[selectedRangeIndex];
 
-    // Check if minutely data is available for current range
-    const minutelyAvailable = currentRange.hasMinutelyData;
+    // Check if minutely data is available for current range (or if in drilldown mode)
+    const minutelyAvailable = currentRange.hasMinutelyData || drilldownHour !== null;
+
+    // Fetch drilldown data for a specific hour
+    const fetchDrilldown = useCallback(async (hourKey: string) => {
+        setIsDrilldownLoading(true);
+        setDrilldownHour(hourKey);
+        setGranularity('minutely'); // Auto-switch to minutely view
+
+        try {
+            const res = await fetch(`/api/servers/${serverId}/uptime?hour=${hourKey}`);
+            if (!res.ok) throw new Error('Failed to fetch drilldown');
+
+            const data = await res.json();
+            setDrilldownRecords(data.records || []);
+        } catch (error: any) {
+            console.error('Failed to fetch drilldown data:', error);
+            setDrilldownRecords([]);
+        } finally {
+            setIsDrilldownLoading(false);
+        }
+    }, [serverId]);
+
+    // Exit drilldown mode
+    const exitDrilldown = useCallback(() => {
+        setDrilldownHour(null);
+        setDrilldownRecords([]);
+        setGranularity('hourly');
+    }, []);
 
     // Fetch data when serverId or time range changes
     useEffect(() => {
+        // Reset drilldown when range changes
+        exitDrilldown();
+
         const fetchData = async () => {
             setIsLoading(true);
             try {
@@ -244,7 +281,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
         };
 
         fetchData();
-    }, [serverId, currentRange.days, currentRange.hours]);
+    }, [serverId, currentRange.days, currentRange.hours, exitDrilldown]);
 
     // Auto-switch to hourly if minutely not available
     useEffect(() => {
@@ -290,22 +327,23 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
     // Build chart data based on granularity
     const chartData = useMemo((): ChartDataPoint[] => {
-        if (records.length === 0) return [];
+        // Use drilldown records if in drilldown mode
+        const sourceRecords = drilldownHour ? drilldownRecords : records;
+        if (sourceRecords.length === 0) return [];
 
         // Sort records by time (oldest first)
-        const sorted = [...records].sort((a: any, b: any) => {
+        const sorted = [...sourceRecords].sort((a: any, b: any) => {
             const dateA = parseDate(a.checkedAt);
             const dateB = parseDate(b.checkedAt);
             return dateA.getTime() - dateB.getTime();
         });
 
         // =================================================================
-        // MINUTELY VIEW
+        // MINUTELY VIEW (or drilldown mode)
         // =================================================================
-        if (granularity === 'minutely' && minutelyAvailable) {
+        if ((granularity === 'minutely' && minutelyAvailable) || drilldownHour) {
             // For minutely view, we need raw (non-aggregated) data
-            // This is only available for 1h and 24h ranges
-            const limit = currentRange.maxMinutelyBars;
+            const limit = drilldownHour ? 60 : currentRange.maxMinutelyBars;
             const sliced = sorted.slice(-limit);
 
             return sliced.map((record: any) => {
@@ -335,6 +373,8 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
 
             return sliced.map((record: any) => {
                 const date = parseDate(record.checkedAt);
+                // Create hourKey for drilldown
+                const hourKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}`;
                 return {
                     label: formatLabel(date, 'hourly', currentRange.hours),
                     fullTime: date.toLocaleString(),
@@ -345,6 +385,7 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                     avgPlayers: record.playersOnline || 0,
                     maxSlots: record.playersMax || 0,
                     isOnline: record.online,
+                    hourKey, // For drilldown click
                 };
             });
         } else {
@@ -408,13 +449,14 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                     avgPlayers: avgPlayers,
                     maxSlots: bucket.maxSlots,
                     isOnline: bucket.online > bucket.offline,
+                    hourKey: key, // For drilldown click
                 });
             });
 
             // Limit to max hourly bars
             return result.slice(-currentRange.maxHourlyBars);
         }
-    }, [records, granularity, minutelyAvailable, isAggregated, currentRange]);
+    }, [records, granularity, minutelyAvailable, isAggregated, currentRange, drilldownHour, drilldownRecords]);
 
     // Get bar color based on uptime
     const getBarColor = (entry: ChartDataPoint): string => {
@@ -530,6 +572,31 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
+                {/* Drilldown Banner */}
+                {drilldownHour && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={exitDrilldown}
+                            className="h-7 px-2"
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-1" />
+                            Back
+                        </Button>
+                        <span className="text-sm text-neon-cyan">
+                            <ZoomIn className="w-3 h-3 inline mr-1" />
+                            Viewing minutely data for: {new Date(drilldownHour + ':00:00').toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </span>
+                        {isDrilldownLoading && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
+                    </div>
+                )}
+
                 {/* Stats Row */}
                 <div className="grid grid-cols-4 gap-3">
                     <div className="text-center p-3 rounded-lg bg-secondary/30">
@@ -556,7 +623,17 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                 <div className="h-48">
                     {chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <BarChart
+                                data={chartData}
+                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                                onClick={(data: any) => {
+                                    // Only allow drilldown in hourly mode (not already in drilldown)
+                                    if (granularity === 'hourly' && !drilldownHour && data?.activePayload?.[0]?.payload?.hourKey) {
+                                        fetchDrilldown(data.activePayload[0].payload.hourKey);
+                                    }
+                                }}
+                                style={{ cursor: granularity === 'hourly' && !drilldownHour ? 'pointer' : 'default' }}
+                            >
                                 <defs>
                                     <linearGradient id="playersGradient" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8} />
@@ -638,9 +715,18 @@ export function ServerUptimeGraph({ serverId }: ServerUptimeGraphProps) {
                     )}
                     <span>|</span>
                     <span>
-                        {chartData.length} {granularity === 'hourly' ? 'hours' : 'data points'}
+                        {chartData.length} {drilldownHour ? 'minutes' : (granularity === 'hourly' ? 'hours' : 'data points')}
                     </span>
-                    {!minutelyAvailable && (
+                    {granularity === 'hourly' && !drilldownHour && (
+                        <>
+                            <span>|</span>
+                            <span className="flex items-center gap-1 text-neon-cyan">
+                                <ZoomIn className="w-3 h-3" />
+                                Click bar to drill down
+                            </span>
+                        </>
+                    )}
+                    {!minutelyAvailable && !drilldownHour && (
                         <>
                             <span>|</span>
                             <span className="flex items-center gap-1 text-neon-orange">

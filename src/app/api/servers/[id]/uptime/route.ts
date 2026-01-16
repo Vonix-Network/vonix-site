@@ -11,6 +11,11 @@ interface RouteParams {
  * GET /api/servers/[id]/uptime
  * Get uptime history for a specific server
  * 
+ * Query params:
+ * - days: Number of days to fetch (default 7, max 90)
+ * - hour: Specific hour to drill down into (format: YYYY-MM-DDTHH)
+ *         When provided, returns minutely data for that hour only
+ * 
  * For longer time ranges, data is aggregated by hour to reduce response size
  * while still providing accurate statistics.
  */
@@ -25,12 +30,54 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         const { searchParams } = new URL(request.url);
         const days = Math.min(parseInt(searchParams.get('days') || '7'), 90);
+        const drilldownHour = searchParams.get('hour'); // Format: YYYY-MM-DDTHH
 
         // Verify server exists
         const [server] = await db.select().from(servers).where(eq(servers.id, serverId));
         if (!server) {
             return NextResponse.json({ error: 'Server not found' }, { status: 404 });
         }
+
+        // =====================================================================
+        // DRILLDOWN MODE: Return minutely data for a specific hour
+        // =====================================================================
+        if (drilldownHour) {
+            const hourDate = new Date(drilldownHour + ':00:00');
+            const hourEnd = new Date(hourDate.getTime() + 60 * 60 * 1000);
+
+            const minutelyRecords = await db
+                .select()
+                .from(serverUptimeRecords)
+                .where(
+                    and(
+                        eq(serverUptimeRecords.serverId, serverId),
+                        gte(serverUptimeRecords.checkedAt, hourDate),
+                        sql`${serverUptimeRecords.checkedAt} < ${hourEnd}`
+                    )
+                )
+                .orderBy(desc(serverUptimeRecords.checkedAt));
+
+            // Convert to proper types
+            const records = minutelyRecords.map((r: any) => ({
+                ...r,
+                online: Boolean(r.online),
+                playersOnline: r.playersOnline != null ? Number(r.playersOnline) : null,
+                playersMax: r.playersMax != null ? Number(r.playersMax) : null,
+                responseTimeMs: r.responseTimeMs != null ? Number(r.responseTimeMs) : null,
+            }));
+
+            return NextResponse.json({
+                server: { id: server.id, name: server.name, address: server.ipAddress },
+                drilldown: true,
+                hour: drilldownHour,
+                records,
+                aggregated: false,
+            });
+        }
+
+        // =====================================================================
+        // NORMAL MODE: Return aggregated or raw data based on time range
+        // =====================================================================
 
         // Calculate date range
         const startDate = new Date();
