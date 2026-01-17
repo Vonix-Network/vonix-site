@@ -108,6 +108,8 @@ export default function AdminServersPage() {
       const res = await fetch('/api/servers/status');
       if (res.ok) {
         const data = await res.json();
+        console.log('[Admin Servers] Raw API response:', JSON.stringify(data.servers?.map((s: any) => ({ id: s.id, name: s.name, apiKey: s.apiKey })), null, 2));
+
         // Map the status response to our ServerData format
         const serversWithStatus = (data.servers || []).map((server: any) => ({
           id: server.id,
@@ -116,6 +118,7 @@ export default function AdminServersPage() {
           address: server.address,
           port: server.port,
           hidePort: server.hidePort || false,
+          gameType: server.gameType || 'minecraft',
           modpackName: server.modpackName,
           bluemapUrl: server.bluemapUrl,
           curseforgeUrl: server.curseforgeUrl,
@@ -125,7 +128,13 @@ export default function AdminServersPage() {
           version: server.version,
           orderIndex: server.orderIndex,
           apiKey: server.apiKey,
+          pterodactylServerId: server.pterodactylServerId,
+          pterodactylPanelUrl: server.pterodactylPanelUrl,
+          maintenanceMode: server.maintenanceMode || false,
+          maintenanceMessage: server.maintenanceMessage,
         }));
+
+        console.log('[Admin Servers] Mapped servers with API keys:', serversWithStatus.map((s: any) => ({ id: s.id, name: s.name, apiKey: s.apiKey })));
         setServers(serversWithStatus);
       }
     } catch (err: any) {
