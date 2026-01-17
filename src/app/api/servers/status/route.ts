@@ -60,18 +60,28 @@ export async function GET(request: NextRequest) {
 
     // Fetch API keys for all servers
     const serverKeyNames = allServers.map((s: any) => `server_${s.id}_key`);
-    const allApiKeys = await db
-      .select()
-      .from(apiKeys)
-      .where(inArray(apiKeys.name, serverKeyNames));
-
-    // Create a map of server ID -> API key
     const apiKeyMap = new Map<number, string>();
-    for (const key of allApiKeys) {
-      const match = key.name.match(/^server_(\d+)_key$/);
-      if (match) {
-        apiKeyMap.set(parseInt(match[1]), key.key);
+
+    try {
+      console.log('[servers/status] Fetching API keys for:', serverKeyNames);
+      const allApiKeys = await db
+        .select()
+        .from(apiKeys)
+        .where(inArray(apiKeys.name, serverKeyNames));
+
+      console.log('[servers/status] Found API keys:', allApiKeys.length);
+
+      // Create a map of server ID -> API key
+      for (const key of allApiKeys) {
+        const match = key.name.match(/^server_(\d+)_key$/);
+        if (match) {
+          apiKeyMap.set(parseInt(match[1]), key.key);
+        }
       }
+      console.log('[servers/status] API key map size:', apiKeyMap.size);
+    } catch (error: any) {
+      console.error('[servers/status] Error fetching API keys:', error.message);
+      // Continue without API keys rather than failing the whole request
     }
 
     // Ping all servers in parallel using hybrid approach
