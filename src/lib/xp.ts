@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { users, achievements, userAchievements, xpTransactions } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getLevelForXp, XP_CURVE_MULTIPLIER } from './xp-math';
 
 // Re-export math functions for convenience in server-side code
@@ -74,9 +74,9 @@ async function checkXpAchievements(userId: number, level: number) {
     if (!isNaN(reqLevel) && level >= reqLevel) {
       // Check if already completed
       const existing = await db.query.userAchievements.findFirst({
-        where: (ua, { and, eq }) => and(
-          eq(ua.userId, userId),
-          eq(ua.achievementId, achievement.id)
+        where: and(
+          eq(userAchievements.userId, userId),
+          eq(userAchievements.achievementId, achievement.id)
         )
       });
 
