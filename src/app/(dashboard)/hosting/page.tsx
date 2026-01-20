@@ -19,15 +19,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-const AFFILIATE_URL_ULTRA = 'https://ultraservers.com/aff.php?code=kJj5hk5koEMNj5Il';
+const AFFILIATE_URL_TGH = 'https://thegamehosting.com/clientarea/aff.php?aff=154';
 const AFFILIATE_URL_DART = 'https://dartnode.com?aff=VonixNetwork';
 
-// UltraServers (Minecraft) Plans
+// TheGameHosting (Minecraft) Plans
 const mcPlans = [
-    { ram: '4GB', vcores: 2, storage: 'Unlimited', price: 4, popular: false },
-    { ram: '8GB', vcores: 4, storage: 'Unlimited', price: 8, popular: true },
-    { ram: '12GB', vcores: 5, storage: 'Unlimited', price: 12, popular: false },
-    { ram: '16GB', vcores: 6, storage: 'Unlimited', price: 16, popular: false },
+    { ram: '4GB', vcores: 2, storage: 'Unlimited', price: 3.69, popular: false },
+    { ram: '8GB', vcores: 4, storage: 'Unlimited', price: 6.96, popular: true },
+    { ram: '12GB', vcores: 5, storage: 'Unlimited', price: 9.99, popular: false },
+    { ram: '16GB', vcores: 6, storage: 'Unlimited', price: 12.89, popular: false },
 ];
 
 /**
@@ -129,9 +129,9 @@ const dartNodeProducts = [
 
 const features = {
     minecraft: [
-        { icon: Cpu, title: 'Ryzen 9950X Power', desc: 'Extreme single-core performance for lag-free Minecraft.' },
-        { icon: Zap, title: 'Instant Setup', desc: 'Server online in seconds after payment.' },
-        { icon: Shield, title: 'DDoS Protection', desc: 'Terabit-scale mitigation included free.' },
+        { icon: Cpu, title: '9950X / 7950X3D Power', desc: '5.7Ghz extreme single-core performance for lag-free Minecraft.' },
+        { icon: Zap, title: 'Instant Setup', desc: 'Server online in seconds after payment. 60+ games supported.' },
+        { icon: Shield, title: 'DDoS Protection', desc: 'Advanced DDoS protection with US & Europe locations.' },
     ],
     // General DartNode features based on their brand
     dartnode: [
@@ -225,7 +225,7 @@ export default function HostingPage() {
                         <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 bg-white/5">
                             {isMC ? <Sparkles className="w-3 h-3 text-green-400" /> : <Zap className="w-3 h-3 text-orange-400" />}
                             <span className="text-gray-300">
-                                Powered by <span className={isMC ? "text-green-400" : "text-orange-400"}>{isMC ? 'UltraServers' : 'DartNode'}</span>
+                                Powered by <span className={isMC ? "text-green-400" : "text-orange-400"}>{isMC ? 'TheGameHosting' : 'DartNode'}</span>
                             </span>
                         </div>
 
@@ -292,7 +292,7 @@ export default function HostingPage() {
                                         </div>
 
                                         <h3 className="text-xl font-bold text-white mb-2">{plan.ram} RAM</h3>
-                                        <div className="text-gray-500 text-sm mb-6">Ryzen 9950X</div>
+                                        <div className="text-gray-500 text-sm mb-6">9950X / 7950X3D</div>
 
                                         <div className="mb-8">
                                             <span className="text-4xl font-bold text-white">${plan.price}</span>
@@ -312,7 +312,7 @@ export default function HostingPage() {
                                         </ul>
 
                                         <Button className="w-full mt-auto bg-white/10 hover:bg-white/20 text-white font-semibold" asChild>
-                                            <a href={AFFILIATE_URL_ULTRA} target="_blank" rel="noopener noreferrer">
+                                            <a href={AFFILIATE_URL_TGH} target="_blank" rel="noopener noreferrer">
                                                 Order Now <ArrowRight className="w-4 h-4 ml-2" />
                                             </a>
                                         </Button>
@@ -372,7 +372,7 @@ export default function HostingPage() {
                 {/* Footer Note */}
                 <div className="mt-32 text-center border-t border-white/5 pt-12">
                     <p className="text-gray-500 text-sm">
-                        Vonix Network provided services via our trusted partners <span className="text-green-400 font-bold">UltraServers</span> and <span className="text-orange-400 font-bold">DartNode</span>.
+                        Vonix Network provided services via our trusted partners <span className="text-green-400 font-bold">TheGameHosting</span> and <span className="text-orange-400 font-bold">DartNode</span>.
                         <br />
                         <span className="opacity-50">Support the network with every purchase.</span>
                     </p>
