@@ -246,6 +246,24 @@ export default function HostingPage() {
                                 ? "Powered by Ryzen 9950X processors and NVMe storage. The ultimate platform for your Minecraft community."
                                 : "Enterprise-grade hardware priced for developers. From NVMe VPS to Bare Metal servers."}
                         </p>
+
+                        {/* Coupon Code Banner - Only show for Minecraft/TheGameHosting */}
+                        {isMC && (
+                            <div className="mt-8 inline-flex flex-col items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Heart className="w-4 h-4 text-green-400" />
+                                    <span className="text-sm font-semibold text-green-400">Official Partner</span>
+                                </div>
+                                <div className="px-6 py-4 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 backdrop-blur-sm">
+                                    <p className="text-sm text-gray-300 mb-2">Use code for <span className="text-green-400 font-bold">15% OFF</span> your first order:</p>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <code className="px-4 py-2 bg-black/50 rounded-lg text-xl font-mono font-bold text-green-400 border border-green-500/50 tracking-wider">
+                                            VONIXNETWORK
+                                        </code>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 </div>
 
