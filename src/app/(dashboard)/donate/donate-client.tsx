@@ -819,11 +819,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                   Manage
                 </Button>
               </div>
-              {!userSubscription.hasSubscription && (
-                <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Tip: Subscribe below to enable auto-renewal and never lose your rank!
-                </p>
-              )}
+
             </CardContent>
           </Card>
         )}
@@ -867,7 +863,7 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
             <p className="text-center text-muted-foreground mb-8">
               {paymentConfig?.provider === 'kofi'
                 ? 'Support us on Ko-Fi to automatically receive these ranks!'
-                : 'Subscribe for auto-renewal or buy a one-time rank'}
+                : 'Purchase rank time to unlock exclusive perks!'}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {displayRanks.map((rank: any) => {
@@ -939,35 +935,24 @@ export function DonatePageClient({ ranks, recentDonations, stats, userSubscripti
                                 style={{ borderColor: rank.color, color: rank.color }}
                                 onClick={() => router.push('/login?callbackUrl=/donate')}
                               >
-                                Login to Subscribe
+                                Login to Purchase
                               </Button>
                             </div>
                           ) : (
                             <>
-                              {(paymentConfig?.provider === 'stripe' || paymentConfig?.provider === 'square') && (
-                                <Button
-                                  variant="neon-outline"
-                                  className="w-full"
-                                  style={{ borderColor: rank.color, color: rank.color }}
-                                  onClick={() => handleSubscribe(rank)}
-                                  disabled={loadingRankId === rank.id}
-                                >
-                                  {loadingRankId === rank.id && loadingType === 'subscription' ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                  )}
-                                  {isCurrentRank ? 'Renew Subscription' : 'Subscribe'}
-                                </Button>
-                              )}
                               <Button
-                                variant="ghost"
-                                className="w-full text-muted-foreground hover:text-foreground"
+                                variant="neon-outline"
+                                className="w-full"
+                                style={{ borderColor: rank.color, color: rank.color }}
                                 onClick={() => openPurchaseModal(rank)}
                                 disabled={loadingRankId === rank.id}
                               >
-                                <Clock className="w-4 h-4 mr-2" />
-                                {isCurrentRank ? 'Extend Time' : 'Buy One-Time'}
+                                {loadingRankId === rank.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                )}
+                                {isCurrentRank ? 'Extend Time' : 'Purchase'}
                               </Button>
                             </>
                           )}

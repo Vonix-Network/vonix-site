@@ -93,11 +93,10 @@ export async function POST(request: NextRequest) {
             daysValue = parseInt(days) || 30;
         }
 
-        // Note: Square only supports one-time payments via checkout links
-        // Subscriptions would require Square Subscriptions API which is more complex
+        // Subscriptions are no longer offered
         if (paymentType === 'subscription') {
             return NextResponse.json(
-                { error: 'Square subscriptions require card entry. Use the subscription modal instead.' },
+                { error: 'Subscriptions are no longer available. Please use one-time payment instead.' },
                 { status: 400 }
             );
         }

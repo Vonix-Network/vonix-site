@@ -43,7 +43,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['one_time', 'subscription'].includes(paymentType)) {
+    // Only accept one_time payments - subscriptions are no longer offered
+    if (paymentType === 'subscription') {
+      return NextResponse.json(
+        { error: 'Subscriptions are no longer available. Please use one-time payment instead.' },
+        { status: 400 }
+      );
+    }
+
+    if (paymentType !== 'one_time') {
       return NextResponse.json(
         { error: 'Invalid payment type' },
         { status: 400 }
