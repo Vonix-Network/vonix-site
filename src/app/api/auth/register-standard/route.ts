@@ -176,6 +176,8 @@ export async function POST(request: NextRequest) {
             role: 'user',
             minecraftUsername: finalMinecraftUsername,
             avatar: avatar?.trim() || null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
         }).returning();
 
         console.log(`[Register-Standard] Successfully created new user: ${newUser.username} (ID: ${newUser.id})`);

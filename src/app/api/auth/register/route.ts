@@ -182,6 +182,8 @@ export async function POST(request: NextRequest) {
         minecraftUsername: code.minecraftUsername,
         minecraftUuid: code.minecraftUuid,
         role: 'user',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }).returning();
 
       finalUser = {
