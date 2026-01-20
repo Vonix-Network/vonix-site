@@ -23,11 +23,13 @@ const AFFILIATE_URL_TGH = 'https://thegamehosting.com/clientarea/aff.php?aff=154
 const AFFILIATE_URL_DART = 'https://dartnode.com?aff=VonixNetwork';
 
 // TheGameHosting (Minecraft) Plans
+// Base prices shown, use code VONIXNETWORK for 15% off
+// Prices after 15% discount: 3.69→3.14, 6.96→5.92, 9.99→8.49, 12.89→10.96
 const mcPlans = [
-    { ram: '4GB', vcores: 2, storage: 'Unlimited', price: 3.69, popular: false },
-    { ram: '8GB', vcores: 4, storage: 'Unlimited', price: 6.96, popular: true },
-    { ram: '12GB', vcores: 5, storage: 'Unlimited', price: 9.99, popular: false },
-    { ram: '16GB', vcores: 6, storage: 'Unlimited', price: 12.89, popular: false },
+    { ram: '4GB', threads: 'Unlimited', storage: 'Unlimited NVMe', price: 3.14, originalPrice: 3.69, popular: false },
+    { ram: '8GB', threads: 'Unlimited', storage: 'Unlimited NVMe', price: 5.92, originalPrice: 6.96, popular: true },
+    { ram: '12GB', threads: 'Unlimited', storage: 'Unlimited NVMe', price: 8.49, originalPrice: 9.99, popular: false },
+    { ram: '16GB', threads: 'Unlimited', storage: 'Unlimited NVMe', price: 10.96, originalPrice: 12.89, popular: false },
 ];
 
 /**
@@ -313,16 +315,18 @@ export default function HostingPage() {
                                         <div className="text-gray-500 text-sm mb-6">9950X / 7950X3D</div>
 
                                         <div className="mb-8">
-                                            <span className="text-4xl font-bold text-white">${plan.price}</span>
+                                            <div className="text-gray-500 line-through text-sm">${plan.originalPrice}/mo</div>
+                                            <span className="text-4xl font-bold text-green-400">${plan.price}</span>
                                             <span className="text-gray-500">/mo</span>
+                                            <div className="text-xs text-green-400 mt-1">With code VONIXNETWORK</div>
                                         </div>
 
                                         <ul className="space-y-3 mb-8 text-sm text-gray-400 w-full">
                                             <li className="flex items-center justify-center gap-2">
-                                                <Cpu className="w-4 h-4 text-green-500" /> {plan.vcores} vCores
+                                                <Cpu className="w-4 h-4 text-green-500" /> {plan.threads} Threads
                                             </li>
                                             <li className="flex items-center justify-center gap-2">
-                                                <HardDrive className="w-4 h-4 text-green-500" /> NVMe Storage
+                                                <HardDrive className="w-4 h-4 text-green-500" /> {plan.storage}
                                             </li>
                                             <li className="flex items-center justify-center gap-2">
                                                 <Shield className="w-4 h-4 text-green-500" /> DDoS Protection
