@@ -126,12 +126,15 @@ export function getStripe(): Stripe {
 }
 
 /**
- * Check if Stripe is properly configured
+ * Check if Stripe is properly configured for checkout
+ * Only requires secretKey and publishableKey - webhookSecret is only needed for webhooks
  */
 export async function isStripeConfigured(): Promise<boolean> {
   try {
     const config = await loadStripeConfig();
-    return !!(config.secretKey && config.publishableKey && config.webhookSecret);
+    // Only require secretKey and publishableKey for checkout creation
+    // webhookSecret is only needed for processing webhooks, not for creating checkouts
+    return !!(config.secretKey && config.publishableKey);
   } catch {
     return false;
   }
@@ -139,15 +142,15 @@ export async function isStripeConfigured(): Promise<boolean> {
 
 /**
  * Synchronous check if Stripe is configured (uses cache or env vars)
+ * Only requires secretKey and publishableKey
  */
 export function isStripeConfiguredSync(): boolean {
   if (stripeConfigCache) {
-    return !!(stripeConfigCache.secretKey && stripeConfigCache.publishableKey && stripeConfigCache.webhookSecret);
+    return !!(stripeConfigCache.secretKey && stripeConfigCache.publishableKey);
   }
   return !!(
     process.env.STRIPE_SECRET_KEY &&
-    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY &&
-    process.env.STRIPE_WEBHOOK_SECRET
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   );
 }
 

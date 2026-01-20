@@ -233,6 +233,7 @@ export async function processDonation(data: DonationData): Promise<DonationResul
             amount: data.amount,
             currency: data.currency.toUpperCase(),
             status: 'completed',
+            method: data.method, // stripe, square, or kofi
             paymentId: data.transactionId,
             rankId: rankId || null,
             days: days > 0 ? days : null,
