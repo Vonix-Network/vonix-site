@@ -70,17 +70,20 @@ export async function GET(request: NextRequest) {
         .where(inArray(apiKeys.name, serverKeyNames));
 
       console.log('[servers/status] Found API keys:', allApiKeys.length);
+      console.log('[servers/status] API keys data:', JSON.stringify(allApiKeys.map((k: any) => ({ name: k.name, hasKey: !!k.key }))));
 
       // Create a map of server ID -> API key
       for (const key of allApiKeys) {
         const match = key.name.match(/^server_(\d+)_key$/);
         if (match) {
           apiKeyMap.set(parseInt(match[1]), key.key);
+          console.log('[servers/status] Mapped server', match[1], 'to key');
         }
       }
       console.log('[servers/status] API key map size:', apiKeyMap.size);
     } catch (error: any) {
       console.error('[servers/status] Error fetching API keys:', error.message);
+      console.error('[servers/status] Full error:', error);
       // Continue without API keys rather than failing the whole request
     }
 
@@ -144,7 +147,7 @@ export async function GET(request: NextRequest) {
         bluemapUrl: server.bluemapUrl,
         curseforgeUrl: server.curseforgeUrl,
         orderIndex: server.orderIndex,
-        apiKey: apiKeyMap.get(server.id) || null,
+        apiKey: apiKeyMap.get(Number(server.id)) || null,
         pterodactylServerId: server.pterodactylServerId,
         pterodactylPanelUrl: server.pterodactylPanelUrl,
         // Live status data ONLY (no DB fallbacks for dynamic fields)
