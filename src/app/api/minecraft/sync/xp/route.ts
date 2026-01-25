@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users, servers, serverXp, apiKeys } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { ilike } from 'drizzle-orm/pg-core';
 import { getLevelForXp } from '@/lib/xp-math';
 
 interface PlayerData {
