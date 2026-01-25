@@ -50,6 +50,7 @@ export const users = schemaModule.users;
 export const sessions = schemaModule.sessions;
 export const servers = schemaModule.servers;
 export const serverXp = schemaModule.serverXp;
+export const minecraftPlayers = schemaModule.minecraftPlayers;
 export const forumCategories = schemaModule.forumCategories;
 export const forumPosts = schemaModule.forumPosts;
 export const forumReplies = schemaModule.forumReplies;

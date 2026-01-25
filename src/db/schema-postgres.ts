@@ -193,6 +193,21 @@ export const serverXp = pgTable('server_xp', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Minecraft players table - stores XP for players who haven't registered on the website
+// This allows the leaderboard to show ALL players, not just registered ones
+export const minecraftPlayers = pgTable('minecraft_players', {
+    id: serial('id').primaryKey(),
+    uuid: varchar('uuid', { length: 36 }).notNull().unique(),
+    username: varchar('username', { length: 255 }).notNull(),
+    xp: integer('xp').default(0).notNull(),
+    level: integer('level').default(0).notNull(),
+    playtimeSeconds: integer('playtime_seconds').default(0),
+    lastSyncedAt: timestamp('last_synced_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // When a user registers with this UUID, this field links to their account
+    linkedUserId: integer('linked_user_id').references(() => users.id, { onDelete: 'set null' }),
+});
+
 // ===================================
 // FORUM SYSTEM
 // ===================================

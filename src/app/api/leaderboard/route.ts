@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, serverXp, donationRanks } from '@/db/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { users, serverXp, donationRanks, minecraftPlayers } from '@/db/schema';
+import { desc, eq, sql, isNull } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
+
+interface LeaderboardEntry {
+  id: number | string;
+  username: string;
+  minecraftUsername: string | null;
+  xp: number;
+  level: number;
+  role: string | null;
+  title: string | null;
+  avatar: string | null;
+  playtimeSeconds: number;
+  donationRank: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+  isRegistered: boolean; // true = registered user, false = unregistered Minecraft player
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +30,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const type = searchParams.get('type') || 'xp'; // 'xp' or 'playtime'
 
-    // Get all users with their base data and donation rank info
+    // ========== Get registered users with their XP and playtime ==========
     const usersData = await db
       .select({
         id: users.id,
@@ -31,7 +49,7 @@ export async function GET(request: NextRequest) {
       .from(users)
       .leftJoin(donationRanks, eq(users.donationRankId, donationRanks.id));
 
-    // Get playtime per user from serverXp
+    // Get playtime per registered user from serverXp
     const playtimeData = await db
       .select({
         userId: serverXp.userId,
@@ -48,11 +66,17 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
 
-    // Combine users with their playtime and filter rank expiration
-    const usersWithPlaytime = usersData.map((user: any) => ({
-      ...user,
+    // Build registered users entries
+    const registeredEntries: LeaderboardEntry[] = usersData.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      minecraftUsername: user.minecraftUsername,
+      xp: Number(user.xp || 0),
+      level: Number(user.level || 1),
+      role: user.role,
+      title: user.title,
+      avatar: user.avatar,
       playtimeSeconds: playtimeMap.get(user.id) || 0,
-      // Only include rank if not expired
       donationRank: user.donationRankId && user.rankExpiresAt && new Date(user.rankExpiresAt) > now
         ? {
           id: user.donationRankId,
@@ -60,19 +84,53 @@ export async function GET(request: NextRequest) {
           color: user.rankColor,
         }
         : null,
+      isRegistered: true,
     }));
+
+    // ========== Get unregistered Minecraft players ==========
+    // Only get players who are NOT linked to a registered user
+    const unregisteredPlayers = await db
+      .select({
+        id: minecraftPlayers.id,
+        uuid: minecraftPlayers.uuid,
+        username: minecraftPlayers.username,
+        xp: minecraftPlayers.xp,
+        level: minecraftPlayers.level,
+        playtimeSeconds: minecraftPlayers.playtimeSeconds,
+        linkedUserId: minecraftPlayers.linkedUserId,
+      })
+      .from(minecraftPlayers)
+      .where(isNull(minecraftPlayers.linkedUserId));
+
+    // Build unregistered player entries
+    const unregisteredEntries: LeaderboardEntry[] = unregisteredPlayers.map((player: any) => ({
+      id: `mc-${player.id}`, // Prefix to distinguish from user IDs
+      username: player.username,
+      minecraftUsername: player.username,
+      xp: Number(player.xp || 0),
+      level: Number(player.level || 1),
+      role: null,
+      title: null,
+      avatar: null,
+      playtimeSeconds: Number(player.playtimeSeconds || 0),
+      donationRank: null,
+      isRegistered: false,
+    }));
+
+    // ========== Combine and sort ==========
+    const allEntries = [...registeredEntries, ...unregisteredEntries];
 
     // Sort based on type
     if (type === 'playtime') {
-      usersWithPlaytime.sort((a: any, b: any) => (b.playtimeSeconds || 0) - (a.playtimeSeconds || 0));
+      allEntries.sort((a, b) => b.playtimeSeconds - a.playtimeSeconds);
     } else {
-      usersWithPlaytime.sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0));
+      allEntries.sort((a, b) => b.xp - a.xp);
     }
 
     // Apply pagination
-    const paginatedUsers = usersWithPlaytime.slice(offset, offset + limit);
+    const paginatedEntries = allEntries.slice(offset, offset + limit);
 
-    return NextResponse.json(paginatedUsers);
+    return NextResponse.json(paginatedEntries);
   } catch (error: any) {
     console.error('Error fetching leaderboard:', error);
     return NextResponse.json(
@@ -81,4 +139,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

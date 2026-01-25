@@ -173,6 +173,21 @@ export const serverXp = sqliteTable('server_xp', {
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
 });
 
+// Minecraft players table - stores XP for players who haven't registered on the website
+// This allows the leaderboard to show ALL players, not just registered ones
+export const minecraftPlayers = sqliteTable('minecraft_players', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    uuid: text('uuid').notNull().unique(),
+    username: text('username').notNull(),
+    xp: integer('xp').default(0).notNull(),
+    level: integer('level').default(0).notNull(),
+    playtimeSeconds: integer('playtime_seconds').default(0),
+    lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).notNull(),
+    // When a user registers with this UUID, this field links to their account
+    linkedUserId: integer('linked_user_id').references(() => users.id, { onDelete: 'set null' }),
+});
+
 // ===================================
 // FORUM SYSTEM
 // ===================================
