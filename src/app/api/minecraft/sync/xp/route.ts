@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users, servers, serverXp, apiKeys } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { ilike } from 'drizzle-orm/pg-core';
+import { eq, and, sql } from 'drizzle-orm';
 import { getLevelForXp } from '@/lib/xp-math';
 
 interface PlayerData {
@@ -87,13 +86,13 @@ export async function POST(request: NextRequest) {
             try {
                 // Find user by Minecraft UUID (case-insensitive)
                 let user = await db.query.users.findFirst({
-                    where: ilike(users.minecraftUuid, player.uuid),
+                    where: sql`LOWER(${users.minecraftUuid}) = LOWER(${player.uuid})`,
                 });
 
                 // Fallback: Try to find by Minecraft username (case-insensitive) if UUID lookup failed
                 if (!user && player.username) {
                     user = await db.query.users.findFirst({
-                        where: ilike(users.minecraftUsername, player.username),
+                        where: sql`LOWER(${users.minecraftUsername}) = LOWER(${player.username})`,
                     });
                     
                     if (user) {
@@ -198,41 +197,13 @@ export async function POST(request: NextRequest) {
             success: true,
             syncedCount,
             totalPlayers: players.length,
-            message: `Successfully synced ${syncedCount} players`,
-            errors: errors.length > 0 ? errors : undefined,
-            timestamp: new Date().toISOString(),
+            errors,
         });
-
     } catch (error: any) {
-        console.error('XP sync error:', error);
+        console.error('[XP Sync] Global error:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to sync XP' },
+            { success: false, error: 'An unexpected error occurred' },
             { status: 500 }
         );
     }
-}
-
-/**
- * GET /api/minecraft/sync/xp
- * Health check / info endpoint
- */
-export async function GET() {
-    return NextResponse.json({
-        endpoint: '/api/minecraft/sync/xp',
-        method: 'POST',
-        description: 'Sync player XP from Minecraft servers',
-        authentication: 'Bearer token or x-api-key header (API key from admin dashboard)',
-        payload: {
-            serverName: 'string (must match a server name in the database)',
-            players: [
-                {
-                    uuid: 'string (Minecraft UUID)',
-                    username: 'string',
-                    level: 'number (Minecraft level)',
-                    totalExperience: 'number (total Minecraft XP)',
-                    currentHealth: 'number (optional)',
-                },
-            ],
-        },
-    });
 }
