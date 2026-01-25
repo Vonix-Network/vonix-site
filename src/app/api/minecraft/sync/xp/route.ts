@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        console.log(`[XP Sync] Found server: ${server.name} (ID: ${server.id})`);
+
         if (!players || !Array.isArray(players) || players.length === 0) {
             return NextResponse.json(
                 { success: false, error: 'No players to sync' },
@@ -89,8 +91,11 @@ export async function POST(request: NextRequest) {
 
                 if (!user) {
                     // Player not registered on website - skip silently
+                    console.log(`[XP Sync] Skipping unregistered player: ${player.username} (${player.uuid})`);
                     continue;
                 }
+
+                console.log(`[XP Sync] Syncing registered player: ${player.username} (${player.uuid})`);
 
                 // Check if server_xp record exists for this user/server
                 const existingServerXp = await db.query.serverXp.findFirst({
@@ -156,6 +161,7 @@ export async function POST(request: NextRequest) {
                     .where(eq(users.id, user.id));
 
                 syncedCount++;
+                console.log(`[XP Sync] Successfully synced player: ${player.username} (${player.uuid})`);
             } catch (playerError: any) {
                 console.error(`Error syncing player ${player.uuid}:`, playerError);
                 errors.push(player.uuid);
