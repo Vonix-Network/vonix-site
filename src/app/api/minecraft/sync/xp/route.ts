@@ -84,10 +84,29 @@ export async function POST(request: NextRequest) {
 
         for (const player of players) {
             try {
-                // Find user by Minecraft UUID
-                const user = await db.query.users.findFirst({
-                    where: eq(users.minecraftUuid, player.uuid),
+                // Find user by Minecraft UUID (case-insensitive)
+                let user = await db.query.users.findFirst({
+                    where: ilike(users.minecraftUuid, player.uuid),
                 });
+
+                // Fallback: Try to find by Minecraft username (case-insensitive) if UUID lookup failed
+                if (!user && player.username) {
+                    user = await db.query.users.findFirst({
+                        where: ilike(users.minecraftUsername, player.username),
+                    });
+                    
+                    if (user) {
+                        console.log(`[XP Sync] Found user by username fallback: ${player.username}`);
+                        
+                        // If user exists but has no UUID, update it now since we have it from the server
+                        if (!user.minecraftUuid) {
+                             console.log(`[XP Sync] Updating missing UUID for user ${user.username} to ${player.uuid}`);
+                             await db.update(users)
+                                .set({ minecraftUuid: player.uuid })
+                                .where(eq(users.id, user.id));
+                        }
+                    }
+                }
 
                 if (!user) {
                     // Player not registered on website - skip silently

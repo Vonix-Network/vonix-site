@@ -92,7 +92,7 @@ export async function validateMinecraftUsername(username: string): Promise<boole
  * @returns Formatted UUID with dashes
  */
 export function formatUUID(uuid: string): string {
-  const clean = uuid.replace(/-/g, '');
+  const clean = uuid.replace(/-/g, '').toLowerCase();
   return `${clean.slice(0, 8)}-${clean.slice(8, 12)}-${clean.slice(12, 16)}-${clean.slice(16, 20)}-${clean.slice(20)}`;
 }
 
